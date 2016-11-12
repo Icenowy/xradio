@@ -32,7 +32,7 @@ ccflags-y += -DCONFIG_XRADIO_DEBUGFS
 ccflags-y += -DCONFIG_XRADIO_SUSPEND_POWER_OFF
 # Use vfs for firmware load when request_firmware 
 # can't work on other platform.
-ccflags-y += -DUSE_VFS_FIRMWARE
+# ccflags-y += -DUSE_VFS_FIRMWARE
 
 # Extra IE for probe response from upper layer is needed in P2P GO
 # For offloading probe response to FW, the extra IE must be included
@@ -51,7 +51,7 @@ ccflags-y += -DXRADIO_USE_LONG_KEEP_ALIVE_PERIOD
 #ccflags-y += -DXRADIO_MACPARAM_HEX
 
 # Mac addr generate from chipid.
-ccflags-y += -DXRADIO_MACADDR_FROM_CHIPID
+#ccflags-y += -DXRADIO_MACADDR_FROM_CHIPID
 
 # Use semaphore to sync bh txrx.
 #ccflags-y += -DBH_USE_SEMAPHORE
