@@ -239,7 +239,7 @@ static int __xradio_itp_open(struct xradio_common *priv)
 	itp->saved_channel = priv->channel;
 	if (!priv->channel)
 		priv->channel = &priv->hw->
-			wiphy->bands[IEEE80211_BAND_2GHZ]->channels[0];
+			wiphy->bands[NL80211_BAND_2GHZ]->channels[0];
 	wsm_set_bssid_filtering(priv, false);
 	xradio_itp_rx_reset(priv);
 	return 0;

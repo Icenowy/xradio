@@ -125,7 +125,7 @@ static void xradio_debug_print_map(struct seq_file *seq,
 static int xradio_version_show(struct seq_file *seq, void *v)
 {
 	struct xradio_common *hw_priv = seq->private;
-	seq_printf(seq, "Driver Label:%s  %s\n", DRV_VERSION, DRV_BUILDTIME);
+	seq_printf(seq, "Driver Label:%s\n", DRV_VERSION);
 	seq_printf(seq, "Firmware Label:%s\n", &hw_priv->wsm_caps.fw_label[0]);
 	return 0;
 }
@@ -220,12 +220,12 @@ static int xradio_status_show_common(struct seq_file *seq, void *v)
 			hw_priv->channel_switch_in_progress ?
 			" (switching)" : "");
 	seq_printf(seq, "HT:         %s\n",
-		xradio_is_ht(&hw_priv->ht_info) ? "on" : "off");
-	if (xradio_is_ht(&hw_priv->ht_info)) {
+		xradio_is_ht(&hw_priv->ht_oper) ? "on" : "off");
+	if (xradio_is_ht(&hw_priv->ht_oper)) {
 		seq_printf(seq, "Greenfield: %s\n",
-			xradio_ht_greenfield(&hw_priv->ht_info) ? "yes" : "no");
+			xradio_ht_greenfield(&hw_priv->ht_oper) ? "yes" : "no");
 		seq_printf(seq, "AMPDU dens: %d\n",
-			xradio_ht_ampdu_density(&hw_priv->ht_info));
+			xradio_ht_ampdu_density(&hw_priv->ht_oper));
 	}
 	spin_lock_bh(&hw_priv->tx_policy_cache.lock);
 	i = 0;
@@ -706,7 +706,7 @@ static ssize_t xradio_11n_read(struct file *file,
 {
 	struct xradio_common *hw_priv = file->private_data;
 	struct ieee80211_supported_band *band =
-		hw_priv->hw->wiphy->bands[IEEE80211_BAND_2GHZ];
+		hw_priv->hw->wiphy->bands[NL80211_BAND_2GHZ];
 	return simple_read_from_buffer(user_buf, count, ppos, 
 	                               band->ht_cap.ht_supported ? "1\n" : "0\n", 2);
 }
@@ -716,8 +716,8 @@ static ssize_t xradio_11n_write(struct file *file,
 {
 	struct xradio_common *hw_priv = file->private_data;
 	struct ieee80211_supported_band *band[2] = {
-		hw_priv->hw->wiphy->bands[IEEE80211_BAND_2GHZ],
-		hw_priv->hw->wiphy->bands[IEEE80211_BAND_5GHZ],
+		hw_priv->hw->wiphy->bands[NL80211_BAND_2GHZ],
+		hw_priv->hw->wiphy->bands[NL80211_BAND_5GHZ],
 	};
 	char buf[1];
 	int ena = 0;

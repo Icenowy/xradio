@@ -147,8 +147,9 @@ static int xradio_sched_scan_start(struct xradio_vif *priv, struct wsm_scan *sca
 
 int xradio_hw_scan(struct ieee80211_hw *hw,
 		   struct ieee80211_vif *vif,
-		   struct cfg80211_scan_request *req)
+		   struct ieee80211_scan_request *hw_req)
 {
+	struct cfg80211_scan_request *req = &hw_req->req;
 	struct xradio_common *hw_priv = hw->priv;
 	struct xradio_vif *priv = xrwl_get_vif_from_ieee80211(vif);
 	struct wsm_template_frame frame = {
@@ -190,7 +191,7 @@ int xradio_hw_scan(struct ieee80211_hw *hw,
 		req->n_ssids = 0;
 
 	scan_printk(XRADIO_DBG_NIY, "vif%d Scan request(%s-%dchs) for %d SSIDs.\n",
-	            priv->if_id, (req->channels[0]->band==IEEE80211_BAND_2GHZ)?"2.4G":"5G", 
+	            priv->if_id, (req->channels[0]->band==NL80211_BAND_2GHZ)?"2.4G":"5G", 
 	            req->n_channels, req->n_ssids);
 	
 	/*delay multiple ssids scan of vif0 for 3s when connnetting to a node*/
@@ -210,7 +211,8 @@ int xradio_hw_scan(struct ieee80211_hw *hw,
 		return -EINVAL;
 	}
 
-	frame.skb = ieee80211_probereq_get(hw, vif, NULL, 0, req->ie, req->ie_len);
+	/* TODO by Icenowy: so strange function call */
+	frame.skb = ieee80211_probereq_get(hw, vif->addr, NULL, 0, 0);
 	if (!frame.skb) {
 		scan_printk(XRADIO_DBG_ERROR, "%s: ieee80211_probereq_get failed!\n", 
 		            __func__);
@@ -219,7 +221,7 @@ int xradio_hw_scan(struct ieee80211_hw *hw,
 
 #ifdef ROAM_OFFLOAD
 	if (priv->join_status != XRADIO_JOIN_STATUS_STA) {
-		if (req->channels[0]->band == IEEE80211_BAND_2GHZ)
+		if (req->channels[0]->band == NL80211_BAND_2GHZ)
 			hw_priv->num_scanchannels = 0;
 		else
 			hw_priv->num_scanchannels = hw_priv->num_2g_channels;
@@ -227,7 +229,7 @@ int xradio_hw_scan(struct ieee80211_hw *hw,
 		for (i=0; i < req->n_channels; i++) {
 			hw_priv->scan_channels[hw_priv->num_scanchannels + i].number = \
 				req->channels[i]->hw_value;
-			if (req->channels[i]->flags & IEEE80211_CHAN_PASSIVE_SCAN) {
+			if (req->channels[i]->flags & IEEE80211_CHAN_NO_IR) {
 				hw_priv->scan_channels[hw_priv->num_scanchannels + i].minChannelTime = 50;
 				hw_priv->scan_channels[hw_priv->num_scanchannels + i].maxChannelTime = 110;
 			}
@@ -239,11 +241,11 @@ int xradio_hw_scan(struct ieee80211_hw *hw,
 			}
 			hw_priv->scan_channels[hw_priv->num_scanchannels + i].txPowerLevel = \
 				req->channels[i]->max_power;
-			if (req->channels[0]->band == IEEE80211_BAND_5GHZ)
+			if (req->channels[0]->band == NL80211_BAND_5GHZ)
 				hw_priv->scan_channels[hw_priv->num_scanchannels + i].number |= \
 					XRADIO_SCAN_BAND_5G;
 		}
-		if (req->channels[0]->band == IEEE80211_BAND_2GHZ)
+		if (req->channels[0]->band == NL80211_BAND_2GHZ)
 			hw_priv->num_2g_channels = req->n_channels;
 		else
 			hw_priv->num_5g_channels = req->n_channels;
@@ -460,6 +462,7 @@ void xradio_scan_work(struct work_struct *work)
 	int ret = 0;
 	u16 advance_scan_req_channel = hw_priv->scan.begin[0]->hw_value;
 #endif
+	struct cfg80211_scan_info scan_info;
 	scan_printk(XRADIO_DBG_TRC,"%s\n", __func__);
 
 	priv = __xrwl_hwpriv_to_vifpriv(hw_priv, hw_priv->scan.if_id);
@@ -601,7 +604,9 @@ void xradio_scan_work(struct work_struct *work)
 #endif /* CONFIG_XRADIO_TESTMODE */
 		wsm_unlock_tx(hw_priv);
 		mutex_unlock(&hw_priv->conf_mutex);
-		ieee80211_scan_completed(hw_priv->hw, hw_priv->scan.status ? 1 : 0);
+		memset(&scan_info, 0, sizeof(scan_info));
+		scan_info.aborted = hw_priv->scan.status ? 1 : 0;
+		ieee80211_scan_completed(hw_priv->hw, &scan_info);
 		up(&hw_priv->scan.lock);
 		return;
 
@@ -612,9 +617,9 @@ void xradio_scan_work(struct work_struct *work)
 		     ++it, ++i) {
 			if ((*it)->band != first->band)
 				break;
-			if (((*it)->flags ^ first->flags) & IEEE80211_CHAN_PASSIVE_SCAN)
+			if (((*it)->flags ^ first->flags) & IEEE80211_CHAN_NO_IR)
 				break;
-			if (!(first->flags & IEEE80211_CHAN_PASSIVE_SCAN) &&
+			if (!(first->flags & IEEE80211_CHAN_NO_IR) &&
 			    (*it)->max_power != first->max_power)
 				break;
 		}
@@ -634,7 +639,7 @@ void xradio_scan_work(struct work_struct *work)
 		} else {
 #endif
 			/* TODO: Is it optimal? */
-			scan.numOfProbeRequests = (first->flags & IEEE80211_CHAN_PASSIVE_SCAN) ? 0 : 2;
+			scan.numOfProbeRequests = (first->flags & IEEE80211_CHAN_NO_IR) ? 0 : 2;
 #ifdef CONFIG_XRADIO_TESTMODE
 		}
 #endif /* CONFIG_XRADIO_TESTMODE */
@@ -669,7 +674,7 @@ void xradio_scan_work(struct work_struct *work)
 				scan.ch[i].maxChannelTime = hw_priv->advanceScanElems.duration;
 			} else {
 #endif
-				if (hw_priv->scan.curr[i]->flags & IEEE80211_CHAN_PASSIVE_SCAN) {
+				if (hw_priv->scan.curr[i]->flags & IEEE80211_CHAN_NO_IR) {
 					scan.ch[i].minChannelTime = 50;
 					scan.ch[i].maxChannelTime = 110;
 				} else {
@@ -685,7 +690,7 @@ void xradio_scan_work(struct work_struct *work)
 #ifdef CONFIG_XRADIO_TESTMODE
 		if (!hw_priv->enable_advance_scan) {
 #endif
-			if (!(first->flags & IEEE80211_CHAN_PASSIVE_SCAN) &&
+			if (!(first->flags & IEEE80211_CHAN_NO_IR) &&
 			    hw_priv->scan.output_power != first->max_power) {
 			    hw_priv->scan.output_power = first->max_power;
 				/* TODO:COMBO: Change after mac80211 implementation
@@ -1062,7 +1067,7 @@ void xradio_probe_work(struct work_struct *work)
 	}
 	wsm = (struct wsm_tx *)frame.skb->data;
 	scan.maxTransmitRate = wsm->maxTxRate;
-	scan.band = (hw_priv->channel->band == IEEE80211_BAND_5GHZ) ?
+	scan.band = (hw_priv->channel->band == NL80211_BAND_5GHZ) ?
 	             WSM_PHY_BAND_5G : WSM_PHY_BAND_2_4G;
 	if (priv->join_status == XRADIO_JOIN_STATUS_STA) {
 		scan.scanType  = WSM_SCAN_TYPE_BACKGROUND;

@@ -35,9 +35,10 @@ void xradio_bss_info_changed(struct ieee80211_hw *dev,
 			     u32 changed);
 int xradio_ampdu_action(struct ieee80211_hw *hw,
 			struct ieee80211_vif *vif,
-			enum ieee80211_ampdu_mlme_action action,
+			struct ieee80211_ampdu_params *params);
+/*			enum ieee80211_ampdu_mlme_action action,
 			struct ieee80211_sta *sta, u16 tid, u16 *ssn,
-			u8 buf_size);
+			u8 buf_size);*/
 
 void xradio_suspend_resume(struct xradio_vif *priv,
 			  struct wsm_suspend_resume *arg);
@@ -56,7 +57,7 @@ void xradio_link_id_gc_work(struct work_struct *work);
 #endif
 int xrwl_unmap_link(struct xradio_vif *priv, int link_id);
 #ifdef AP_HT_CAP_UPDATE
-void xradio_ht_info_update_work(struct work_struct *work);
+void xradio_ht_oper_update_work(struct work_struct *work);
 #endif
 
 #endif

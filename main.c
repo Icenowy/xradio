@@ -19,6 +19,7 @@
 #include <linux/random.h>
 #include <linux/sched.h>
 #include <net/mac80211.h>
+#include <net/cfg80211.h>
 
 #include "platform.h"
 #include "xradio.h"
@@ -39,7 +40,6 @@ MODULE_LICENSE("GPL");
 MODULE_ALIAS("xradio_core");
 
 char *drv_version   = XRADIO_VERSION;
-char *drv_buildtime = __DATE__" "__TIME__;
 
 #define XRADIO_MAC_CHARLEN 18
 #ifdef XRADIO_MACPARAM_HEX
@@ -101,7 +101,7 @@ static struct ieee80211_rate xradio_mcs_rates[] = {
 #define xradio_n_rates_size (ARRAY_SIZE(xradio_mcs_rates))
 
 #define CHAN2G(_channel, _freq, _flags) {   \
-	.band             = IEEE80211_BAND_2GHZ,  \
+	.band             = NL80211_BAND_2GHZ,  \
 	.center_freq      = (_freq),              \
 	.hw_value         = (_channel),           \
 	.flags            = (_flags),             \
@@ -110,7 +110,7 @@ static struct ieee80211_rate xradio_mcs_rates[] = {
 }
 
 #define CHAN5G(_channel, _flags) {   \
-	.band             = IEEE80211_BAND_5GHZ,     \
+	.band             = NL80211_BAND_5GHZ,     \
 	.center_freq      = 5000 + (5 * (_channel)), \
 	.hw_value         = (_channel),              \
 	.flags            = (_flags),                \
@@ -255,8 +255,8 @@ struct xradio_common *g_hw_priv;
 void xradio_version_show(void)
 {
 /* Show XRADIO version and compile time */
-	xradio_dbg(XRADIO_DBG_ALWY, "Driver Label:%s  %s\n", 
-	           DRV_VERSION, DRV_BUILDTIME);
+	xradio_dbg(XRADIO_DBG_ALWY, "Driver Label:%s\n", 
+	           DRV_VERSION);
 
 /************* Linux Kernel config *************/
 #ifdef CONFIG_XRADIO_NON_POWER_OF_TWO_BLOCKSIZES
@@ -594,12 +594,17 @@ struct ieee80211_hw *xradio_init_common(size_t hw_priv_data_len)
 	hw->sta_data_size = sizeof(struct xradio_sta_priv);
 	hw->vif_data_size = sizeof(struct xradio_vif);
 
-	hw->flags = IEEE80211_HW_SIGNAL_DBM            |
+	ieee80211_hw_set(hw, SIGNAL_DBM);
+	ieee80211_hw_set(hw, SUPPORTS_PS);
+	ieee80211_hw_set(hw, SUPPORTS_DYNAMIC_PS);
+	ieee80211_hw_set(hw, REPORTS_TX_ACK_STATUS);
+	ieee80211_hw_set(hw, CONNECTION_MONITOR);
+
+/*	hw->flags = IEEE80211_HW_SIGNAL_DBM            |
 	            IEEE80211_HW_SUPPORTS_PS           |
 	            IEEE80211_HW_SUPPORTS_DYNAMIC_PS   |
 	            IEEE80211_HW_REPORTS_TX_ACK_STATUS |
-	            IEEE80211_HW_SUPPORTS_UAPSD        |
-	            IEEE80211_HW_CONNECTION_MONITOR;
+	            IEEE80211_HW_CONNECTION_MONITOR;*/
 	            //IEEE80211_HW_SUPPORTS_CQM_RSSI     |
 	            /* Aggregation is fully controlled by firmware.
 	             * Do not need any support from the mac80211 stack */
@@ -619,8 +624,9 @@ struct ieee80211_hw *xradio_init_common(size_t hw_priv_data_len)
 	                             BIT(NL80211_IFTYPE_P2P_GO);
 
 	/* Support only for limited wowlan functionalities */
-	hw->wiphy->wowlan.flags = WIPHY_WOWLAN_ANY | WIPHY_WOWLAN_DISCONNECT;
-	hw->wiphy->wowlan.n_patterns = 0;
+	/* TODO by Icenowy: RESTORE THIS */
+/*	hw->wiphy->wowlan.flags = WIPHY_WOWLAN_ANY | WIPHY_WOWLAN_DISCONNECT;
+	hw->wiphy->wowlan.n_patterns = 0;*/
 
 #if defined(CONFIG_XRADIO_USE_EXTENSIONS)
 	hw->wiphy->flags |= WIPHY_FLAG_AP_UAPSD;
@@ -634,19 +640,18 @@ struct ieee80211_hw *xradio_init_common(size_t hw_priv_data_len)
 	hw->wiphy->n_addresses = XRWL_MAX_VIFS;
 	hw->wiphy->addresses   = hw_priv->addresses;
 	hw->wiphy->max_remain_on_channel_duration = 500;
-	hw->channel_change_time = 500;	/* TODO: find actual value */
 	hw->extra_tx_headroom = WSM_TX_EXTRA_HEADROOM +
 	                        8  /* TKIP IV */      +
 	                        12 /* TKIP ICV and MIC */;
-	hw->wiphy->bands[IEEE80211_BAND_2GHZ] = &xradio_band_2ghz;
+	hw->wiphy->bands[NL80211_BAND_2GHZ] = &xradio_band_2ghz;
 #ifdef CONFIG_XRADIO_5GHZ_SUPPORT
-	hw->wiphy->bands[IEEE80211_BAND_5GHZ] = &xradio_band_5ghz;
+	hw->wiphy->bands[NL80211_BAND_5GHZ] = &xradio_band_5ghz;
 #endif /* CONFIG_XRADIO_5GHZ_SUPPORT */
 	hw->queues         = AC_QUEUE_NUM;
 	hw->max_rates      = MAX_RATES_STAGE;
 	hw->max_rate_tries = MAX_RATES_RETRY;
 	/* Channel params have to be cleared before registering wiphy again */
-	for (band = 0; band < IEEE80211_NUM_BANDS; band++) {
+	for (band = 0; band < NUM_NL80211_BANDS; band++) {
 		sband = hw->wiphy->bands[band];
 		if (!sband)
 			continue;
@@ -657,7 +662,7 @@ struct ieee80211_hw *xradio_init_common(size_t hw_priv_data_len)
 		}
 	}
 	/* hw_priv->channel init value is the local->oper_channel init value;when transplanting,take care */
-	for (band = 0; band < IEEE80211_NUM_BANDS; band++) {
+	for (band = 0; band < NUM_NL80211_BANDS; band++) {
 		sband = hw->wiphy->bands[band];
 		if (!sband)
 			continue;

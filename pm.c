@@ -300,7 +300,7 @@ void xradio_pm_lock_awake(struct xradio_pm_state *pm)
 {
 	pm_printk(XRADIO_DBG_NIY, "%s\n", __func__);
 	spin_lock_bh(&pm->lock);
-	pm->expires_save = pm->stay_awake.expires
+	pm->expires_save = pm->stay_awake.expires;
 	mod_timer(&pm->stay_awake, jiffies + LONG_MAX);
 	spin_unlock_bh(&pm->lock);
 }

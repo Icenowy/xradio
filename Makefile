@@ -1,3 +1,6 @@
+CONFIG_XRADIO := m
+CONFIG_XRADIO_SDIO := y
+
 xradio_wlan-y := \
 	common.o \
 	fwio.o \

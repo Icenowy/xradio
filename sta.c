@@ -119,7 +119,7 @@ static inline void __xradio_bf_configure(struct xradio_vif *priv)
 	                        WSM_BEACON_FILTER_IE_NO_LONGER_PRESENT |
 	                        WSM_BEACON_FILTER_IE_HAS_APPEARED;
 
-	priv->bf_table.entry[2].ieId = WLAN_EID_HT_INFORMATION;
+	priv->bf_table.entry[2].ieId = WLAN_EID_HT_OPERATION;
 	priv->bf_table.entry[2].actionFlags = 
 	                        WSM_BEACON_FILTER_IE_HAS_CHANGED       |
 	                        WSM_BEACON_FILTER_IE_NO_LONGER_PRESENT |
@@ -246,7 +246,9 @@ int xradio_add_interface(struct ieee80211_hw *dev,
 	}
 
 	/* fix the problem that when connected,then deauth */
-	vif->driver_flags = vif->driver_flags | IEEE80211_VIF_BEACON_FILTER;
+	vif->driver_flags |= IEEE80211_VIF_BEACON_FILTER;
+	vif->driver_flags |= IEEE80211_VIF_SUPPORTS_UAPSD;
+
 	priv = xrwl_get_vif_from_ieee80211(vif);
 	atomic_set(&priv->enabled, 0);
 
@@ -492,7 +494,7 @@ int xradio_config(struct ieee80211_hw *dev, u32 changed)
 		hw_priv->output_power = 20;
 #ifdef CONFIG_XRADIO_TESTMODE
 		/* Testing if Power Level to set is out of device power range */
-		if (conf->chan_conf->channel->band == IEEE80211_BAND_2GHZ) {
+		if (conf->chan_conf->channel->band == NL80211_BAND_2GHZ) {
 			max_power_level = hw_priv->txPowerRange[0].max_power_level;
 			min_power_level = hw_priv->txPowerRange[0].min_power_level;
 		} else {
@@ -511,9 +513,9 @@ int xradio_config(struct ieee80211_hw *dev, u32 changed)
 	}
 
 	if ((changed & IEEE80211_CONF_CHANGE_CHANNEL) &&
-	    (hw_priv->channel != conf->channel)) {
+	    (hw_priv->channel != conf->chandef.chan)) {
 		/* Switch Channel commented for CC Mode */
-		struct ieee80211_channel *ch = conf->channel;
+		struct ieee80211_channel *ch = conf->chandef.chan;
 		sta_printk(XRADIO_DBG_WARN, "Freq %d (wsm ch: %d).\n",
 		           ch->center_freq, ch->hw_value);
 		/* Earlier there was a call to __xradio_flush().
@@ -547,7 +549,7 @@ void xradio_update_filtering(struct xradio_vif *priv)
 		.entry[0].oui[1] = 0x6F,
 		.entry[0].oui[2] = 0x9A,
 
-		.entry[1].ieId = WLAN_EID_HT_INFORMATION,
+		.entry[1].ieId = WLAN_EID_HT_OPERATION,
 		.entry[1].actionFlags = WSM_BEACON_FILTER_IE_HAS_CHANGED |
 					WSM_BEACON_FILTER_IE_NO_LONGER_PRESENT |
 					WSM_BEACON_FILTER_IE_HAS_APPEARED,
@@ -735,8 +737,7 @@ void xradio_configure_filter(struct ieee80211_hw *hw,
 	                      	FIF_PROBE_REQ));
 #endif
 
-		*total_flags &= FIF_PROMISC_IN_BSS |
-	                	FIF_OTHER_BSS      |
+		*total_flags &= FIF_OTHER_BSS      |
 	                	FIF_FCSFAIL        |
 	                	FIF_BCN_PRBRESP_PROMISC |
 	                	FIF_PROBE_REQ;
@@ -744,13 +745,12 @@ void xradio_configure_filter(struct ieee80211_hw *hw,
 		down(&hw_priv->scan.lock);
 		mutex_lock(&hw_priv->conf_mutex);
 
-		priv->rx_filter.promiscuous = (*total_flags & FIF_PROMISC_IN_BSS)? 1 : 0;
+		priv->rx_filter.promiscuous = 0;
 		priv->rx_filter.bssid = (*total_flags & 
 	                         	(FIF_OTHER_BSS | FIF_PROBE_REQ)) ? 1 : 0;
 		priv->rx_filter.fcs = (*total_flags & FIF_FCSFAIL) ? 1 : 0;
 		priv->bf_control.bcn_count = (*total_flags &
 	                              	(FIF_BCN_PRBRESP_PROMISC |
-	                               	FIF_PROMISC_IN_BSS |
 	                               	FIF_PROBE_REQ)) ? 1 : 0;
 
 		/*add for handle ap FIF_PROBE_REQ message,*/
@@ -1165,12 +1165,12 @@ int __xradio_flush(struct xradio_common *hw_priv, bool drop, int if_id)
 	return ret;
 }
 
-void xradio_flush(struct ieee80211_hw *hw, bool drop)
+void xradio_flush(struct ieee80211_hw *hw, struct ieee80211_vif *vif, u32 queues, bool drop)
 {
-	struct xradio_vif *priv = NULL;
+	//struct xradio_vif *priv = NULL;
 	struct xradio_common *hw_priv = hw->priv;
 	int i = 0;
-	//struct xradio_vif *priv = xrwl_get_vif_from_ieee80211(vif);
+	struct xradio_vif *priv = xrwl_get_vif_from_ieee80211(vif);
 
 	/*TODO:COMBO: reenable this part of code when flush callback
 	 * is implemented per vif */
@@ -1197,9 +1197,9 @@ void xradio_flush(struct ieee80211_hw *hw, bool drop)
 }
 
 int xradio_remain_on_channel(struct ieee80211_hw *hw,
+			     struct ieee80211_vif *vif,
 			     struct ieee80211_channel *chan,
-			     enum nl80211_channel_type channel_type,
-			     int duration)
+			     int duration, enum ieee80211_roc_type type)
 {
 	int ret = 0;
 	struct xradio_common *hw_priv = hw->priv;
@@ -1600,9 +1600,9 @@ static int xradio_test_pwrlevel(struct xradio_common *hw_priv)
 	}
 
 	/* Max/Min Power Calculation for 2.4G */
-	xradio_device_power_calc(hw_priv, max_output_power_2G, fe_cor_2G, IEEE80211_BAND_2GHZ);
+	xradio_device_power_calc(hw_priv, max_output_power_2G, fe_cor_2G, NL80211_BAND_2GHZ);
 	/* Max/Min Power Calculation for 5G */
-	xradio_device_power_calc(hw_priv, max_output_power_5G, fe_cor_5G, IEEE80211_BAND_5GHZ);
+	xradio_device_power_calc(hw_priv, max_output_power_5G, fe_cor_5G, NL80211_BAND_5GHZ);
 	for (i = 0; i < 2; ++i) {
 		sta_printk(XRADIO_DBG_MSG, "Power Values Read from SDD %s:"
 			"min_power_level[%d]: %d max_power_level[%d]:"
@@ -1808,11 +1808,11 @@ void xradio_join_work(struct work_struct *work)
 		return;
 	}
 	ssidie = cfg80211_find_ie(WLAN_EID_SSID,
-		bss->information_elements,
-		bss->len_information_elements);
+		bss->ies->data,
+		bss->ies->len);
 	dtimie = cfg80211_find_ie(WLAN_EID_TIM,
-		bss->information_elements,
-		bss->len_information_elements);
+		bss->ies->data,
+		bss->ies->len);
 	if (dtimie)
 		tim = (struct ieee80211_tim_ie *)&dtimie[2];
 
@@ -1860,7 +1860,7 @@ void xradio_join_work(struct work_struct *work)
 
 		/* basicRateSet will be updated after association.
 		Currently these values are hardcoded */
-		if (hw_priv->channel->band == IEEE80211_BAND_5GHZ) {
+		if (hw_priv->channel->band == NL80211_BAND_5GHZ) {
 			join.band = WSM_PHY_BAND_5G;
 			join.basicRateSet = 64; /*6 mbps*/
 		}else{
@@ -1953,7 +1953,7 @@ void xradio_join_work(struct work_struct *work)
 		xradio_update_filtering(priv);
 	}
 	mutex_unlock(&hw_priv->conf_mutex);
-	cfg80211_put_bss(bss);
+	cfg80211_put_bss(hw_priv->hw->wiphy,bss);
 	wsm_unlock_tx(hw_priv);
 }
 
@@ -2080,7 +2080,7 @@ int xradio_enable_listening(struct xradio_vif *priv,
 #else
 		.mode = WSM_START_MODE_P2P_DEV | (priv->if_id << 4),
 #endif
-		.band = (chan->band == IEEE80211_BAND_5GHZ) ?
+		.band = (chan->band == NL80211_BAND_5GHZ) ?
 				WSM_PHY_BAND_5G : WSM_PHY_BAND_2_4G,
 		.channelNumber = chan->hw_value,
 		.beaconInterval = 100,
@@ -2277,7 +2277,7 @@ int xradio_vif_setup(struct xradio_vif *priv)
 	INIT_WORK(&priv->set_beacon_wakeup_period_work,
 		xradio_set_beacon_wakeup_period_work);
 #ifdef AP_HT_CAP_UPDATE
-        INIT_WORK(&priv->ht_info_update_work, xradio_ht_info_update_work);
+        INIT_WORK(&priv->ht_oper_update_work, xradio_ht_oper_update_work);
 #endif
 	init_timer(&priv->mcast_timeout);
 	priv->mcast_timeout.data = (unsigned long)priv;

@@ -108,9 +108,7 @@
 
 //
 extern char *drv_version;
-extern char *drv_buildtime;
 #define DRV_VERSION    drv_version
-#define DRV_BUILDTIME  drv_buildtime
 
 /* extern */ struct sbus_ops;
 /* extern */ struct task_struct;
@@ -367,7 +365,7 @@ struct xradio_common {
 	/* statistics */
 	struct ieee80211_low_level_stats stats;
 
-	struct xradio_ht_info		ht_info;
+	struct xradio_ht_oper		ht_oper;
 	int				tx_burst_idx;
 
 	struct ieee80211_iface_limit		if_limits1[2];
@@ -532,8 +530,8 @@ struct xradio_vif {
 #endif
 	bool			htcap;
 #ifdef  AP_HT_CAP_UPDATE
-        u16                     ht_info;
-        struct work_struct      ht_info_update_work;
+        u16                     ht_oper;
+        struct work_struct      ht_oper_update_work;
 #endif
 
 #ifdef AP_HT_COMPAT_FIX

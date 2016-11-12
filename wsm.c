@@ -2830,7 +2830,7 @@ static int xradio_get_prio_queue(struct xradio_vif *priv,
 		edca = &priv->edca.params[i];
 		score = ((edca->aifns + edca->cwMin) << 16) +
 				(edca->cwMax - edca->cwMin) *
-				(random32() & 0xFFFF);
+				(prandom_u32() & 0xFFFF);
 		if (score < best && (winner < 0 || i != 3)) {
 			best = score;
 			winner = i;

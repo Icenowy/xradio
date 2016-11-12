@@ -420,10 +420,10 @@ void xradio_bss_info_changed(struct ieee80211_hw *dev,
 	if (changed & BSS_CHANGED_ARP_FILTER) {
 		struct wsm_arp_ipv4_filter filter = {0};
 		int i;
-		ap_printk(XRADIO_DBG_MSG, "[STA] BSS_CHANGED_ARP_FILTER enabled: %d, cnt: %d\n",
-		          info->arp_filter_enabled, info->arp_addr_cnt);
+		ap_printk(XRADIO_DBG_MSG, "[STA] BSS_CHANGED_ARP_FILTER cnt: %d\n",
+		          info->arp_addr_cnt);
 
-		if (info->arp_filter_enabled){
+		if (info->arp_addr_cnt){
 			if (vif->type == NL80211_IFTYPE_STATION)
 				filter.enable = (u32)XRADIO_ENABLE_ARP_FILTER_OFFLOAD;
 			else if (priv->join_status == XRADIO_JOIN_STATUS_AP)
@@ -632,17 +632,18 @@ void xradio_bss_info_changed(struct ieee80211_hw *dev,
 				/* TODO:COMBO:Change this once
 				* mac80211 changes are available */
 				SYS_BUG(!hw_priv->channel);
-				hw_priv->ht_info.ht_cap = sta->ht_cap;
+				hw_priv->ht_oper.ht_cap = sta->ht_cap;
 				priv->bss_params.operationalRateSet =__cpu_to_le32(
 				  xradio_rate_mask_to_wsm(hw_priv, sta->supp_rates[hw_priv->channel->band]));
-				hw_priv->ht_info.channel_type   = info->channel_type;
-				hw_priv->ht_info.operation_mode = info->ht_operation_mode;
+				/* TODO by Icenowy: I think this may lead to some problems. */
+//				hw_priv->ht_oper.channel_type   = info->channel_type;
+				hw_priv->ht_oper.operation_mode = info->ht_operation_mode;
 			} else {
-				memset(&hw_priv->ht_info, 0, sizeof(hw_priv->ht_info));
+				memset(&hw_priv->ht_oper, 0, sizeof(hw_priv->ht_oper));
 				priv->bss_params.operationalRateSet = -1;
 			}
 			rcu_read_unlock();
-			priv->htcap = (sta && xradio_is_ht(&hw_priv->ht_info));
+			priv->htcap = (sta && xradio_is_ht(&hw_priv->ht_oper));
 			xradio_for_each_vif(hw_priv, tmp_priv, i) {
 #ifdef P2P_MULTIVIF
 				if ((i == (XRWL_MAX_VIFS - 1)) || !tmp_priv)
@@ -672,7 +673,7 @@ void xradio_bss_info_changed(struct ieee80211_hw *dev,
 
 			if (sta) {
 				__le32 val = 0;
-				if (hw_priv->ht_info.operation_mode & IEEE80211_HT_OP_MODE_NON_GF_STA_PRSNT) {
+				if (hw_priv->ht_oper.operation_mode & IEEE80211_HT_OP_MODE_NON_GF_STA_PRSNT) {
 					ap_printk(XRADIO_DBG_NIY,"[STA] Non-GF STA present\n");
 					/* Non Green field capable STA */
 					val = __cpu_to_le32(BIT(1));
@@ -681,7 +682,7 @@ void xradio_bss_info_changed(struct ieee80211_hw *dev,
 				                       &val, sizeof(val), priv->if_id));
 			}
 
-			priv->association_mode.greenfieldMode = xradio_ht_greenfield(&hw_priv->ht_info);
+			priv->association_mode.greenfieldMode = xradio_ht_greenfield(&hw_priv->ht_oper);
 			priv->association_mode.flags =
 			  WSM_ASSOCIATION_MODE_SNOOP_ASSOC_FRAMES |
 			  WSM_ASSOCIATION_MODE_USE_PREAMBLE_TYPE  |
@@ -694,7 +695,7 @@ void xradio_bss_info_changed(struct ieee80211_hw *dev,
 			priv->association_mode.basicRateSet = __cpu_to_le32(
 			  xradio_rate_mask_to_wsm(hw_priv,info->basic_rates));
 			priv->association_mode.mpduStartSpacing =
-			  xradio_ht_ampdu_density(&hw_priv->ht_info);
+			  xradio_ht_ampdu_density(&hw_priv->ht_oper);
 
 #if defined(CONFIG_XRADIO_USE_EXTENSIONS)
 			//priv->cqm_beacon_loss_count = info->cqm_beacon_miss_thold;
@@ -1063,9 +1064,7 @@ void xradio_mcast_timeout(unsigned long arg)
 }
 
 int xradio_ampdu_action(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
-                        enum ieee80211_ampdu_mlme_action action,
-                        struct ieee80211_sta *sta, 
-                        u16 tid, u16 *ssn, u8 buf_size)
+                        struct ieee80211_ampdu_params *params)
 {
 	/* Aggregation is implemented fully in firmware,
 	 * including block ack negotiation.
@@ -1077,7 +1076,7 @@ int xradio_ampdu_action(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
 	int ret;
 	ap_printk(XRADIO_DBG_TRC,"%s\n", __FUNCTION__);
 
-	switch (action) {
+	switch (params->action) {
 	case IEEE80211_AMPDU_RX_START:
 	case IEEE80211_AMPDU_RX_STOP:
 		/* Just return OK to mac80211 */
@@ -1143,11 +1142,11 @@ static int xradio_upload_beacon(struct xradio_vif *priv)
 		.frame_type = WSM_FRAME_TYPE_BEACON,
 	};
 	struct ieee80211_mgmt *mgmt;
-	u8 *erp_inf, *ies, *ht_info;
+	u8 *erp_inf, *ies, *ht_oper;
 	u32 ies_len;
 	ap_printk(XRADIO_DBG_TRC,"%s\n", __FUNCTION__);
 
-	if (priv->vif->p2p || hw_priv->channel->band == IEEE80211_BAND_5GHZ)
+	if (priv->vif->p2p || hw_priv->channel->band == NL80211_BAND_5GHZ)
 		frame.rate = WSM_TRANSMIT_RATE_6;
 
 	frame.skb = ieee80211_beacon_get(priv->hw, priv->vif);
@@ -1158,10 +1157,10 @@ static int xradio_upload_beacon(struct xradio_vif *priv)
 	ies  = mgmt->u.beacon.variable;
 	ies_len = frame.skb->len - (u32)(ies - (u8 *)mgmt);
 
-	ht_info = (u8 *)cfg80211_find_ie( WLAN_EID_HT_INFORMATION, ies, ies_len);
-	if (ht_info) {
+	ht_oper = (u8 *)cfg80211_find_ie( WLAN_EID_HT_OPERATION, ies, ies_len);
+	if (ht_oper) {
 		/* Enable RIFS*/
-		ht_info[3] |= 8;
+		ht_oper[3] |= 8;
 	}
 
 	erp_inf = (u8 *)cfg80211_find_ie(WLAN_EID_ERP_INFO, ies, ies_len);
@@ -1247,7 +1246,7 @@ static int xradio_upload_proberesp(struct xradio_vif *priv)
 #endif
 	ap_printk(XRADIO_DBG_TRC,"%s\n", __FUNCTION__);
 
-	if (priv->vif->p2p || hw_priv->channel->band == IEEE80211_BAND_5GHZ)
+	if (priv->vif->p2p || hw_priv->channel->band == NL80211_BAND_5GHZ)
 		frame.rate = WSM_TRANSMIT_RATE_6;
 
 	frame.skb = ieee80211_proberesp_get(priv->hw, priv->vif);
@@ -1382,7 +1381,7 @@ static int xradio_start_ap(struct xradio_vif *priv)
 	struct wsm_start start = {
 		.mode = priv->vif->p2p ? WSM_START_MODE_P2P_GO : WSM_START_MODE_AP,
 		/* TODO:COMBO:Change once mac80211 support is available */
-		.band = (hw_priv->channel->band == IEEE80211_BAND_5GHZ) ?
+		.band = (hw_priv->channel->band == NL80211_BAND_5GHZ) ?
 				     WSM_PHY_BAND_5G : WSM_PHY_BAND_2_4G,
 		.channelNumber = hw_priv->channel->hw_value,
 		.beaconInterval = conf->beacon_int,
@@ -1752,14 +1751,14 @@ int xrwl_unmap_link(struct xradio_vif *priv, int link_id)
 	}
 }
 #ifdef AP_HT_CAP_UPDATE
-void xradio_ht_info_update_work(struct work_struct *work)
+void xradio_ht_oper_update_work(struct work_struct *work)
 {
 	struct sk_buff *skb;
 	struct ieee80211_mgmt *mgmt;
-	u8 *ht_info, *ies;
+	u8 *ht_oper, *ies;
 	u32 ies_len;
 	struct xradio_vif *priv =
-	        container_of(work, struct xradio_vif, ht_info_update_work);
+	        container_of(work, struct xradio_vif, ht_oper_update_work);
 	struct xradio_common *hw_priv = xrwl_vifpriv_to_hwpriv(priv);
 	struct wsm_update_ie update_ie = {
 		.what = WSM_UPDATE_IE_BEACON,
@@ -1774,10 +1773,10 @@ void xradio_ht_info_update_work(struct work_struct *work)
 	mgmt = (void *)skb->data;
 	ies = mgmt->u.beacon.variable;
 	ies_len = skb->len - (u32)(ies - (u8 *)mgmt);
-	ht_info= (u8 *)cfg80211_find_ie( WLAN_EID_HT_INFORMATION, ies, ies_len);
-	if(ht_info && priv->ht_info == HT_INFO_MASK) {
-		ht_info[HT_INFO_OFFSET] |= 0x11;
-		update_ie.ies = ht_info;
+	ht_oper= (u8 *)cfg80211_find_ie( WLAN_EID_HT_OPERATION, ies, ies_len);
+	if(ht_oper && priv->ht_oper == HT_INFO_MASK) {
+		ht_oper[HT_INFO_OFFSET] |= 0x11;
+		update_ie.ies = ht_oper;
 		update_ie.length = HT_INFO_IE_LEN;
 		SYS_WARN(wsm_update_ie(hw_priv, &update_ie, priv->if_id));
 	}

@@ -60,13 +60,13 @@ int xradio_set_key(struct ieee80211_hw *dev, enum set_key_cmd cmd,
                    struct ieee80211_key_conf *key);
 int xradio_set_rts_threshold(struct ieee80211_hw *hw, u32 value);
 
-void xradio_flush(struct ieee80211_hw *hw, bool drop);
+void xradio_flush(struct ieee80211_hw *hw, struct ieee80211_vif *vif, u32 queues, bool drop);
 
 
 int xradio_remain_on_channel(struct ieee80211_hw *hw,
+			     struct ieee80211_vif *vif,
                              struct ieee80211_channel *chan,
-                             enum nl80211_channel_type channel_type,
-                             int duration);
+                             int duration, enum ieee80211_roc_type type);
 int xradio_cancel_remain_on_channel(struct ieee80211_hw *hw);
 int xradio_set_arpreply(struct ieee80211_hw *hw, struct ieee80211_vif *vif);
 u64 xradio_prepare_multicast(struct ieee80211_hw *hw,

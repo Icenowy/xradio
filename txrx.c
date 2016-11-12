@@ -223,7 +223,7 @@ static void xradio_remove_ht_ie(struct xradio_vif *priv, struct sk_buff *skb)
 		memmove(ht_ie, (ht_ie + ht_len), move_len);
 		skb_trim(skb, skb->len - ht_len);
 		ies_len = skb->len - (ies - (u8 *)(skb->data));
-		ht_ie = (u8 *)xradio_get_ie(ies, ies_len, WLAN_EID_HT_INFORMATION);
+		ht_ie = (u8 *)xradio_get_ie(ies, ies_len, WLAN_EID_HT_OPERATION);
 		if (ht_ie) {
 			ht_len   = *(ht_ie + 1) + 2;
 			move_len = (ies + ies_len) - (ht_ie + ht_len);
@@ -288,7 +288,7 @@ static void tx_policy_build(const struct xradio_common *hw_priv,
 	 * TODO: it's better to do this in rate control of mac80211.
 	 */
 	if (((rates[0].flags & IEEE80211_TX_RC_MCS) || 
-		   hw_priv->channel->band == IEEE80211_BAND_5GHZ) && 
+		   hw_priv->channel->band == NL80211_BAND_5GHZ) && 
 		  count < max_rates_cnt && rates[count-1].idx != 0) {
 		rates[count].idx   = 0;
 		rates[count].count = rates[0].count;
@@ -759,6 +759,7 @@ xradio_get_rate_idx(const struct xradio_common *hw_priv, u8 flag, u16 hw_value)
 
 static int
 xradio_tx_h_calc_link_ids(struct xradio_vif *priv,
+			  struct ieee80211_tx_control *control,
 			  struct xradio_txinfo *t)
 {
 #ifndef P2P_MULTIVIF
@@ -774,7 +775,7 @@ xradio_tx_h_calc_link_ids(struct xradio_vif *priv,
 		t->txpriv.offchannel_if_id = 0;
 #endif
 
-	if (likely(t->tx_info->control.sta && t->sta_priv->link_id))
+	if (likely(control->sta && t->sta_priv->link_id))
 		t->txpriv.raw_link_id =
 				t->txpriv.link_id =
 				t->sta_priv->link_id;
@@ -814,8 +815,8 @@ xradio_tx_h_calc_link_ids(struct xradio_vif *priv,
 				jiffies;
 
 #if defined(CONFIG_XRADIO_USE_EXTENSIONS)
-	if (t->tx_info->control.sta &&
-			(t->tx_info->control.sta->uapsd_queues & BIT(t->queue)))
+	if (control->sta &&
+			(control->sta->uapsd_queues & BIT(t->queue)))
 		t->txpriv.link_id = priv->link_id_uapsd;
 #endif /* CONFIG_XRADIO_USE_EXTENSIONS */
 	return 0;
@@ -1142,7 +1143,7 @@ xradio_tx_h_ba_stat(struct xradio_vif *priv,
 
 	if (priv->join_status != XRADIO_JOIN_STATUS_STA)
 		return;
-	if (!xradio_is_ht(&hw_priv->ht_info))
+	if (!xradio_is_ht(&hw_priv->ht_oper))
 		return;
 	if (!priv->setbssparams_done)
 		return;
@@ -1180,7 +1181,7 @@ u16  txparse_flags = 0;//PF_DHCP|PF_8021X|PF_MGMT;
 u16  rxparse_flags = 0;//PF_DHCP|PF_8021X|PF_MGMT;
 #endif
 
-void xradio_tx(struct ieee80211_hw *dev, struct sk_buff *skb)
+void xradio_tx(struct ieee80211_hw *dev, struct ieee80211_tx_control *control, struct sk_buff *skb)
 {
 	struct xradio_common *hw_priv = dev->priv;
 	struct xradio_txinfo t = {
@@ -1303,7 +1304,7 @@ void xradio_tx(struct ieee80211_hw *dev, struct sk_buff *skb)
 	t.hdrlen = ieee80211_hdrlen(t.hdr->frame_control);
 	t.da = ieee80211_get_DA(t.hdr);
 	t.sta_priv =
-		(struct xradio_sta_priv *)&t.tx_info->control.sta->drv_priv;
+		(struct xradio_sta_priv *)&control->sta->drv_priv;
 
 	if (SYS_WARN(t.queue >= 4)) {
 		ret = __LINE__;
@@ -1328,7 +1329,7 @@ void xradio_tx(struct ieee80211_hw *dev, struct sk_buff *skb)
 	//}
 	//spin_unlock_bh(&hw_priv->tx_queue[t.queue].lock);
 
-	ret = xradio_tx_h_calc_link_ids(priv, &t);
+	ret = xradio_tx_h_calc_link_ids(priv, control, &t);
 	if (ret) {
 		ret = __LINE__;
 		goto drop;
@@ -1379,7 +1380,7 @@ void xradio_tx(struct ieee80211_hw *dev, struct sk_buff *skb)
 	}
 
 	rcu_read_lock();
-	sta = rcu_dereference(t.tx_info->control.sta);
+	sta = rcu_dereference(control->sta);
 
 	xradio_tx_h_ba_stat(priv, &t);
 	spin_lock_bh(&priv->ps_state_lock);
@@ -1961,7 +1962,7 @@ xradio_rx_h_ba_stat(struct xradio_vif *priv,
 
 	if (priv->join_status != XRADIO_JOIN_STATUS_STA)
 		return;
-	if (!xradio_is_ht(&hw_priv->ht_info))
+	if (!xradio_is_ht(&hw_priv->ht_oper))
 		return;
 	if (!priv->setbssparams_done)
 		return;
@@ -2104,7 +2105,7 @@ void xradio_rx_cb(struct xradio_vif *priv,
 
 	hdr->mactime = 0; /* Not supported by WSM */
 	hdr->band = (arg->channelNumber > 14) ?
-			IEEE80211_BAND_5GHZ : IEEE80211_BAND_2GHZ;
+			NL80211_BAND_5GHZ : NL80211_BAND_2GHZ;
 	hdr->freq = ieee80211_channel_to_frequency(
 			arg->channelNumber,
 			hdr->band);
@@ -2126,7 +2127,7 @@ void xradio_rx_cb(struct xradio_vif *priv,
 		hdr->flag |= RX_FLAG_HT;
 		hdr->rate_idx = arg->rxedRate - 14;
 	} else if (arg->rxedRate >= 4) {
-		if (hdr->band == IEEE80211_BAND_5GHZ)
+		if (hdr->band == NL80211_BAND_5GHZ)
 			hdr->rate_idx = arg->rxedRate - 6;
 		else
 			hdr->rate_idx = arg->rxedRate - 2;
@@ -2271,7 +2272,7 @@ void xradio_rx_cb(struct xradio_vif *priv,
 #ifdef AP_HT_CAP_UPDATE
     if (priv->mode == NL80211_IFTYPE_AP           &&
         ieee80211_is_beacon(frame->frame_control) &&
-        ((priv->ht_info&HT_INFO_MASK) != 0x0011)  &&
+        ((priv->ht_oper&HT_INFO_MASK) != 0x0011)  &&
         !arg->status){
         u8 *ies;
         size_t ies_len;
@@ -2280,8 +2281,8 @@ void xradio_rx_cb(struct xradio_vif *priv,
         ies_len = skb->len - (ies - (u8 *)(skb->data));
         ht_cap = xradio_get_ie(ies, ies_len, WLAN_EID_HT_CAPABILITY);
         if(!ht_cap) {
-            priv->ht_info |= 0x0011;
-            queue_work(hw_priv->workqueue, &priv->ht_info_update_work);
+            priv->ht_oper |= 0x0011;
+            queue_work(hw_priv->workqueue, &priv->ht_oper_update_work);
         }
     }
 #endif
