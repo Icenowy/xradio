@@ -83,6 +83,8 @@ static irqreturn_t sdio_irq_handler(int irq, void *dev_id)
 	spin_lock_irqsave(&self->lock, flags);
 	if (self->irq_handler)
 		self->irq_handler(self->irq_priv);
+	else
+		printk("bleh\n");
 	spin_unlock_irqrestore(&self->lock, flags);
 
 	return IRQ_HANDLED;
