@@ -22,6 +22,8 @@
 #include <linux/spinlock.h>
 #include <asm/mach-types.h>
 #include <net/mac80211.h>
+#include <linux/of.h>
+#include <linux/of_irq.h>
 
 #include "platform.h"
 #include "xradio.h"
@@ -69,10 +71,11 @@ static int sdio_set_blk_size(struct sbus_priv *self, size_t size)
 	return sdio_set_block_size(self->func, size);
 }
 
-#ifndef CONFIG_XRADIO_USE_GPIO_IRQ
-static void sdio_irq_handler(struct sdio_func *func)
+static irqreturn_t sdio_irq_handler(int irq, void *dev_id)
 {
-	struct sbus_priv *self = sdio_get_drvdata(func);
+	printk("in irq\n");
+	//struct sbus_priv *self = sdio_get_drvdata(func);
+	struct sbus_priv *self = (struct sbus_priv*)dev_id;
 	unsigned long flags;
 	sbus_printk(XRADIO_DBG_TRC, "%s\n", __FUNCTION__);
 
@@ -81,8 +84,9 @@ static void sdio_irq_handler(struct sdio_func *func)
 	if (self->irq_handler)
 		self->irq_handler(self->irq_priv);
 	spin_unlock_irqrestore(&self->lock, flags);
+
+	return IRQ_HANDLED;
 }
-#endif
 
 static int sdio_irq_subscribe(struct sbus_priv *self,
 				     sbus_irq_handler handler,
@@ -102,28 +106,20 @@ static int sdio_irq_subscribe(struct sbus_priv *self,
 	spin_unlock_irqrestore(&self->lock, flags);
 
 	sdio_claim_host(self->func);
-#ifndef CONFIG_XRADIO_USE_GPIO_IRQ
-	ret = sdio_claim_irq(self->func, sdio_irq_handler);
-#else
-	ret = xradio_request_gpio_irq(&(self->func->dev), self);
-	if (!ret) {
-		/* Hack to access Fuction-0 */
-		u8 cccr;
-		int func_num = self->func->num;
-		self->func->num = 0;
-		cccr = sdio_readb(self->func, SDIO_CCCR_IENx, &ret);
-		cccr |= BIT(0);         /* Master interrupt enable ... */
-		cccr |= BIT(func_num);  /* ... for our function */
-		sdio_writeb(self->func, cccr, SDIO_CCCR_IENx, &ret);
-		if (ret) {
-			xradio_free_gpio_irq(&(self->func->dev), self);
-			if (MCI_CHECK_READY(self->func->card->host, 1000) != 0)
-				sbus_printk(XRADIO_DBG_ERROR, "%s:MCI_CHECK_READY timeout\n", __func__);
-		}
-		/* Restore the WLAN function number */
-		self->func->num = func_num;
-	}
-#endif
+
+	               /* Hack to access Fuction-0 */
+	               u8 cccr;
+	               int func_num = self->func->num;
+	               self->func->num = 0;
+	               cccr = sdio_readb(self->func, SDIO_CCCR_IENx, &ret);
+	               cccr |= BIT(0);         /* Master interrupt enable ... */
+	               cccr |= BIT(func_num);  /* ... for our function */
+	               sdio_writeb(self->func, cccr, SDIO_CCCR_IENx, &ret);
+
+	               /* Restore the WLAN function number */
+	               self->func->num = func_num;
+
+
 	sdio_release_host(self->func);
 
 	return ret;
@@ -141,13 +137,7 @@ static int sdio_irq_unsubscribe(struct sbus_priv *self)
 		return 0;
 	}
 
-#ifndef CONFIG_XRADIO_USE_GPIO_IRQ
-	sdio_claim_host(self->func);
-	ret = sdio_release_irq(self->func);
-	sdio_release_host(self->func);
-#else
-	xradio_free_gpio_irq(&(self->func->dev), self);
-#endif  //CONFIG_XRADIO_USE_GPIO_IRQ
+
 
 	spin_lock_irqsave(&self->lock, flags);
 	self->irq_priv = NULL;
@@ -212,6 +202,36 @@ static int sdio_set_clk(struct sdio_func *func, u32 clk)
 }
 #endif
 
+static const struct of_device_id xradio_sdio_of_match_table[] = {
+	{ .compatible = "xradio,xr819" },
+	{ }
+};
+
+static int xradio_probe_of(struct device *dev)
+{
+	struct device_node *np = dev->of_node;
+	const struct of_device_id *of_id;
+	int irq;
+
+	of_id = of_match_node(xradio_sdio_of_match_table, np);
+	if (!of_id)
+		return -ENODEV;
+
+	//pdev_data->family = of_id->data;
+
+	irq = irq_of_parse_and_map(np, 0);
+	if (!irq) {
+		dev_err(dev, "No irq in platform data\n");
+		return -EINVAL;
+	}
+
+	devm_request_irq(dev, irq, sdio_irq_handler, 0, "xradio", &sdio_self);
+
+	printk("got irq %d", irq);
+
+	return 0;
+}
+
 /* Probe Function to be called by SDIO stack when device is discovered */
 static int sdio_probe(struct sdio_func *func,
                       const struct sdio_device_id *id)
@@ -240,6 +260,8 @@ static int sdio_probe(struct sdio_func *func,
 	sbus_printk(XRADIO_DBG_ALWY, "%s: 0x01c20088=0x%08x\n", __func__, sdio_param);
 }
 #endif
+
+	xradio_probe_of(&func->dev);
 
 	sdio_self.func = func;
 	sdio_self.func->card->quirks |= MMC_QUIRK_BROKEN_BYTE_MODE_512;
@@ -298,6 +320,7 @@ static struct sdio_driver sdio_driver = {
 		.pm = &sdio_pm_ops,
 	}
 };
+
 
 /* Init Module function -> Called by insmod */
 struct device * sbus_sdio_init(struct sbus_ops  **sdio_ops, 
