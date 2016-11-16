@@ -12,9 +12,6 @@
 /*Linux version 3.4.0 compilation*/
 #include <linux/version.h>
 #include <linux/module.h>
-#include <linux/mmc/card.h>
-#include <linux/mmc/sdio_func.h>
-#include <linux/mmc/sdio_ids.h>
 #include <linux/init.h>
 #include <linux/firmware.h>
 #include <linux/etherdevice.h>
@@ -37,7 +34,10 @@
 #include "pm.h"
 #include "xr_version.h"
 
-
+MODULE_AUTHOR("XRadioTech");
+MODULE_DESCRIPTION("XRadioTech WLAN driver core");
+MODULE_LICENSE("GPL");
+MODULE_ALIAS("xradio_core");
 
 char *drv_version   = XRADIO_VERSION;
 
@@ -1152,6 +1152,7 @@ err1:
 	xradio_free_common(dev);
 	return err;
 }
+EXPORT_SYMBOL_GPL(xradio_core_init);
 
 void xradio_core_deinit(void)
 {
@@ -1169,9 +1170,10 @@ void xradio_core_deinit(void)
 	}
 	return;
 }
+EXPORT_SYMBOL_GPL(xradio_core_deinit);
 
 /* Init Module function -> Called by insmod */
-static int xradio_core_entry(void)
+static int __init xradio_core_entry(void)
 {
 	int ret = 0;
 	xradio_dbg(XRADIO_DBG_TRC,"%s\n", __FUNCTION__);
@@ -1185,7 +1187,7 @@ static int xradio_core_entry(void)
 }
 
 /* Called at Driver Unloading */
-static void xradio_core_exit(void)
+static void __exit xradio_core_exit(void)
 {
 	xradio_core_deinit();
 	xradio_host_dbg_deinit();
@@ -1193,49 +1195,6 @@ static void xradio_core_exit(void)
 	xradio_dbg(XRADIO_DBG_TRC,"%s\n", __FUNCTION__);
 }
 
-static int xradio_sdio_probe(struct sdio_func *func,
-				    const struct sdio_device_id *id){
-	return xradio_core_entry();
-}
-
-static void xradio_sdio_remove(struct sdio_func *func)
-{
-	xradio_core_exit();
-}
-
-static const struct sdio_device_id xradio_sdio_ids[] = {
-	{ SDIO_DEVICE(0x0020, 0x2281) },
-	{ },
-};
-
-static struct sdio_driver xradio_sdio_driver = {
-	.name		= "xradio-sdio",
-	.id_table	= xradio_sdio_ids,
-	.probe		= xradio_sdio_probe,
-	.remove		= xradio_sdio_remove,
-};
-
-int xradio_sdio_init(void)
-{
-	return sdio_register_driver(&xradio_sdio_driver);
-}
-
-void xradio_sdio_exit(void)
-{
-	sdio_unregister_driver(&xradio_sdio_driver);
-}
-
-static int __init xradio_init(void){
-	return xradio_sdio_init();
-}
-static void __exit xradio_exit(void){
-	xradio_sdio_exit();
-}
-
-module_init(xradio_init);
+module_init(xradio_core_entry);
 module_exit(xradio_core_exit);
 
-MODULE_AUTHOR("XRadioTech");
-MODULE_DESCRIPTION("XRadioTech WLAN driver core");
-MODULE_LICENSE("GPL");
-MODULE_ALIAS("xradio_wlan");
