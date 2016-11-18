@@ -1,46 +1,75 @@
 /*
  * Platform interfaces for XRadio drivers
- * 
- * Implemented by platform vendor(such as AllwinnerTech).
- *
- * Copyright (c) 2013, XRadio
- * Author: XRadio
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation.
  */
-#include <linux/version.h>
-#include <linux/module.h>
-#include <linux/err.h>
-#include <linux/clk.h>
-#include <linux/delay.h>
 
-#include <linux/interrupt.h>
-#include <linux/gpio.h>
-#include <linux/ioport.h>
-
+#include <linux/platform_device.h>
 #include <linux/regulator/consumer.h>
+#include <linux/delay.h>
+#include <linux/gpio.h>
 
 #include "xradio.h"
 #include "platform.h"
 #include "sbus.h"
 
-int xradio_wlan_power(int on)
-{
+#define GPIO 359
+
+struct regulator* wifireg;
+
+int xradio_wlan_power(int on) {
+	struct device* mmchost_dev;
+	struct mmc_host* mmchost;
+
+	if (on) {
+		printk("turning on wifi power\n");
+
+		regulator_enable(wifireg);
+		msleep(50);
+		gpio_set_value(GPIO, 0);
+		msleep(50);
+		gpio_set_value(GPIO, 1);
+		msleep(50);
+
+		mmchost_dev = bus_find_device_by_name(&platform_bus_type, NULL,
+				"1c10000.mmc");
+		if (mmchost_dev == NULL) {
+			printk("failed to get mmc host device\n");
+			goto out;
+		}
+
+		mmchost = platform_get_drvdata(to_platform_device(mmchost_dev));
+		if (mmchost == NULL) {
+			printk("failed to get mmc host\n");
+			goto out;
+		}
+		mmc_detect_change(mmchost, 100);
+	} else {
+		printk("turning off wifi power\n");
+		regulator_disable(wifireg);
+	}
+	out: return 0;
+}
+
+int xradio_sdio_detect(int enable) {
 	return 0;
 }
 
-int xradio_sdio_detect(int enable)
-{
-	return 0;
+int xradio_plat_init(void) {
+	int ret = 0;
+	wifireg = regulator_get(NULL, "wifi");
+
+	ret = gpio_request(GPIO, "wifi_rst");
+	if (ret) {
+		printk("failed to get reset gpio\n");
+		goto out;
+	}
+
+	gpio_direction_output(GPIO, 0);
+
+	out: return ret;
 }
 
-int xradio_plat_init(void)
-{
-	return 0;
-}
-
-void xradio_plat_deinit(void)
-{
+void xradio_plat_deinit(void) {
+	gpio_set_value(GPIO, 0);
+	gpio_free(GPIO);
+	regulator_put(wifireg);
 }
