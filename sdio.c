@@ -42,13 +42,19 @@ static const struct sdio_device_id xradio_sdio_ids[] = {
 static int sdio_data_read(struct sbus_priv *self, unsigned int addr,
                           void *dst, int count)
 {
-	return sdio_memcpy_fromio(self->func, dst, addr, count);
+	int ret = sdio_memcpy_fromio(self->func, dst, addr, count);
+//	printk("sdio_memcpy_fromio 0x%x:%d ret %d\n", addr, count, ret);
+//	print_hex_dump_bytes("sdio read ", 0, dst, min(count,32));
+	return ret;
 }
 
 static int sdio_data_write(struct sbus_priv *self, unsigned int addr,
                            const void *src, int count)
 {
-	return sdio_memcpy_toio(self->func, addr, (void *)src, count);
+	int ret = sdio_memcpy_toio(self->func, addr, (void *)src, count);
+//	printk("sdio_memcpy_toio 0x%x:%d ret %d\n", addr, count, ret);
+//	print_hex_dump_bytes("sdio write", 0, src, min(count,32));
+	return ret;
 }
 
 static void sdio_lock(struct sbus_priv *self)
@@ -73,7 +79,6 @@ static int sdio_set_blk_size(struct sbus_priv *self, size_t size)
 
 static irqreturn_t sdio_irq_handler(int irq, void *dev_id)
 {
-	printk("in irq\n");
 	//struct sbus_priv *self = sdio_get_drvdata(func);
 	struct sbus_priv *self = (struct sbus_priv*)dev_id;
 	unsigned long flags;
@@ -228,9 +233,6 @@ static int xradio_probe_of(struct device *dev)
 	}
 
 	devm_request_irq(dev, irq, sdio_irq_handler, 0, "xradio", &sdio_self);
-
-	printk("got irq %d", irq);
-
 	return 0;
 }
 

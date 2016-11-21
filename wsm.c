@@ -447,7 +447,7 @@ underflow:
 int wsm_write_mib(struct xradio_common *hw_priv, u16 mibId, void *_buf,
 			size_t buf_size, int if_id)
 {
-	int ret;
+	int ret = 0;
 	struct wsm_buf *buf = &hw_priv->wsm_cmd_buf;
 	struct wsm_mib mib_buf = {
 		.mibId = mibId,
