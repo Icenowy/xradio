@@ -12,22 +12,293 @@
 #include <linux/version.h>
 #include <linux/module.h>
 #include <linux/wait.h>
-#include <linux/gpio.h>
-#include <linux/regulator/consumer.h>
-#include <linux/delay.h>
 #include <linux/mmc/host.h>
 #include <linux/mmc/sdio_func.h>
 #include <linux/mmc/card.h>
 #include <linux/mmc/sdio.h>
 #include <linux/spinlock.h>
 #include <asm/mach-types.h>
-#include <net/mac80211.h>
 #include <linux/of.h>
 #include <linux/of_irq.h>
+#include <linux/slab.h>
 
-#include "platform.h"
 #include "xradio.h"
 #include "sbus.h"
+#include "ap.h"
+#include "bh.h"
+#include "sta.h"
+#include "hwio.h"
+
+// r/w functions
+#define CHECK_ADDR_LEN  1
+
+ /* Sdio addr is 4*spi_addr */
+#define SPI_REG_ADDR_TO_SDIO(spi_reg_addr) ((spi_reg_addr) << 2)
+#define SDIO_ADDR17BIT(buf_id, mpf, rfu, reg_id_ofs) \
+				((((buf_id)    & 0x1F) << 7) \
+				| (((mpf)        & 1) << 6) \
+				| (((rfu)        & 1) << 5) \
+				| (((reg_id_ofs) & 0x1F) << 0))
+#define MAX_RETRY		3
+
+
+static int __xradio_read(struct sdio_priv* priv, u16 addr,
+                         void *buf, size_t buf_len, int buf_id)
+{
+	u16 addr_sdio;
+	u32 sdio_reg_addr_17bit ;
+
+#if (CHECK_ADDR_LEN)
+	/* Check if buffer is aligned to 4 byte boundary */
+	if (SYS_WARN(((unsigned long)buf & 3) && (buf_len > 4))) {
+		sbus_printk(XRADIO_DBG_ERROR, "%s: buffer is not aligned.\n", __func__);
+		return -EINVAL;
+	}
+#endif
+
+	/* Convert to SDIO Register Address */
+	addr_sdio = SPI_REG_ADDR_TO_SDIO(addr);
+	sdio_reg_addr_17bit = SDIO_ADDR17BIT(buf_id, 0, 0, addr_sdio);
+	SYS_BUG(!hw_priv->sbus_ops);
+	return hw_priv->sbus_ops->sbus_data_read(hw_priv->sbus_priv,
+	                                         sdio_reg_addr_17bit,
+	                                         buf, buf_len);
+}
+
+static int __xradio_write(struct sdio_priv* priv, u16 addr,
+                              const void *buf, size_t buf_len, int buf_id)
+{
+	u16 addr_sdio;
+	u32 sdio_reg_addr_17bit ;
+
+#if (CHECK_ADDR_LEN)
+	/* Check if buffer is aligned to 4 byte boundary */
+	if (SYS_WARN(((unsigned long)buf & 3) && (buf_len > 4))) {
+		sbus_printk(XRADIO_DBG_ERROR, "%s: buffer is not aligned.\n", __func__);
+		return -EINVAL;
+	}
+#endif
+
+	/* Convert to SDIO Register Address */
+	addr_sdio = SPI_REG_ADDR_TO_SDIO(addr);
+	sdio_reg_addr_17bit = SDIO_ADDR17BIT(buf_id, 0, 0, addr_sdio);
+
+	SYS_BUG(!hw_priv->sbus_ops);
+	return hw_priv->sbus_ops->sbus_data_write(hw_priv->sbus_priv,
+	                                          sdio_reg_addr_17bit,
+	                                          buf, buf_len);
+}
+
+static inline int __xradio_read_reg32(struct sdio_priv* priv, u16 addr, u32 *val)
+{
+	return __xradio_read(hw_priv, addr, val, sizeof(val), 0);
+}
+
+static inline int __xradio_write_reg32(struct sdio_priv* priv,
+                                        u16 addr, u32 val)
+{
+	return __xradio_write(hw_priv, addr, &val, sizeof(val), 0);
+}
+
+int xradio_reg_read(struct sdio_priv* priv, u16 addr,
+                    void *buf, size_t buf_len)
+{
+	int ret;
+	SYS_BUG(!hw_priv->sbus_ops);
+	hw_priv->sbus_ops->lock(hw_priv->sbus_priv);
+	ret = __xradio_read(hw_priv, addr, buf, buf_len, 0);
+	hw_priv->sbus_ops->unlock(hw_priv->sbus_priv);
+	return ret;
+}
+
+int xradio_reg_write(struct sdio_priv* priv, u16 addr,
+                     const void *buf, size_t buf_len)
+{
+	int ret;
+	SYS_BUG(!hw_priv->sbus_ops);
+	hw_priv->sbus_ops->lock(hw_priv->sbus_priv);
+	ret = __xradio_write(hw_priv, addr, buf, buf_len, 0);
+	hw_priv->sbus_ops->unlock(hw_priv->sbus_priv);
+	return ret;
+}
+
+int xradio_data_read(struct sdio_priv* priv, void *buf, size_t buf_len)
+{
+	int ret, retry = 1;
+	SYS_BUG(!hw_priv->sbus_ops);
+	hw_priv->sbus_ops->lock(hw_priv->sbus_priv);
+	{
+		int buf_id_rx = hw_priv->buf_id_rx;
+		while (retry <= MAX_RETRY) {
+			ret = __xradio_read(hw_priv, HIF_IN_OUT_QUEUE_REG_ID, buf,
+			                    buf_len, buf_id_rx + 1);
+			if (!ret) {
+				buf_id_rx = (buf_id_rx + 1) & 3;
+				hw_priv->buf_id_rx = buf_id_rx;
+				break;
+			} else {
+				retry++;
+				mdelay(1);
+				sbus_printk(XRADIO_DBG_ERROR, "%s, error :[%d]\n", __func__, ret);
+			}
+		}
+	}
+	hw_priv->sbus_ops->unlock(hw_priv->sbus_priv);
+	return ret;
+}
+
+int xradio_data_write(struct sdio_priv* priv, const void *buf,
+                      size_t buf_len)
+{
+	int ret, retry = 1;
+	SYS_BUG(!hw_priv->sbus_ops);
+	hw_priv->sbus_ops->lock(hw_priv->sbus_priv);
+	{
+		int buf_id_tx = hw_priv->buf_id_tx;
+		while (retry <= MAX_RETRY) {
+			ret = __xradio_write(hw_priv, HIF_IN_OUT_QUEUE_REG_ID, buf,
+			                     buf_len, buf_id_tx);
+			if (!ret) {
+				buf_id_tx = (buf_id_tx + 1) & 31;
+				hw_priv->buf_id_tx = buf_id_tx;
+				break;
+			} else {
+				retry++;
+				mdelay(1);
+				sbus_printk(XRADIO_DBG_ERROR, "%s,error :[%d]\n", __func__, ret);
+			}
+		}
+	}
+	hw_priv->sbus_ops->unlock(hw_priv->sbus_priv);
+	return ret;
+}
+
+int xradio_indirect_read(struct sdio_priv* priv, u32 addr, void *buf,
+                         size_t buf_len, u32 prefetch, u16 port_addr)
+{
+	u32 val32 = 0;
+	int i, ret;
+
+	if ((buf_len / 2) >= 0x1000) {
+		sbus_printk(XRADIO_DBG_ERROR, "%s: Can't read more than 0xfff words.\n",
+		           __func__);
+		return -EINVAL;
+		goto out;
+	}
+
+	hw_priv->sbus_ops->lock(hw_priv->sbus_priv);
+	/* Write address */
+	ret = __xradio_write_reg32(hw_priv, HIF_SRAM_BASE_ADDR_REG_ID, addr);
+	if (ret < 0) {
+		sbus_printk(XRADIO_DBG_ERROR, "%s: Can't write address register.\n", __func__);
+		goto out;
+	}
+
+	/* Read CONFIG Register Value - We will read 32 bits */
+	ret = __xradio_read_reg32(hw_priv, HIF_CONFIG_REG_ID, &val32);
+	if (ret < 0) {
+		sbus_printk(XRADIO_DBG_ERROR, "%s: Can't read config register.\n", __func__);
+		goto out;
+	}
+
+	/* Set PREFETCH bit */
+	ret = __xradio_write_reg32(hw_priv, HIF_CONFIG_REG_ID, val32 | prefetch);
+	if (ret < 0) {
+		sbus_printk(XRADIO_DBG_ERROR, "%s: Can't write prefetch bit.\n", __func__);
+		goto out;
+	}
+
+	/* Check for PRE-FETCH bit to be cleared */
+	for (i = 0; i < 20; i++) {
+		ret = __xradio_read_reg32(hw_priv, HIF_CONFIG_REG_ID, &val32);
+		if (ret < 0) {
+			sbus_printk(XRADIO_DBG_ERROR, "%s: Can't check prefetch bit.\n", __func__);
+			goto out;
+		}
+		if (!(val32 & prefetch))
+			break;
+		mdelay(i);
+	}
+
+	if (val32 & prefetch) {
+		sbus_printk(XRADIO_DBG_ERROR, "%s: Prefetch bit is not cleared.\n", __func__);
+		goto out;
+	}
+
+	/* Read data port */
+	ret = __xradio_read(hw_priv, port_addr, buf, buf_len, 0);
+	if (ret < 0) {
+		sbus_printk(XRADIO_DBG_ERROR, "%s: Can't read data port.\n", __func__);
+		goto out;
+	}
+
+out:
+	hw_priv->sbus_ops->unlock(hw_priv->sbus_priv);
+	return ret;
+}
+
+int xradio_apb_write(struct sdio_priv* priv, u32 addr, const void *buf,
+                     size_t buf_len)
+{
+	int ret;
+
+	if ((buf_len / 2) >= 0x1000) {
+		sbus_printk(XRADIO_DBG_ERROR, "%s: Can't wrire more than 0xfff words.\n", __func__);
+		return -EINVAL;
+	}
+
+	hw_priv->sbus_ops->lock(hw_priv->sbus_priv);
+
+	/* Write address */
+	ret = __xradio_write_reg32(hw_priv, HIF_SRAM_BASE_ADDR_REG_ID, addr);
+	if (ret < 0) {
+		sbus_printk(XRADIO_DBG_ERROR, "%s: Can't write address register.\n", __func__);
+		goto out;
+	}
+
+	/* Write data port */
+	ret = __xradio_write(hw_priv, HIF_SRAM_DPORT_REG_ID, buf, buf_len, 0);
+	if (ret < 0) {
+		sbus_printk(XRADIO_DBG_ERROR, "%s: Can't write data port.\n", __func__);
+		goto out;
+	}
+
+out:
+	hw_priv->sbus_ops->unlock(hw_priv->sbus_priv);
+	return ret;
+}
+
+int xradio_ahb_write(struct sdio_priv* priv, u32 addr, const void *buf,
+                     size_t buf_len)
+{
+	int ret;
+
+	if ((buf_len / 2) >= 0x1000) {
+		sbus_printk(XRADIO_DBG_ERROR, "%s: Can't wrire more than 0xfff words.\n", __func__);
+		return -EINVAL;
+	}
+
+	hw_priv->sbus_ops->lock(hw_priv->sbus_priv);
+
+	/* Write address */
+	ret = __xradio_write_reg32(hw_priv, HIF_SRAM_BASE_ADDR_REG_ID, addr);
+	if (ret < 0) {
+		sbus_printk(XRADIO_DBG_ERROR, "%s: Can't write address register.\n", __func__);
+		goto out;
+	}
+
+	/* Write data port */
+	ret = __xradio_write(hw_priv, HIF_AHB_DPORT_REG_ID, buf, buf_len, 0);
+	if (ret < 0) {
+		sbus_printk(XRADIO_DBG_ERROR, "%s: Can't write data port.\n", __func__);
+		goto out;
+	}
+
+out:
+	hw_priv->sbus_ops->unlock(hw_priv->sbus_priv);
+	return ret;
+}
+//
 
 /* sdio vendor id and device id*/
 #define SDIO_VENDOR_ID_XRADIO 0x0020
@@ -79,33 +350,28 @@ static int sdio_set_blk_size(struct sbus_priv *self, size_t size)
 
 static irqreturn_t sdio_irq_handler(int irq, void *dev_id)
 {
-	//struct sbus_priv *self = sdio_get_drvdata(func);
 	struct sbus_priv *self = (struct sbus_priv*)dev_id;
 	unsigned long flags;
-	sbus_printk(XRADIO_DBG_TRC, "%s\n", __FUNCTION__);
 
 	SYS_BUG(!self);
 	spin_lock_irqsave(&self->lock, flags);
-	if (self->irq_handler)
-		self->irq_handler(self->irq_priv);
-	else
-		printk("bleh\n");
+	//if (self->irq_handler)
+	//	self->irq_handler(self->irq_priv);
 	spin_unlock_irqrestore(&self->lock, flags);
 
 	return IRQ_HANDLED;
 }
 
-static int sdio_irq_subscribe(struct sbus_priv *self,
-				     sbus_irq_handler handler,
-				     void *priv)
+static int sdio_irq_subscribe(struct sbus_priv *self, sbus_irq_handler handler,
+		void *priv)
 {
 	int ret = 0;
+	int func_num;
+	u8 cccr;
 	unsigned long flags;
-	
 
 	if (!handler)
 		return -EINVAL;
-	sbus_printk(XRADIO_DBG_TRC, "%s\n", __FUNCTION__);
 
 	spin_lock_irqsave(&self->lock, flags);
 	self->irq_priv = priv;
@@ -114,18 +380,17 @@ static int sdio_irq_subscribe(struct sbus_priv *self,
 
 	sdio_claim_host(self->func);
 
-	               /* Hack to access Fuction-0 */
-	               u8 cccr;
-	               int func_num = self->func->num;
-	               self->func->num = 0;
-	               cccr = sdio_readb(self->func, SDIO_CCCR_IENx, &ret);
-	               cccr |= BIT(0);         /* Master interrupt enable ... */
-	               cccr |= BIT(func_num);  /* ... for our function */
-	               sdio_writeb(self->func, cccr, SDIO_CCCR_IENx, &ret);
+	/* Hack to access Fuction-0 */
 
-	               /* Restore the WLAN function number */
-	               self->func->num = func_num;
+	func_num = self->func->num;
+	self->func->num = 0;
+	cccr = sdio_readb(self->func, SDIO_CCCR_IENx, &ret);
+	cccr |= BIT(0); /* Master interrupt enable ... */
+	cccr |= BIT(func_num); /* ... for our function */
+	sdio_writeb(self->func, cccr, SDIO_CCCR_IENx, &ret);
 
+	/* Restore the WLAN function number */
+	self->func->num = func_num;
 
 	sdio_release_host(self->func);
 
@@ -143,8 +408,6 @@ static int sdio_irq_unsubscribe(struct sbus_priv *self)
 		sbus_printk(XRADIO_DBG_ERROR, "%s:irq_handler is NULL!\n", __FUNCTION__);
 		return 0;
 	}
-
-
 
 	spin_lock_irqsave(&self->lock, flags);
 	self->irq_priv = NULL;
@@ -173,20 +436,6 @@ static int sdio_reset(struct sbus_priv *self)
 	return 0;
 }
 
-static struct sbus_ops sdio_sbus_ops = {
-	.sbus_data_read     = sdio_data_read,
-	.sbus_data_write    = sdio_data_write,
-	.lock               = sdio_lock,
-	.unlock             = sdio_unlock,
-	.align_size         = sdio_align_len,
-	.set_block_size     = sdio_set_blk_size,
-	.irq_subscribe      = sdio_irq_subscribe,
-	.irq_unsubscribe    = sdio_irq_unsubscribe,
-	.power_mgmt         = sdio_pm,
-	.reset              = sdio_reset,
-};
-static struct sbus_priv sdio_self;
-
 //for sdio debug  2015-5-26 11:01:21
 #if (defined(CONFIG_XRADIO_DEBUGFS))
 u32 dbg_sdio_clk = 0;
@@ -214,7 +463,7 @@ static const struct of_device_id xradio_sdio_of_match_table[] = {
 	{ }
 };
 
-static int xradio_probe_of(struct device *dev)
+static int xradio_probe_of(struct device *dev, struct sbus_priv* sdio_self)
 {
 	struct device_node *np = dev->of_node;
 	const struct of_device_id *of_id;
@@ -236,51 +485,133 @@ static int xradio_probe_of(struct device *dev)
 	return 0;
 }
 
+static struct xradio_common hw_priv = {
+		/* WSM callbacks. */
+		.wsm_cbc.scan_complete = xradio_scan_complete_cb,
+		.wsm_cbc.tx_confirm = xradio_tx_confirm_cb,
+		.wsm_cbc.rx = xradio_rx_cb,
+		.wsm_cbc.suspend_resume = xradio_suspend_resume,
+		/* .wsm_cbc.set_pm_complete = xradio_set_pm_complete_cb; */
+		.wsm_cbc.channel_switch = xradio_channel_switch_cb
+};
+
 /* Probe Function to be called by SDIO stack when device is discovered */
-static int sdio_probe(struct sdio_func *func,
-                      const struct sdio_device_id *id)
+static int sdio_probe(struct sdio_func *func, const struct sdio_device_id *id)
 {
+	int ret;
+	struct sbus_priv* sdio_self;
 	sbus_printk(XRADIO_DBG_ALWY, "XRadio Device:sdio clk=%d\n",
-	            func->card->host->ios.clock);
-	sbus_printk(XRADIO_DBG_NIY, "sdio func->class=%x\n", func->class);
-	sbus_printk(XRADIO_DBG_NIY, "sdio_vendor: 0x%04x\n", func->vendor);
-	sbus_printk(XRADIO_DBG_NIY, "sdio_device: 0x%04x\n", func->device);
-	sbus_printk(XRADIO_DBG_NIY, "Function#: 0x%04x\n",   func->num);
+			func->card->host->ios.clock);sbus_printk(XRADIO_DBG_NIY, "sdio func->class=%x\n", func->class);sbus_printk(XRADIO_DBG_NIY, "sdio_vendor: 0x%04x\n", func->vendor);sbus_printk(XRADIO_DBG_NIY, "sdio_device: 0x%04x\n", func->device);sbus_printk(XRADIO_DBG_NIY, "Function#: 0x%04x\n", func->num);
 
 #if (defined(CONFIG_XRADIO_DEBUGFS))
 	if (dbg_sdio_clk)
-		sdio_set_clk(func, dbg_sdio_clk);
+	sdio_set_clk(func, dbg_sdio_clk);
 #endif
 
 #if 0  //for odly and sdly debug.
-{
-	u32 sdio_param = 0;
-	sdio_param = readl(__io_address(0x01c20088));
-	sdio_param &= ~(0xf<<8);
-	sdio_param |= 3<<8;
-	sdio_param &= ~(0xf<<20);
-	sdio_param |= s_dly<<20;
-	writel(sdio_param, __io_address(0x01c20088));
-	sbus_printk(XRADIO_DBG_ALWY, "%s: 0x01c20088=0x%08x\n", __func__, sdio_param);
-}
+	{
+		u32 sdio_param = 0;
+		sdio_param = readl(__io_address(0x01c20088));
+		sdio_param &= ~(0xf<<8);
+		sdio_param |= 3<<8;
+		sdio_param &= ~(0xf<<20);
+		sdio_param |= s_dly<<20;
+		writel(sdio_param, __io_address(0x01c20088));
+		sbus_printk(XRADIO_DBG_ALWY, "%s: 0x01c20088=0x%08x\n", __func__, sdio_param);
+	}
 #endif
 
-	xradio_probe_of(&func->dev);
+	sdio_self = kmalloc(sizeof(*sdio_self), GFP_KERNEL);
 
-	sdio_self.func = func;
-	sdio_self.func->card->quirks |= MMC_QUIRK_BROKEN_BYTE_MODE_512;
-	sdio_set_drvdata(func, &sdio_self);
+
+	hw_priv.sbus_priv = sdio_self;
+	hw_priv.sbus_ops = &sdio_sbus_ops;
+
+	xradio_probe_of(&func->dev, sdio_self);
+
+	sdio_self->func = func;
+	sdio_self->func->card->quirks |= MMC_QUIRK_BROKEN_BYTE_MODE_512;
+	sdio_set_drvdata(func, sdio_self);
 	sdio_claim_host(func);
 	sdio_enable_func(func);
 	sdio_release_host(func);
 
-	sdio_self.load_state = SDIO_LOAD;
-	wake_up(&sdio_self.init_wq);
+	/*init pm and wakelock. */
 
-	return 0;
+//#ifdef CONFIG_PM
+//	err = xradio_pm_init(&hw_priv->pm_state, hw_priv);
+//	if (err) {
+//		xradio_dbg(XRADIO_DBG_ERROR, "xradio_pm_init failed(%d).\n", err);
+//		goto err2;
+//	}
+//#endif
+
+	/* Register bh thread*/
+	//ret = xradio_register_bh(&hw_priv);
+	//if (ret) {
+	//	xradio_dbg(XRADIO_DBG_ERROR, "xradio_register_bh failed(%d).\n",
+	//			ret);
+	//	goto err3;
+	//}
+
+	/* Load firmware*/
+	ret = xradio_load_firmware(&hw_priv);
+	if (ret) {
+		xradio_dbg(XRADIO_DBG_ERROR, "xradio_load_firmware failed(%d).\n",
+				ret);
+		goto err4;
+	}
+
+	/* Set sdio blocksize. */
+	//sdio_set_blk_size(sdio_self, SDIO_BLOCK_SIZE);
+
+	//if (wait_event_interruptible_timeout(hw_priv.wsm_startup_done,
+	//		hw_priv.wsm_caps.firmwareReady, 3 * HZ) <= 0) {
+	//
+	//	/* TODO: Needs to find how to reset device */
+	//	/*       in QUEUE mode properly.           */
+	//	xradio_dbg(XRADIO_DBG_ERROR, "Firmware Startup Timeout!\n");
+	//	ret = -ETIMEDOUT;
+	//	goto err5;
+	//}
+
+	//xradio_dbg(XRADIO_DBG_ALWY,"Firmware Startup Done.\n");
+
+	/* Keep device wake up. */
+	//xradio_reg_write_16( hw_priv, HIF_CONTROL_REG_ID, HIF_CTRL_WUP_BIT);
+	//if (xradio_reg_read_16(hw_priv, HIF_CONTROL_REG_ID, &ctrl_reg))
+	//	xradio_reg_read_16(hw_priv, HIF_CONTROL_REG_ID, &ctrl_reg);
+	//SYS_WARN(!(ctrl_reg & HIF_CTRL_RDY_BIT));
+
+	/* Set device mode parameter. */
+	//for (if_id = 0; if_id < xrwl_get_nr_hw_ifaces(hw_priv); if_id++) {
+		/* Set low-power mode. */
+		//wsm_set_operational_mode(hw_priv, &mode, if_id);
+		/* Enable multi-TX confirmation */
+		//wsm_use_multi_tx_conf( hw_priv, true, if_id);
+	//}
+
+	/* Register wireless net device. */
+	//err = xradio_register_common(dev);
+	//if (err) {
+	//	xradio_dbg(XRADIO_DBG_ERROR,"xradio_register_common failed(%d)!\n", err);
+	//	goto err5;
+	//}
+
+goto noerror;
+
+	//err5: xradio_dev_deinit(&hw_priv);
+	err4: xradio_unregister_bh(&hw_priv);
+	//err3:
+	//xradio_pm_deinit(&hw_priv->pm_state);
+	//err2: sbus_sdio_deinit();
+	//err1: xradio_free_common(dev);
+
+noerror:
+
+	return ret;
 }
-/* Disconnect Function to be called by SDIO stack when
- * device is disconnected */
+
 static void sdio_remove(struct sdio_func *func)
 {
 	struct sbus_priv *self = sdio_get_drvdata(func);
@@ -325,62 +656,17 @@ static struct sdio_driver sdio_driver = {
 	}
 };
 
-
-/* Init Module function -> Called by insmod */
-struct device * sbus_sdio_init(struct sbus_ops  **sdio_ops, 
-                               struct sbus_priv **sdio_priv)
+int sbus_sdio_init()
 {
 	int ret = 0;
-	struct device * sdio_dev = NULL;
-	sbus_printk(XRADIO_DBG_TRC, "%s\n", __FUNCTION__);
-	
-	//initialize sbus_priv.
-	if (sdio_self.load_state == SDIO_UNLOAD) {
-		spin_lock_init(&sdio_self.lock);
-		init_waitqueue_head(&sdio_self.init_wq);
-
-		//setup sdio driver.
-		ret = sdio_register_driver(&sdio_driver);
-		if (ret) {
+	ret = sdio_register_driver(&sdio_driver);
+	if (ret) {
 			sbus_printk(XRADIO_DBG_ERROR,"sdio_register_driver failed!\n");
-			return NULL;
-		}
-
-		//module power up.
-		xradio_wlan_power(1);
-		//detect sdio card.
-		xradio_sdio_detect(1);
-		if (wait_event_interruptible_timeout(sdio_self.init_wq,
-			sdio_self.load_state == SDIO_LOAD, 2*HZ) <= 0) {
-			sdio_unregister_driver(&sdio_driver);
-			sdio_self.load_state = SDIO_UNLOAD;
-
-			xradio_wlan_power(0); //power down.
-			xradio_sdio_detect(0);
-			sbus_printk(XRADIO_DBG_ERROR,"sdio probe timeout!\n");
-			return NULL;
-		}
 	}
-
-	//register sbus.
-	sdio_dev   = &(sdio_self.func->dev);
-	*sdio_ops  = &sdio_sbus_ops;
-	*sdio_priv = &sdio_self;
-
-	return sdio_dev;
+	return ret;
 }
 
-/* SDIO Driver Unloading */
 void sbus_sdio_deinit()
 {
-	sbus_printk(XRADIO_DBG_TRC, "%s\n", __FUNCTION__);
-	if (sdio_self.load_state != SDIO_UNLOAD) {
-		sdio_unregister_driver(&sdio_driver);
-		memset(&sdio_self, 0, sizeof(sdio_self));
-		sdio_self.load_state = SDIO_UNLOAD;
-
-		xradio_wlan_power(0);  //power down.
-		xradio_sdio_detect(0);
-		mdelay(10);
-	}
+	sdio_unregister_driver(&sdio_driver);
 }

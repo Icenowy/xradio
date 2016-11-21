@@ -16,7 +16,6 @@
 #include "sta.h"
 #include "bh.h"
 #include "sbus.h"
-#include "platform.h"
 
 #define XRADIO_BEACON_SKIPPING_MULTIPLIER 3
 
@@ -802,7 +801,7 @@ static int xradio_poweroff_suspend(struct xradio_common *hw_priv)
 	}
 
 	/* Going to sleep with wifi power down. */
-	xradio_wlan_power(0);
+	//xradio_wlan_power(0);
 	return 0;
 }
 

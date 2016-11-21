@@ -17,7 +17,7 @@
 #include "xradio.h"
 #include "fwio.h"
 #include "hwio.h"
-#include "sbus.h"
+#include "sdio.h"
 #include "bh.h"
 
 /* Macroses are local. */
@@ -84,7 +84,7 @@ static int xradio_get_hw_type(u32 config_reg_val, int *major_revision)
  * This function is called to Parse the SDD file
  * to extract some informations
  */
-static int xradio_parse_sdd(struct xradio_common *hw_priv, u32 *dpll)
+static int xradio_parse_sdd(struct sdio_priv* priv, u32 *dpll)
 {
 	int ret = 0;
 	const char *sdd_path = NULL;
@@ -193,7 +193,7 @@ static int xradio_parse_sdd(struct xradio_common *hw_priv, u32 *dpll)
 	return ret;
 }
 
-static int xradio_firmware(struct xradio_common *hw_priv)
+static int xradio_firmware(struct sdio_priv* priv)
 {
 	int ret, block, num_blocks;
 	unsigned i;
@@ -366,7 +366,7 @@ error:
 	return ret;
 }
 
-static int xradio_bootloader(struct xradio_common *hw_priv)
+static int xradio_bootloader(struct sdio_priv* priv)
 {
 	int ret = -1;
 	u32 i = 0;
@@ -423,7 +423,7 @@ error:
 }
 
 bool test_retry = false;
-int xradio_load_firmware(struct xradio_common *hw_priv)
+int xradio_load_firmware(struct sdio_priv* priv)
 {
 	int ret;
 	int i;
@@ -432,8 +432,6 @@ int xradio_load_firmware(struct xradio_common *hw_priv)
 	u32 dpll = 0;
 	int major_revision;
 	xradio_dbg(XRADIO_DBG_TRC,"%s\n", __FUNCTION__);
-
-	SYS_BUG(!hw_priv);
 
 	/* Read CONFIG Register Value - We will read 32 bits */
 	ret = xradio_reg_read_32(hw_priv, HIF_CONFIG_REG_ID, &val32);
@@ -631,7 +629,7 @@ out:
 	return ret;
 }
 
-int xradio_dev_deinit(struct xradio_common *hw_priv)
+int xradio_dev_deinit(struct sdio_priv* priv)
 {
 	hw_priv->sbus_ops->irq_unsubscribe(hw_priv->sbus_priv);
 	if (hw_priv->sdd) {

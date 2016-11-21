@@ -8,14 +8,13 @@ xradio_wlan-y := \
 	txrx.o \
 	main.o \
 	queue.o \
-	hwio.o \
 	bh.o \
 	wsm.o \
 	sta.o \
 	ap.o \
 	scan.o \
-	platform.o \
-	debug.o
+	debug.o# \
+#	netif.o
 
 xradio_wlan-$(CONFIG_PM)		+= pm.o
 xradio_wlan-$(CONFIG_XRADIO_SDIO)	+= sdio.o
