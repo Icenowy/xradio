@@ -1,5 +1,6 @@
 CONFIG_XRADIO := m
 CONFIG_XRADIO_SDIO := y
+CONFIG_XRADIO_USE_EXTENSIONS := y
 
 xradio_wlan-y := \
 	common.o \
@@ -31,6 +32,7 @@ ccflags-y += -DAP_HT_COMPAT_FIX
 ccflags-y += -DCONFIG_XRADIO_DEBUG
 ccflags-y += -DCONFIG_XRADIO_DUMP_ON_ERROR
 ccflags-y += -DCONFIG_XRADIO_DEBUGFS
+ccflags-y += -DCONFIG_XRADIO_NON_POWER_OF_TWO_BLOCKSIZES
 
 ccflags-y += -DCONFIG_XRADIO_SUSPEND_POWER_OFF
 # Use vfs for firmware load when request_firmware 
