@@ -434,38 +434,9 @@ static void xradio_get_mac_addrs(u8 *macaddr)
 	/* Use random value to set mac addr for the first time, 
 	 * and save it in  wifi config file. TODO: read from product ID*/
 	if (ret < 0 || !MACADDR_VAILID(macaddr)) {
-#ifdef XRADIO_MACPARAM_HEX
-		ret = access_file(WIFI_CONF_PATH, macaddr, ETH_ALEN, 1);
-#else
-		char  c_mac[XRADIO_MAC_CHARLEN+2] = {0};
-		ret = access_file(WIFI_CONF_PATH, c_mac, XRADIO_MAC_CHARLEN, 1);
-		if (ret >= 0) {
-			ret = xradio_macaddr_char2val(macaddr, c_mac);
-		}
-#endif
-		if(ret<0 || !MACADDR_VAILID(macaddr)) {
-			get_random_bytes(macaddr, 6);
-			macaddr[0] &= 0xFC; 
-#ifdef XRADIO_MACPARAM_HEX
-			ret = access_file(WIFI_CONF_PATH, macaddr, ETH_ALEN, 0);
-#else
-			ret = xradio_macaddr_val2char(c_mac, macaddr);
-			ret = access_file(WIFI_CONF_PATH, c_mac, ret, 0);
-#endif
-			if(ret<0)
-				xradio_dbg(XRADIO_DBG_ERROR, "Access_file failed, path:%s!\n", 
-				           WIFI_CONF_PATH);
-			if (!MACADDR_VAILID(macaddr)) {
-				xradio_dbg(XRADIO_DBG_WARN, "Use default Mac addr!\n");
-				macaddr[0] = 0xDC;
-				macaddr[1] = 0x44;
-				macaddr[2] = 0x6D;
-			} else {
-				xradio_dbg(XRADIO_DBG_NIY, "Use random Mac addr!\n");
-			}
-		} else {
-			xradio_dbg(XRADIO_DBG_NIY, "Use Mac addr in file!\n");
-		}
+		get_random_bytes(macaddr, 6);
+		macaddr[0] &= 0xFC;
+		xradio_dbg(XRADIO_DBG_NIY, "Use random Mac addr!\n");
 	}
 	xradio_dbg(XRADIO_DBG_NIY, "MACADDR=%02x:%02x:%02x:%02x:%02x:%02x\n",
 	           macaddr[0], macaddr[1], macaddr[2], 
