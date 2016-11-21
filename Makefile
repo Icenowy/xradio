@@ -34,7 +34,6 @@ ccflags-y += -DCONFIG_XRADIO_DUMP_ON_ERROR
 ccflags-y += -DCONFIG_XRADIO_DEBUGFS
 ccflags-y += -DCONFIG_XRADIO_NON_POWER_OF_TWO_BLOCKSIZES
 
-
 ccflags-y += -DCONFIG_XRADIO_SUSPEND_POWER_OFF
 # Use vfs for firmware load when request_firmware 
 # can't work on other platform.
