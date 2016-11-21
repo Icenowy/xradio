@@ -434,8 +434,11 @@ static void xradio_get_mac_addrs(u8 *macaddr)
 	/* Use random value to set mac addr for the first time, 
 	 * and save it in  wifi config file. TODO: read from product ID*/
 	if (ret < 0 || !MACADDR_VAILID(macaddr)) {
-		get_random_bytes(macaddr, 6);
-		macaddr[0] &= 0xFC;
+		/* The vendor prefix of Allwinner */
+		macaddr[0] = 0xDC;
+		macaddr[1] = 0x44;
+		macaddr[2] = 0x6D;
+		get_random_bytes(macaddr+3, 3);
 		xradio_dbg(XRADIO_DBG_NIY, "Use random Mac addr!\n");
 	}
 	xradio_dbg(XRADIO_DBG_NIY, "MACADDR=%02x:%02x:%02x:%02x:%02x:%02x\n",
