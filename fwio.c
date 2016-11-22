@@ -85,7 +85,7 @@ static int xradio_get_hw_type(u32 config_reg_val, int *major_revision)
  * This function is called to Parse the SDD file
  * to extract some informations
  */
-static int xradio_parse_sdd(struct sdio_priv* priv, u32 *dpll)
+static int xradio_parse_sdd(struct xr819* priv, u32 *dpll)
 {
 	int ret = 0;
 	const char *sdd_path = NULL;
@@ -110,7 +110,7 @@ static int xradio_parse_sdd(struct sdio_priv* priv, u32 *dpll)
 		return ret;
 	}
 #else
-	ret = request_firmware(&priv->firmware.sdd, sdd_path, &priv->func->dev);
+	ret = request_firmware(&priv->firmware.sdd, sdd_path, &priv->sdio.func->dev);
 	if (unlikely(ret)) {
 		xradio_dbg(XRADIO_DBG_ERROR, "%s: can't load sdd file %s.\n",
 		           __func__, sdd_path);
@@ -191,7 +191,7 @@ static int xradio_parse_sdd(struct sdio_priv* priv, u32 *dpll)
 	return ret;
 }
 
-static int xradio_firmware(struct sdio_priv* priv)
+static int xradio_firmware(struct xr819* priv)
 {
 	int ret, block, num_blocks;
 	unsigned i;
@@ -204,7 +204,6 @@ static int xradio_firmware(struct sdio_priv* priv)
 #else
 	const struct firmware *firmware = NULL;
 #endif
-	xradio_dbg(XRADIO_DBG_TRC,"%s\n", __FUNCTION__);
 
 	switch (priv->hardware.hw_revision) {
 	case XR819_HW_REV0:
@@ -241,7 +240,7 @@ static int xradio_firmware(struct sdio_priv* priv)
 		goto error;
 	}
 #else
-	ret = request_firmware(&firmware, fw_path, &priv->func->dev);
+	ret = request_firmware(&firmware, fw_path, &priv->sdio.func->dev);
 	if (ret) {
 		xradio_dbg(XRADIO_DBG_ERROR, "%s: can't load firmware file %s.\n",
 		           __func__, fw_path);
@@ -347,7 +346,7 @@ static int xradio_firmware(struct sdio_priv* priv)
 		ret = -ETIMEDOUT;
 		goto error;
 	} else {
-		xradio_dbg(XRADIO_DBG_ALWY, "Firmware completed.\n");
+		dev_dbg(&priv->sdio.func->dev, "Firmware completed.\n");
 		ret = 0;
 	}
 
@@ -364,7 +363,7 @@ error:
 	return ret;
 }
 
-static int xradio_bootloader(struct sdio_priv* priv)
+static int xradio_bootloader(struct xr819* priv)
 {
 	int ret = -1;
 	u32 i = 0;
@@ -387,7 +386,7 @@ static int xradio_bootloader(struct sdio_priv* priv)
 	}
 #else
 	/* Load a bootloader file */
-	ret = request_firmware(&bootloader, bl_path, &priv->func->dev);
+	ret = request_firmware(&bootloader, bl_path, &priv->sdio.func->dev);
 	if (ret) {
 		xradio_dbg(XRADIO_DBG_ERROR, "%s: can't load bootloader file %s.\n",
 		           __func__, bl_path);
@@ -421,7 +420,7 @@ error:
 }
 
 bool test_retry = false;
-int xradio_load_firmware(struct sdio_priv* priv)
+int xradio_load_firmware(struct xr819* priv)
 {
 	int ret;
 	int i;
@@ -429,7 +428,6 @@ int xradio_load_firmware(struct sdio_priv* priv)
 	u16 val16;
 	u32 dpll = 0;
 	int major_revision;
-	xradio_dbg(XRADIO_DBG_TRC,"%s\n", __FUNCTION__);
 
 	/* Read CONFIG Register Value - We will read 32 bits */
 	ret = xradio_reg_read_32(priv, HIF_CONFIG_REG_ID, &val32);
@@ -610,7 +608,7 @@ out:
 	return ret;
 }
 
-int xradio_dev_deinit(struct sdio_priv* priv)
+int xradio_dev_deinit(struct xr819* priv)
 {
 	if (priv->firmware.sdd) {
 	#ifdef USE_VFS_FIRMWARE

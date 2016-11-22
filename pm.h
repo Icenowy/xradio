@@ -39,10 +39,6 @@ struct xradio_pm_state {
 	long expires_save;
 };
 
-struct xradio_pm_state_vif {
-	struct xradio_suspend_state *suspend_state;
-};
-
 #ifdef CONFIG_XRADIO_SUSPEND_POWER_OFF
 enum suspend_state {
 	XRADIO_RESUME = 0,

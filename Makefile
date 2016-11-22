@@ -5,8 +5,6 @@ CONFIG_XRADIO_USE_EXTENSIONS := y
 #	txrx.o \
 # \
 #	netif.o
-#	bh.o \
-#	wsm.o \
 #	sta.o \
 #	ap.o \
 #	scan.o \
@@ -18,7 +16,9 @@ xradio_wlan-y := \
 	fwio.o \
 	main.o \
 	debug.o \
-	sdio.o
+	sdio.o \
+	bh.o \
+	wsm.o
 
 #xradio_wlan-$(CONFIG_PM)		+= pm.o
 xradio_wlan-$(CONFIG_XRADIO_ITP)	+= itp.o

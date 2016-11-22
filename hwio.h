@@ -149,17 +149,17 @@ struct download_cntl_t {
 /* For XRADIO the IRQ Enable and Ready Bits are in CONFIG register */
 #define HIF_CONF_IRQ_RDY_ENABLE	(BIT(16)|BIT(17))
 
-int xradio_data_read(struct sdio_priv* priv, void *buf, size_t buf_len);
-int xradio_data_write(struct sdio_priv* priv, const void *buf, size_t buf_len);
-int xradio_reg_read(struct sdio_priv* priv, u16 addr, void *buf, size_t buf_len);
-int xradio_reg_write(struct sdio_priv* priv, u16 addr, const void *buf, size_t buf_len);
-int xradio_indirect_read(struct sdio_priv* priv, u32 addr, void *buf,
+int xradio_data_read(struct xr819* priv, void *buf, size_t buf_len);
+int xradio_data_write(struct xr819* priv, const void *buf, size_t buf_len);
+int xradio_reg_read(struct xr819* priv, u16 addr, void *buf, size_t buf_len);
+int xradio_reg_write(struct xr819* priv, u16 addr, const void *buf, size_t buf_len);
+int xradio_indirect_read(struct xr819* priv, u32 addr, void *buf,
                          size_t buf_len, u32 prefetch, u16 port_addr);
-int xradio_apb_write(struct sdio_priv* priv, u32 addr, const void *buf, size_t buf_len);
-int xradio_ahb_write(struct sdio_priv* priv, u32 addr, const void *buf, size_t buf_len);
+int xradio_apb_write(struct xr819* priv, u32 addr, const void *buf, size_t buf_len);
+int xradio_ahb_write(struct xr819* priv, u32 addr, const void *buf, size_t buf_len);
 
 
-static inline int xradio_reg_read_16(struct sdio_priv* priv,
+static inline int xradio_reg_read_16(struct xr819* priv,
                                      u16 addr, u16 *val)
 {
 	int ret    = 0;
@@ -169,58 +169,58 @@ static inline int xradio_reg_read_16(struct sdio_priv* priv,
 	return ret;
 }
 
-static inline int xradio_reg_write_16(struct sdio_priv* priv,
+static inline int xradio_reg_write_16(struct xr819* priv,
                                       u16 addr, u16 val)
 {
 	u32 bigVal = (u32)val;
 	return xradio_reg_write(priv, addr, &bigVal, sizeof(bigVal));
 }
 
-static inline int xradio_reg_read_32(struct sdio_priv* priv,
+static inline int xradio_reg_read_32(struct xr819* priv,
                                       u16 addr, u32 *val)
 {
 	return xradio_reg_read(priv, addr, val, sizeof(val));
 }
 
-static inline int xradio_reg_write_32(struct sdio_priv* priv,
+static inline int xradio_reg_write_32(struct xr819* priv,
                                       u16 addr, u32 val)
 {
 	return xradio_reg_write(priv, addr, &val, sizeof(val));
 }
 
-static inline int xradio_apb_read(struct sdio_priv* priv, u32 addr,
+static inline int xradio_apb_read(struct xr819* priv, u32 addr,
                                   void *buf, size_t buf_len)
 {
 	return xradio_indirect_read(priv, addr, buf, buf_len, HIF_CONFIG_PFETCH_BIT,
 	                            HIF_SRAM_DPORT_REG_ID);
 }
 
-static inline int xradio_ahb_read(struct sdio_priv* priv, u32 addr,
+static inline int xradio_ahb_read(struct xr819* priv, u32 addr,
                                   void *buf, size_t buf_len)
 {
 	return xradio_indirect_read(priv, addr, buf, buf_len, HIF_CONFIG_AHB_PFETCH_BIT,
 	                            HIF_AHB_DPORT_REG_ID);
 }
 
-static inline int xradio_apb_read_32(struct sdio_priv* priv,
+static inline int xradio_apb_read_32(struct xr819* priv,
                                       u32 addr, u32 *val)
 {
 	return xradio_apb_read(priv, addr, val, sizeof(val));
 }
 
-static inline int xradio_apb_write_32(struct sdio_priv* priv,
+static inline int xradio_apb_write_32(struct xr819* priv,
                                       u32 addr, u32 val)
 {
 	return xradio_apb_write(priv, addr, &val, sizeof(val));
 }
 
-static inline int xradio_ahb_read_32(struct sdio_priv* priv,
+static inline int xradio_ahb_read_32(struct xr819* priv,
                                       u32 addr, u32 *val)
 {
 	return xradio_ahb_read(priv, addr, val, sizeof(val));
 }
 
-static inline int xradio_ahb_write_32(struct sdio_priv* priv,
+static inline int xradio_ahb_write_32(struct xr819* priv,
                                       u32 addr, u32 val)
 {
 	return xradio_ahb_write(priv, addr, &val, sizeof(val));

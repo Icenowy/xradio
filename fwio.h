@@ -37,7 +37,7 @@ struct xradio_sdd {
 };
 
 struct xradio_common;
-int xradio_load_firmware(struct sdio_priv* priv);
-int xradio_dev_deinit(struct sdio_priv* priv);
+int xradio_load_firmware(struct xr819* priv);
+int xradio_dev_deinit(struct xr819* priv);
 
 #endif

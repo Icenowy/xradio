@@ -14,25 +14,22 @@
 
 #define XRADIO_BH_THREAD   "xradio_bh"
 
-/* extern */ struct xradio_common;
+/* extern */struct xradio_common;
 
 #define SDIO_BLOCK_SIZE (528)
 
-int xradio_register_bh(struct sdio_priv *priv);
-void xradio_unregister_bh(struct sdio_priv *priv);
-void xradio_irq_handler(struct sdio_priv *priv);
-void xradio_bh_wakeup(struct sdio_priv *priv);
-int xradio_bh_suspend(struct sdio_priv *priv);
+int xradio_register_bh(struct xr819 *priv);
+void xradio_unregister_bh(struct xr819 *priv);
+void xradio_irq_handler(struct xr819 *priv);
+void xradio_bh_wakeup(struct xr819 *priv);
+int xradio_bh_suspend(struct xr819 *priv);
+int xradio_bh_resume(struct xr819 *hw_priv);
 
-
-int xradio_bh_resume(struct xradio_common *hw_priv);
 /* Must be called from BH thread. */
 void xradio_enable_powersave(struct xradio_vif *priv, bool enable);
-int wsm_release_tx_buffer(struct xradio_common *hw_priv, int count);
-int wsm_release_vif_tx_buffer(struct xradio_common *hw_priv, int if_id,
-                              int count);
-int xradio_init_resv_skb(struct xradio_common *hw_priv);
-void xradio_deinit_resv_skb(struct xradio_common *hw_priv);
-int xradio_realloc_resv_skb(struct xradio_common *hw_priv,
-							struct sk_buff *skb);
+int wsm_release_tx_buffer(struct xr819 *hw_priv, int count);
+int wsm_release_vif_tx_buffer(struct xr819 *hw_priv, int if_id, int count);
+int xradio_init_resv_skb(struct xr819 *hw_priv);
+void xradio_deinit_resv_skb(struct xr819 *hw_priv);
+int xradio_realloc_resv_skb(struct xr819 *hw_priv, struct sk_buff *skb);
 #endif /* XRADIO_BH_H */

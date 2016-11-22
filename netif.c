@@ -12,7 +12,6 @@
 #include "ap.h"
 #include "pm.h"
 
-
 /* TODO: use rates and channels from the device */
 #define RATETAB_ENT(_rate, _rateid, _flags)		\
 	{						\
@@ -149,24 +148,16 @@ static const unsigned long xradio_ttl[] = { 1 * HZ, /* VO */
 10 * HZ /* BK */
 };
 
-static const struct ieee80211_ops xradio_ops = {
-		.start = xradio_start,
-		.stop =
-		xradio_stop,
-		.add_interface = xradio_add_interface,
-		.remove_interface =
-		xradio_remove_interface,
-		.change_interface = xradio_change_interface,
-		.tx = xradio_tx,
-		.hw_scan = xradio_hw_scan,
+static const struct ieee80211_ops xradio_ops = { .start = xradio_start, .stop =
+		xradio_stop, .add_interface = xradio_add_interface, .remove_interface =
+		xradio_remove_interface, .change_interface = xradio_change_interface,
+		.tx = xradio_tx, .hw_scan = xradio_hw_scan,
 #ifdef ROAM_OFFLOAD
 		.sched_scan_start = xradio_hw_sched_scan_start,
 		.sched_scan_stop = xradio_hw_sched_scan_stop,
 #endif /*ROAM_OFFLOAD*/
-		.set_tim = xradio_set_tim,
-		.sta_notify = xradio_sta_notify,
-		.sta_add = xradio_sta_add,
-		.sta_remove = xradio_sta_remove, .set_key =
+		.set_tim = xradio_set_tim, .sta_notify = xradio_sta_notify, .sta_add =
+				xradio_sta_add, .sta_remove = xradio_sta_remove, .set_key =
 				xradio_set_key, .set_rts_threshold = xradio_set_rts_threshold,
 		.config = xradio_config, .bss_info_changed = xradio_bss_info_changed,
 		.prepare_multicast = xradio_prepare_multicast, .configure_filter =
@@ -438,10 +429,12 @@ struct ieee80211_hw *xradio_init_common(size_t hw_priv_data_len) {
 	}
 
 	init_waitqueue_head(&hw_priv->channel_switch_done);
-	init_waitqueue_head(&hw_priv->wsm_cmd_wq);
-	init_waitqueue_head(&hw_priv->wsm_startup_done);
+
+
+
 	init_waitqueue_head(&hw_priv->offchannel_wq);
-	hw_priv->wsm_caps.firmwareReady = 0;
+	init_waitqueue_head(&hw_priv->wsm_cmd_wq);
+
 	hw_priv->driver_ready = 0;
 	hw_priv->offchannel_done = 0;
 	wsm_buf_init(&hw_priv->wsm_cmd_buf);
@@ -514,8 +507,7 @@ int xradio_register_common(struct ieee80211_hw *dev) {
 	if (err) {
 		xradio_dbg(XRADIO_DBG_ERROR, "Cannot register device (%d).\n", err);
 		return err;
-	}
-	xradio_dbg(XRADIO_DBG_MSG, "is registered as '%s'\n",
+	} xradio_dbg(XRADIO_DBG_MSG, "is registered as '%s'\n",
 			wiphy_name(dev->wiphy));
 
 	xradio_debug_init_common(hw_priv);
@@ -584,8 +576,7 @@ void xradio_free_common(struct ieee80211_hw *dev) {
  a[4] != 0 || a[5] != 0) && \
  !(a[0] & 0x3))
 
-static void xradio_get_mac_addrs(u8 *macaddr) 
-{
+static void xradio_get_mac_addrs(u8 *macaddr) {
 	/* The vendor prefix of Allwinner */
 	macaddr[0] = 0xDC;
 	macaddr[1] = 0x44;

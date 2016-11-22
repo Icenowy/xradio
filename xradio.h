@@ -63,13 +63,12 @@
 
 #define XRADIO_MAX_CTRL_FRAME_LEN  (0x1000)
 
-#define MAX_STA_IN_AP_MODE         (14)
+
 #define WLAN_LINK_ID_MAX           (MAX_STA_IN_AP_MODE + 3)
 
 #define XRADIO_MAX_STA_IN_AP_MODE   (5)
 #define XRADIO_MAX_REQUEUE_ATTEMPTS (5)
 #define XRADIO_LINK_ID_UNMAPPED     (15)
-#define XRADIO_MAX_TID              (8)
 
 #define XRADIO_TX_BLOCK_ACK_ENABLED_FOR_ALL_TID    (0x3F)
 #define XRADIO_RX_BLOCK_ACK_ENABLED_FOR_ALL_TID    (0x3F)
@@ -96,9 +95,7 @@
 #define XRADIO_SCAN_MEASUREMENT_ACTIVE  (1)
 #endif
 
-#ifdef MCAST_FWDING
-#define WSM_MAX_BUF		30
-#endif
+
 
 #define MAX_RATES_STAGE   8   //
 #define MAX_RATES_RETRY   15
@@ -117,23 +114,9 @@ extern char *drv_version;
 /* extern */ struct firmware;
 
 /* Please keep order */
-enum xradio_join_status {
-	XRADIO_JOIN_STATUS_PASSIVE = 0,
-	XRADIO_JOIN_STATUS_MONITOR,
-	XRADIO_JOIN_STATUS_STA,
-	XRADIO_JOIN_STATUS_AP,
-};
 
-enum xradio_link_status {
-	XRADIO_LINK_OFF,
-	XRADIO_LINK_RESERVE,
-	XRADIO_LINK_SOFT,
-	XRADIO_LINK_HARD,
-#if defined(CONFIG_XRADIO_USE_EXTENSIONS)
-	XRADIO_LINK_RESET,
-	XRADIO_LINK_RESET_REMAP,
-#endif
-};
+
+
 
 enum xradio_bss_loss_status {
 	XRADIO_BSS_LOSS_NONE,
@@ -142,16 +125,7 @@ enum xradio_bss_loss_status {
 	XRADIO_BSS_LOSS_CONFIRMED,
 };
 
-struct xradio_link_entry {
-	unsigned long			timestamp;
-	enum xradio_link_status		status;
-#if defined(CONFIG_XRADIO_USE_EXTENSIONS)
-	enum xradio_link_status		prev_status;
-#endif
-	u8				mac[ETH_ALEN];
-	u8				buffered[XRADIO_MAX_TID];
-	struct sk_buff_head		rx_queue;
-};
+
 
 #if defined(ROAM_OFFLOAD) || defined(CONFIG_XRADIO_TESTMODE)
 struct xradio_testframe {
@@ -265,18 +239,13 @@ struct xradio_common {
 
 	bool				is_go_thru_go_neg;
 
-	int				wsm_rx_seq;	/* byte */
-	int				wsm_tx_seq;	/* byte */
-	int				hw_bufs_used;
-	int				hw_bufs_used_vif[XRWL_MAX_VIFS];
-	struct sk_buff			*skb_cache;
-	struct sk_buff			*skb_reserved;
-	int						 skb_resv_len;
-	bool				powersave_enabled;
-	bool				device_can_sleep;
-	/* Keep xradio awake (WUP = 1) 1 second after each scan to avoid
-	 * FW issue with sleeping/waking up. */
-	atomic_t			recent_scan;
+
+
+
+
+
+
+
 	long			connet_time[XRWL_MAX_VIFS];
 #ifdef CONFIG_XRADIO_SUSPEND_POWER_OFF
 	atomic_t            suspend_state;
@@ -287,12 +256,8 @@ struct xradio_common {
 #endif
 
 	/* WSM */
-	struct wsm_caps			wsm_caps;
-	struct mutex			wsm_cmd_mux;
-	struct wsm_buf			wsm_cmd_buf;
-	struct wsm_cmd			wsm_cmd;
-	wait_queue_head_t		wsm_cmd_wq;
-	wait_queue_head_t		wsm_startup_done;
+
+
 	struct wsm_cbc			wsm_cbc;
 	struct semaphore		tx_lock_sem;
 	atomic_t				tx_lock;
@@ -307,11 +272,6 @@ struct xradio_common {
 #endif /* CONFIG_XRADIO_TESTMODE */
 
 	/* WSM debug */
-	int                 wsm_enable_wsm_dumps;
-	u32                 wsm_dump_max_size;
-	u32                 query_packetID;
-	atomic_t            query_cnt;
-	struct work_struct  query_work; /* for query packet */
 
 	/* Scan status */
 	struct xradio_scan scan;
@@ -345,7 +305,7 @@ struct xradio_common {
 	struct ieee80211_iface_limit		if_limits3[2];
 	struct ieee80211_iface_combination	if_combs[3];
 
-	struct mutex			wsm_oper_lock;
+
 	struct delayed_work		rem_chan_timeout;
 	atomic_t			remain_on_channel;
 	int				roc_if_id;
@@ -356,10 +316,7 @@ struct xradio_common {
 	int       if_id_selected;
 	u32				key_map;
 	struct wsm_add_key		keys[WSM_KEY_MAX_INDEX + 1];
-#ifdef MCAST_FWDING
-	struct wsm_buf		wsm_release_buf[WSM_MAX_BUF];
-	u8			buf_released;
-#endif	
+
 #ifdef ROAM_OFFLOAD
 	u8				auto_scanning;
 	u8				frame_rcvd;
@@ -383,134 +340,8 @@ struct xradio_common {
 	u16			vif1_throttle;
 };
 
-/* Virtual Interface State. One copy per VIF */
-struct xradio_vif {
-	atomic_t			enabled;
-	spinlock_t			vif_lock;
-	int				if_id;
-	/*TODO: Split into Common and VIF parts */
-	struct xradio_debug_priv	*debug;
-	/* BBP/MAC state */
-	u8 bssid[ETH_ALEN];
-	struct wsm_edca_params		edca;
-	struct wsm_tx_queue_params	tx_queue_params;
-	struct wsm_association_mode	association_mode;
-	struct wsm_set_bss_params	bss_params;
-	struct wsm_set_pm		powersave_mode;
-	struct wsm_set_pm		firmware_ps_mode;
-	int				power_set_true;
-	int				user_power_set_true;
-	u8				user_pm_mode;
-	int				cqm_rssi_thold;
-	unsigned			cqm_rssi_hyst;
-	unsigned			cqm_tx_failure_thold;
-	unsigned			cqm_tx_failure_count;
-	bool				cqm_use_rssi;
-	int				cqm_link_loss_count;
-	int				cqm_beacon_loss_count;
-	int				mode;
-	bool				enable_beacon;
-	int				beacon_int;
-	size_t				ssid_length;
-	u8				ssid[IEEE80211_MAX_SSID_LEN];
-#ifdef HIDDEN_SSID
-	bool				hidden_ssid;
-#endif
-	bool				listening;
-	struct wsm_rx_filter		rx_filter;
-	struct wsm_beacon_filter_table	bf_table;
-	struct wsm_beacon_filter_control bf_control;
-	struct wsm_multicast_filter	multicast_filter;
-	bool				has_multicast_subscription;
-	struct wsm_broadcast_addr_filter	broadcast_filter;
-	bool				disable_beacon_filter;
-	struct wsm_arp_ipv4_filter      filter4;
-#ifdef IPV6_FILTERING
-	struct wsm_ndp_ipv6_filter 	filter6;
-#endif /*IPV6_FILTERING*/
-	struct work_struct		update_filtering_work;
-	struct work_struct		set_beacon_wakeup_period_work;
-	struct xradio_pm_state_vif	pm_state_vif;
-	/*TODO: Add support in mac80211 for psmode info per VIF */
-	struct wsm_p2p_ps_modeinfo	p2p_ps_modeinfo;
-	struct wsm_uapsd_info		uapsd_info;
-	bool				setbssparams_done;
-	u32				listen_interval;
-	u32				erp_info;
-	bool				powersave_enabled;
-
-	/* WSM Join */
-	enum xradio_join_status	join_status;
-	u8			join_bssid[ETH_ALEN];
-	struct work_struct	join_work;
-	struct delayed_work	join_timeout;
-	struct work_struct	unjoin_work;
-	struct work_struct	offchannel_work;
-	int			join_dtim_period;
-	atomic_t	delayed_unjoin;
-
-	/* Security */
-	s8			wep_default_key_id;
-	struct work_struct	wep_key_work;
-        unsigned long           rx_timestamp;
-        u32                     cipherType;
 
 
-	/* AP powersave */
-	u32			link_id_map;
-	u32			max_sta_ap_mode;
-	u32			link_id_after_dtim;
-	u32			link_id_uapsd;
-	u32			link_id_max;
-	u32			wsm_key_max_idx;
-	struct xradio_link_entry link_id_db[MAX_STA_IN_AP_MODE];
-	struct work_struct	link_id_work;
-	struct delayed_work	link_id_gc_work;
-	u32			sta_asleep_mask;
-	u32			pspoll_mask;
-	bool			aid0_bit_set;
-	spinlock_t		ps_state_lock;
-	bool			buffered_multicasts;
-	bool			tx_multicast;
-	u8     last_tim[8];   //for softap dtim, add by yangfh
-	struct work_struct	set_tim_work;
-	struct delayed_work	set_cts_work;
-	struct work_struct	multicast_start_work;
-	struct work_struct	multicast_stop_work;
-	struct timer_list	mcast_timeout;
-
-	/* CQM Implementation */
-	struct delayed_work	bss_loss_work;
-	struct delayed_work	connection_loss_work;
-	struct work_struct	tx_failure_work;
-	int			delayed_link_loss;
-	spinlock_t		bss_loss_lock;
-	int			bss_loss_status;
-	int			bss_loss_confirm_id;
-
-	struct ieee80211_vif	*vif;
-	struct xradio_common	*hw_priv;
-	struct ieee80211_hw	*hw;
-
-	/* ROC implementation */
-	struct delayed_work		pending_offchanneltx_work;
-#if defined(CONFIG_XRADIO_USE_EXTENSIONS)
-	/* Workaround for WFD testcase 6.1.10*/
-	struct work_struct	linkid_reset_work;
-	u8			action_frame_sa[ETH_ALEN];
-	u8			action_linkid;
-#endif
-	bool			htcap;
-#ifdef  AP_HT_CAP_UPDATE
-        u16                     ht_oper;
-        struct work_struct      ht_oper_update_work;
-#endif
-
-#ifdef AP_HT_COMPAT_FIX
-	u16    ht_compat_cnt;
-	u16    ht_compat_det;
-#endif
-};
 struct xradio_sta_priv {
 	int link_id;
 	struct xradio_vif *priv;
@@ -561,7 +392,7 @@ extern u32  TES_P2P_0002_state;
  interfaces for operations of vif.
 ********************************************************/
 static inline
-struct xradio_common *xrwl_vifpriv_to_hwpriv(struct xradio_vif *priv)
+struct xr819 *xrwl_vifpriv_to_hwpriv(struct xradio_vif *priv)
 {
 	return priv->hw_priv;
 }
