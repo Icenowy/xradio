@@ -550,14 +550,7 @@ static int xradio_bh_rx(struct xr819* hw_priv, u16 ctrl_reg) {
 			xradio_put_skb(hw_priv, skb_rx);
 		skb_rx = NULL;
 	}
-	read_len = 0;
 
-	/* Check if rx burst */
-//if (rx_burst) {
-//	//xradio_debug_rx_burst(hw_priv);
-//	--rx_burst;
-//	goto rx;
-//}
 	return 0;
 }
 
