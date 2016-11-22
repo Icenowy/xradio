@@ -12,7 +12,7 @@
 #ifndef XRADIO_HWIO_H_INCLUDED
 #define XRADIO_HWIO_H_INCLUDED
 
-/* extern */ struct xradio_common;
+#include "sdio.h"
 
 /* DPLL initial values */
 #define DPLL_INIT_VAL_XRADIO      (0x0EC4F121)

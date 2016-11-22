@@ -9,14 +9,15 @@ CONFIG_XRADIO_USE_EXTENSIONS := y
 #	ap.o \
 #	scan.o \
 #	queue.o \
+#	debug.o \
+#	bh.o \
+#	wsm.o
 
 
 xradio_wlan-y := \
-	common.o \
-	fwio.o \
 	main.o \
-	debug.o \
 	sdio.o \
+	fwio.o \
 	bh.o \
 	wsm.o
 
@@ -31,14 +32,10 @@ ccflags-y += -DAP_HT_CAP_UPDATE
 ccflags-y += -DHW_RESTART
 ccflags-y += -DHW_ERROR_WIFI_RESET
 ccflags-y += -DAP_HT_COMPAT_FIX
-ccflags-y += -DCONFIG_XRADIO_DEBUG
 ccflags-y += -DCONFIG_XRADIO_DUMP_ON_ERROR
 ccflags-y += -DCONFIG_XRADIO_NON_POWER_OF_TWO_BLOCKSIZES
 
 ccflags-y += -DCONFIG_XRADIO_SUSPEND_POWER_OFF
-# Use vfs for firmware load when request_firmware 
-# can't work on other platform.
-# ccflags-y += -DUSE_VFS_FIRMWARE
 
 # Extra IE for probe response from upper layer is needed in P2P GO
 # For offloading probe response to FW, the extra IE must be included

@@ -5,10 +5,26 @@
 #include <uapi/linux/in6.h>
 #include <linux/skbuff.h>
 #include <linux/ieee80211.h>
+#include <net/mac80211.h>
 
 #define WSM_MAX_GRP_ADDRTABLE_ENTRIES		8
 #define WSM_MAX_ARP_IP_ADDRTABLE_ENTRIES	1
 #define WSM_MAX_NDP_IP_ADDRTABLE_ENTRIES	1
+
+#define xradio_for_each_vif(_hw_priv, _priv, _i) \
+	for ( \
+		_i = 0; \
+		(_i < XRWL_MAX_VIFS)  \
+		&& ((_priv = _hw_priv->vif_list[_i] ? \
+		xrwl_get_vif_from_ieee80211(_hw_priv->vif_list[_i]) : NULL), 1); \
+		_i++ \
+	)
+
+static inline
+struct xradio_vif *xrwl_get_vif_from_ieee80211(struct ieee80211_vif *vif)
+{
+	return  (struct xradio_vif *)vif->drv_priv;
+}
 
 #define WSM_FW_LABEL 128
 struct wsm_caps {

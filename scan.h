@@ -24,31 +24,6 @@
 
 #define SCAN_MAX_DELAY      (3*HZ)   //3s, add by yangfh for connect
 
-struct xradio_scan {
-	struct semaphore lock;
-	struct work_struct work;
-#ifdef ROAM_OFFLOAD
-	struct work_struct swork; /* scheduled scan work */
-	struct cfg80211_sched_scan_request *sched_req;
-#endif /*ROAM_OFFLOAD*/
-	struct delayed_work timeout;
-	struct cfg80211_scan_request *req;
-	struct ieee80211_channel **begin;
-	struct ieee80211_channel **curr;
-	struct ieee80211_channel **end;
-	struct wsm_ssid ssids[WSM_SCAN_MAX_NUM_OF_SSIDS];
-	int output_power;
-	int n_ssids;
-	//add by liwei, for h64 ping WS550 BUG
-	struct semaphore status_lock;
-	int status;
-	atomic_t in_progress;
-	/* Direct probe requests workaround */
-	struct delayed_work probe_work;
-	int direct_probe;
-	u8 if_id;
-};
-
 int xradio_hw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
                    struct ieee80211_scan_request *req);
 #ifdef ROAM_OFFLOAD

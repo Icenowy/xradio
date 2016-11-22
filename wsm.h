@@ -126,8 +126,7 @@
 /* Maximum number of channels to be scanned. */
 #define WSM_SCAN_MAX_NUM_OF_CHANNELS	(48)
 
-/* The maximum number of SSIDs that the device can scan for. */
-#define WSM_SCAN_MAX_NUM_OF_SSIDS	(2)
+
 #ifdef CONFIG_XRADIO_TESTMODE
 /* Transmit flags */
 /* Start Expiry time from the receipt of tx request */
@@ -732,33 +731,7 @@ int wsm_read_mib(struct xr819* priv, u16 mibId, void *buf,
 int wsm_write_mib(struct xr819* priv, u16 mibId, void *buf,
 		  size_t buf_size, int if_id);
 
-/* 3.9 */
-struct wsm_ssid {
-	u8 ssid[32];
-	u32 length;
-};
 
-struct wsm_scan_ch {
-	u16 number;
-	u32 minChannelTime;
-	u32 maxChannelTime;
-	u32 txPowerLevel;
-};
-
-/* 3.13 */
-struct wsm_scan_complete {
-	/* WSM_STATUS_... */
-	u32 status;
-
-	/* WSM_PSM_... */
-	u8 psm;
-
-	/* Number of channels that the scan operation completed. */
-	u8 numChannels;
-#ifdef ROAM_OFFLOAD
-	u16 reserved;
-#endif /*ROAM_OFFLOAD*/
-};
 
 typedef void (*wsm_scan_complete_cb) (struct xr819* priv,
 				      struct wsm_scan_complete *arg);
@@ -1287,7 +1260,7 @@ struct wsm_cbc {
 #ifdef MCAST_FWDING
 
 /* 3.65	Give Buffer Request */
-int wsm_init_release_buffer_request(struct xradio_common *priv, u8 index);
+int wsm_init_release_buffer_request(struct xr819 *priv, u8 index);
 
 /* 3.65 fixed memory leakage by yangfh*/
 int wsm_deinit_release_buffer(struct xr819* priv);

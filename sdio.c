@@ -26,11 +26,11 @@
 
 #include "wsm.h"
 #include "sdio.h"
-#include "xradio.h"
 #include "ap.h"
 #include "bh.h"
 #include "sta.h"
 #include "hwio.h"
+#include "fwio.h"
 
 // r/w functions
 #define CHECK_ADDR_LEN  1
@@ -84,8 +84,8 @@ static int __xradio_read(struct xr819* priv, u16 addr, void *buf,
 
 #if (CHECK_ADDR_LEN)
 	/* Check if buffer is aligned to 4 byte boundary */
-	if (SYS_WARN(((unsigned long )buf & 3) && (buf_len > 4))) {
-		sbus_printk(XRADIO_DBG_ERROR, "%s: buffer is not aligned.\n", __func__);
+	if (((unsigned long) buf & 3) && (buf_len > 4)) {
+		dev_err(&priv->sdio.func->dev, "buffer is not aligned.\n");
 		return -EINVAL;
 	}
 #endif
@@ -103,8 +103,8 @@ static int __xradio_write(struct xr819* priv, u16 addr, const void *buf,
 
 #if (CHECK_ADDR_LEN)
 	/* Check if buffer is aligned to 4 byte boundary */
-	if (SYS_WARN(((unsigned long )buf & 3) && (buf_len > 4))) {
-		sbus_printk(XRADIO_DBG_ERROR, "%s: buffer is not aligned.\n", __func__);
+	if (((unsigned long) buf & 3) && (buf_len > 4)) {
+		dev_err(&priv->sdio.func->dev, "buffer is not aligned.\n");
 		return -EINVAL;
 	}
 #endif
@@ -156,7 +156,7 @@ int xradio_data_read(struct xr819* priv, void *buf, size_t buf_len) {
 			} else {
 				retry++;
 				mdelay(1);
-				sbus_printk(XRADIO_DBG_ERROR, "%s, error :[%d]\n", __func__, ret);
+				dev_err(&priv->sdio.func->dev, "error :[%d]\n", ret);
 			}
 		}
 	}
@@ -179,7 +179,7 @@ int xradio_data_write(struct xr819* priv, const void *buf, size_t buf_len) {
 			} else {
 				retry++;
 				mdelay(1);
-				sbus_printk(XRADIO_DBG_ERROR, "%s,error :[%d]\n", __func__, ret);
+				dev_err(&priv->sdio.func->dev, "error :[%d]\n", ret);
 			}
 		}
 	}
@@ -193,8 +193,7 @@ int xradio_indirect_read(struct xr819* priv, u32 addr, void *buf,
 	int i, ret;
 
 	if ((buf_len / 2) >= 0x1000) {
-		sbus_printk(XRADIO_DBG_ERROR, "%s: Can't read more than 0xfff words.\n",
-				__func__);
+		dev_err(&priv->sdio.func->dev, "Can't read more than 0xfff words.\n");
 		return -EINVAL;
 		goto out;
 	}
@@ -203,21 +202,21 @@ int xradio_indirect_read(struct xr819* priv, u32 addr, void *buf,
 	/* Write address */
 	ret = __xradio_write_reg32(priv, HIF_SRAM_BASE_ADDR_REG_ID, addr);
 	if (ret < 0) {
-		sbus_printk(XRADIO_DBG_ERROR, "%s: Can't write address register.\n", __func__);
+		dev_err(&priv->sdio.func->dev, "Can't write address register.\n");
 		goto out;
 	}
 
 	/* Read CONFIG Register Value - We will read 32 bits */
 	ret = __xradio_read_reg32(priv, HIF_CONFIG_REG_ID, &val32);
 	if (ret < 0) {
-		sbus_printk(XRADIO_DBG_ERROR, "%s: Can't read config register.\n", __func__);
+		dev_err(&priv->sdio.func->dev, "Can't read config register.\n");
 		goto out;
 	}
 
 	/* Set PREFETCH bit */
 	ret = __xradio_write_reg32(priv, HIF_CONFIG_REG_ID, val32 | prefetch);
 	if (ret < 0) {
-		sbus_printk(XRADIO_DBG_ERROR, "%s: Can't write prefetch bit.\n", __func__);
+		dev_err(&priv->sdio.func->dev, "Can't write prefetch bit.\n");
 		goto out;
 	}
 
@@ -225,7 +224,7 @@ int xradio_indirect_read(struct xr819* priv, u32 addr, void *buf,
 	for (i = 0; i < 20; i++) {
 		ret = __xradio_read_reg32(priv, HIF_CONFIG_REG_ID, &val32);
 		if (ret < 0) {
-			sbus_printk(XRADIO_DBG_ERROR, "%s: Can't check prefetch bit.\n", __func__);
+			dev_err(&priv->sdio.func->dev, "Can't check prefetch bit.\n");
 			goto out;
 		}
 		if (!(val32 & prefetch))
@@ -234,14 +233,14 @@ int xradio_indirect_read(struct xr819* priv, u32 addr, void *buf,
 	}
 
 	if (val32 & prefetch) {
-		sbus_printk(XRADIO_DBG_ERROR, "%s: Prefetch bit is not cleared.\n", __func__);
+		dev_err(&priv->sdio.func->dev, "Prefetch bit is not cleared.\n");
 		goto out;
 	}
 
 	/* Read data port */
 	ret = __xradio_read(priv, port_addr, buf, buf_len, 0);
 	if (ret < 0) {
-		sbus_printk(XRADIO_DBG_ERROR, "%s: Can't read data port.\n", __func__);
+		dev_err(&priv->sdio.func->dev, "Can't read data port.\n");
 		goto out;
 	}
 
@@ -254,7 +253,7 @@ int xradio_apb_write(struct xr819* priv, u32 addr, const void *buf,
 	int ret;
 
 	if ((buf_len / 2) >= 0x1000) {
-		sbus_printk(XRADIO_DBG_ERROR, "%s: Can't wrire more than 0xfff words.\n", __func__);
+		dev_err(&priv->sdio.func->dev, "Can't wrire more than 0xfff words.\n");
 		return -EINVAL;
 	}
 
@@ -263,14 +262,14 @@ int xradio_apb_write(struct xr819* priv, u32 addr, const void *buf,
 	/* Write address */
 	ret = __xradio_write_reg32(priv, HIF_SRAM_BASE_ADDR_REG_ID, addr);
 	if (ret < 0) {
-		sbus_printk(XRADIO_DBG_ERROR, "%s: Can't write address register.\n", __func__);
+		dev_err(&priv->sdio.func->dev, "Can't write address register.\n");
 		goto out;
 	}
 
 	/* Write data port */
 	ret = __xradio_write(priv, HIF_SRAM_DPORT_REG_ID, buf, buf_len, 0);
 	if (ret < 0) {
-		sbus_printk(XRADIO_DBG_ERROR, "%s: Can't write data port.\n", __func__);
+		dev_err(&priv->sdio.func->dev, "Can't write data port.\n");
 		goto out;
 	}
 
@@ -283,7 +282,7 @@ int xradio_ahb_write(struct xr819* priv, u32 addr, const void *buf,
 	int ret;
 
 	if ((buf_len / 2) >= 0x1000) {
-		sbus_printk(XRADIO_DBG_ERROR, "%s: Can't wrire more than 0xfff words.\n", __func__);
+		dev_err(&priv->sdio.func->dev, "Can't wrire more than 0xfff words.\n");
 		return -EINVAL;
 	}
 
@@ -292,14 +291,14 @@ int xradio_ahb_write(struct xr819* priv, u32 addr, const void *buf,
 	/* Write address */
 	ret = __xradio_write_reg32(priv, HIF_SRAM_BASE_ADDR_REG_ID, addr);
 	if (ret < 0) {
-		sbus_printk(XRADIO_DBG_ERROR, "%s: Can't write address register.\n", __func__);
+		dev_err(&priv->sdio.func->dev, "Can't write address register.\n");
 		goto out;
 	}
 
 	/* Write data port */
 	ret = __xradio_write(priv, HIF_AHB_DPORT_REG_ID, buf, buf_len, 0);
 	if (ret < 0) {
-		sbus_printk(XRADIO_DBG_ERROR, "%s: Can't write data port.\n", __func__);
+		dev_err(&priv->sdio.func->dev, "Can't write data port.\n");
 		goto out;
 	}
 
@@ -345,8 +344,8 @@ static int sdio_pm(struct xr819 *self, bool suspend) {
 		/* Notify SDIO that XRADIO will remain powered during suspend */
 		ret = sdio_set_host_pm_flags(self->sdio.func, MMC_PM_KEEP_POWER);
 		if (ret)
-			sbus_printk(XRADIO_DBG_ERROR,
-					"Error setting SDIO pm flags: %i\n", ret);
+			dev_err(&self->sdio.func->dev, "Error setting SDIO pm flags: %i\n",
+					ret);
 	}
 
 	return ret;
@@ -355,28 +354,6 @@ static int sdio_pm(struct xr819 *self, bool suspend) {
 static int sdio_reset(struct sbus_priv *self) {
 	return 0;
 }
-
-//for sdio debug  2015-5-26 11:01:21
-#if (defined(CONFIG_XRADIO_DEBUGFS))
-u32 dbg_sdio_clk = 0;
-static int sdio_set_clk(struct sdio_func *func, u32 clk)
-{
-	if (func) {
-		if (func->card->host->ops->set_ios && clk >= 1000000) { //set min to 1M
-			sdio_claim_host(func);
-			func->card->host->ios.clock = (clk < 50000000) ? clk : 50000000;
-			func->card->host->ops->set_ios(func->card->host, &func->card->host->ios);
-			sdio_release_host(func);
-			sbus_printk(XRADIO_DBG_ALWY, "%s:change mmc clk=%d\n", __func__,
-					func->card->host->ios.clock);
-		} else {
-			sbus_printk(XRADIO_DBG_ALWY, "%s:fail change mmc clk=%d\n", __func__, clk);
-		}
-	}
-	return 0;
-	sbus_printk(XRADIO_DBG_TRC, "%s\n", __FUNCTION__);
-}
-#endif
 
 static const struct of_device_id xradio_sdio_of_match_table[] = { {
 		.compatible = "xradio,xr819" }, { } };
@@ -425,6 +402,7 @@ static int sdio_probe(struct sdio_func *func, const struct sdio_device_id *id) {
 
 	memset(priv, 0, sizeof(*priv));
 
+	priv->dev = &func->dev;
 	priv->sdio.irq = irq;
 	priv->sdio.func = func;
 	priv->sdio.func->card->quirks |= MMC_QUIRK_BROKEN_BYTE_MODE_512;
@@ -454,7 +432,7 @@ static int sdio_probe(struct sdio_func *func, const struct sdio_device_id *id) {
 	ret = xradio_register_bh(priv);
 	if (ret) {
 		dev_err(&func->dev, "xradio_register_bh failed(%d).\n", ret);
-		//goto err3;
+		goto out_bh;
 	}
 
 	/* Load firmware*/
@@ -498,11 +476,13 @@ static int sdio_probe(struct sdio_func *func, const struct sdio_device_id *id) {
 	goto noerror;
 
 	//err5: xradio_dev_deinit(&hw_priv);
-	//err4: xradio_unregister_bh(&priv);
+	//err4:
 	//err3:
 	//xradio_pm_deinit(&hw_priv->pm_state);
 	//err2: sbus_sdio_deinit();
 	//err1: xradio_free_common(dev);
+
+	out_bh: xradio_unregister_bh(priv);
 
 	err0: noerror: out:
 
@@ -546,9 +526,6 @@ static struct sdio_driver sdio_driver = { .name = "xradio_wlan", .id_table =
 int sbus_sdio_init() {
 	int ret = 0;
 	ret = sdio_register_driver(&sdio_driver);
-	if (ret) {
-		sbus_printk(XRADIO_DBG_ERROR,"sdio_register_driver failed!\n");
-	}
 	return ret;
 }
 

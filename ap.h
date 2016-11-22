@@ -12,6 +12,8 @@
 #ifndef AP_H_INCLUDED
 #define AP_H_INCLUDED
 
+#include <net/mac80211.h>
+
 #define XRADIO_NOA_NOTIFICATION_DELAY 10
 
 #ifdef AP_HT_CAP_UPDATE

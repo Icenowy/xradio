@@ -15,6 +15,9 @@
 #define WSM_MAX_BUF		30
 #endif
 
+/* The maximum number of SSIDs that the device can scan for. */
+#define WSM_SCAN_MAX_NUM_OF_SSIDS	(2)
+
 struct wsm_buf {
 	u8 *begin;
 	u8 *data;
@@ -102,17 +105,77 @@ struct xr819_wsm {
 	struct mutex wsm_oper_lock;
 };
 
+/* 3.9 */
+struct wsm_ssid {
+	u8 ssid[32];
+	u32 length;
+};
+
+struct wsm_scan_ch {
+	u16 number;
+	u32 minChannelTime;
+	u32 maxChannelTime;
+	u32 txPowerLevel;
+};
+
+/* 3.13 */
+struct wsm_scan_complete {
+	/* WSM_STATUS_... */
+	u32 status;
+
+	/* WSM_PSM_... */
+	u8 psm;
+
+	/* Number of channels that the scan operation completed. */
+	u8 numChannels;
+#ifdef ROAM_OFFLOAD
+u16 reserved;
+#endif /*ROAM_OFFLOAD*/
+};
+
+struct xradio_scan {
+struct semaphore lock;
+struct work_struct work;
+#ifdef ROAM_OFFLOAD
+struct work_struct swork; /* scheduled scan work */
+struct cfg80211_sched_scan_request *sched_req;
+#endif /*ROAM_OFFLOAD*/
+struct delayed_work timeout;
+struct cfg80211_scan_request *req;
+struct ieee80211_channel **begin;
+struct ieee80211_channel **curr;
+struct ieee80211_channel **end;
+struct wsm_ssid ssids[WSM_SCAN_MAX_NUM_OF_SSIDS];
+int output_power;
+int n_ssids;
+//add by liwei, for h64 ping WS550 BUG
+struct semaphore status_lock;
+int status;
+atomic_t in_progress;
+/* Direct probe requests workaround */
+struct delayed_work probe_work;
+int direct_probe;
+u8 if_id;
+};
+
 struct xr819 {
-	struct xr819_sdio sdio;
-	struct xr819_hardware hardware;
-	struct xr819_firmware firmware;
-	struct xr819_bh bh;
-	struct xr819_wsm wsm;
 
-	int buf_id_tx; /* byte */
-	int buf_id_rx; /* byte */
+struct device *dev;
 
-	struct ieee80211_vif *vif_list[XRWL_MAX_VIFS];
+struct xr819_sdio sdio;
+struct xr819_hardware hardware;
+struct xr819_firmware firmware;
+struct xr819_bh bh;
+struct xr819_wsm wsm;
+
+int buf_id_tx; /* byte */
+int buf_id_rx; /* byte */
+
+/* Scan status */
+struct xradio_scan scan;
+
+struct ieee80211_vif *vif_list[XRWL_MAX_VIFS];
+spinlock_t vif_list_lock;
 
 };
 

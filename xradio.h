@@ -190,7 +190,7 @@ struct xradio_common {
 	/*Will be a pointer to a list of VIFs - Dynamically allocated */
 	struct ieee80211_vif		*vif_list[XRWL_MAX_VIFS];
 	atomic_t			num_vifs;
-	spinlock_t			vif_list_lock;
+
 	u32				if_id_slot;
 	struct device			*pdev;
 	struct workqueue_struct		*workqueue;
@@ -273,8 +273,7 @@ struct xradio_common {
 
 	/* WSM debug */
 
-	/* Scan status */
-	struct xradio_scan scan;
+
 
 	/* TX/RX */
 	unsigned long		rx_timestamp;

@@ -14,7 +14,6 @@
 #include <linux/init.h>
 
 #include "xr_version.h"
-#include "xradio.h"
 #include "sdio.h"
 
 MODULE_AUTHOR("XRadioTech");

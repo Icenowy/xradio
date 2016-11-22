@@ -12,6 +12,8 @@
 #ifndef XRADIO_BH_H
 #define XRADIO_BH_H
 
+#include "xr819.h"
+
 #define XRADIO_BH_THREAD   "xradio_bh"
 
 /* extern */struct xradio_common;
