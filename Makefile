@@ -2,22 +2,25 @@ CONFIG_XRADIO := m
 CONFIG_XRADIO_SDIO := y
 CONFIG_XRADIO_USE_EXTENSIONS := y
 
+#	txrx.o \
+# \
+#	netif.o
+#	bh.o \
+#	wsm.o \
+#	sta.o \
+#	ap.o \
+#	scan.o \
+#	queue.o \
+
+
 xradio_wlan-y := \
 	common.o \
 	fwio.o \
-	txrx.o \
 	main.o \
-	queue.o \
-	bh.o \
-	wsm.o \
-	sta.o \
-	ap.o \
-	scan.o \
-	debug.o# \
-#	netif.o
+	debug.o \
+	sdio.o
 
-xradio_wlan-$(CONFIG_PM)		+= pm.o
-xradio_wlan-$(CONFIG_XRADIO_SDIO)	+= sdio.o
+#xradio_wlan-$(CONFIG_PM)		+= pm.o
 xradio_wlan-$(CONFIG_XRADIO_ITP)	+= itp.o
 
 ccflags-y += -DP2P_MULTIVIF
@@ -30,7 +33,6 @@ ccflags-y += -DHW_ERROR_WIFI_RESET
 ccflags-y += -DAP_HT_COMPAT_FIX
 ccflags-y += -DCONFIG_XRADIO_DEBUG
 ccflags-y += -DCONFIG_XRADIO_DUMP_ON_ERROR
-ccflags-y += -DCONFIG_XRADIO_DEBUGFS
 ccflags-y += -DCONFIG_XRADIO_NON_POWER_OF_TWO_BLOCKSIZES
 
 ccflags-y += -DCONFIG_XRADIO_SUSPEND_POWER_OFF

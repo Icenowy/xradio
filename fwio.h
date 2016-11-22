@@ -11,6 +11,9 @@
 #ifndef FWIO_H_INCLUDED
 #define FWIO_H_INCLUDED
 
+#include "sdio.h"
+
+
 #define XR819_HW_REV0       (8190)
 #ifdef USE_VFS_FIRMWARE
 #define XR819_BOOTLOADER    ("/lib/firmware/xr819/boot_xr819.bin")
@@ -26,6 +29,7 @@
 #define SDD_REFERENCE_FREQUENCY_ELT_ID 0xC5
 #define FIELD_OFFSET(type, field) ((u8 *)&((type *)0)->field - (u8 *)0)
 #define FIND_NEXT_ELT(e) (struct xradio_sdd *)((u8 *)&e->data + e->length)
+
 struct xradio_sdd {
 	u8 id;
 	u8 length;

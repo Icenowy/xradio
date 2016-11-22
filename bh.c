@@ -16,7 +16,7 @@
 #include "bh.h"
 #include "hwio.h"
 #include "wsm.h"
-#include "sbus.h"
+#include "sdio.h"
 
 /* TODO: Verify these numbers with WSM specification. */
 #define DOWNLOAD_BLOCK_SIZE_WR	(0x1000 - 4)
@@ -40,96 +40,76 @@ int wsm_release_buffer_to_fw(struct xradio_vif *priv, int count);
 #endif
 static int xradio_bh(void *arg);
 
-int xradio_register_bh(struct xradio_common *hw_priv)
-{
+int xradio_register_bh(struct sdio_priv *priv) {
 	int err = 0;
 	struct sched_param param = { .sched_priority = 1 };
 	bh_printk(XRADIO_DBG_TRC,"%s\n", __FUNCTION__);
 
-	SYS_BUG(hw_priv->bh_thread);
-	atomic_set(&hw_priv->bh_rx, 0);
-	atomic_set(&hw_priv->bh_tx, 0);
-	atomic_set(&hw_priv->bh_term, 0);
-	atomic_set(&hw_priv->bh_suspend, XRADIO_BH_RESUMED);
-	hw_priv->buf_id_tx = 0;
-	hw_priv->buf_id_rx = 0;
+	atomic_set(&priv->bh.rx, 0);
+	atomic_set(&priv->bh.tx, 0);
+	atomic_set(&priv->bh.term, 0);
+	atomic_set(&priv->bh.suspend, XRADIO_BH_RESUMED);
+	priv->buf_id_tx = 0;
+	priv->buf_id_rx = 0;
 #ifdef BH_USE_SEMAPHORE
-	sema_init(&hw_priv->bh_sem, 0);
-	atomic_set(&hw_priv->bh_wk, 0);
+	sema_init(&priv->bh.sem, 0);
+	atomic_set(&priv->bh.wk, 0);
 #else
-	init_waitqueue_head(&hw_priv->bh_wq);
+	init_waitqueue_head(&priv->bh.wq);
 #endif
-	init_waitqueue_head(&hw_priv->bh_evt_wq);
+	init_waitqueue_head(&priv->bh.evt_wq);
 
-	hw_priv->bh_thread = kthread_create(&xradio_bh, hw_priv, XRADIO_BH_THREAD);
-	if (IS_ERR(hw_priv->bh_thread)) {
-		err = PTR_ERR(hw_priv->bh_thread);
-		hw_priv->bh_thread = NULL;
+	priv->bh.thread = kthread_create(&xradio_bh, priv, XRADIO_BH_THREAD);
+	if (IS_ERR(priv->bh.thread)) {
+		err = PTR_ERR(priv->bh.thread);
+		priv->bh.thread = NULL;
 	} else {
-		SYS_WARN(sched_setscheduler(hw_priv->bh_thread, SCHED_FIFO, &param));
+		sched_setscheduler(priv->bh.thread, SCHED_FIFO, &param);
 #ifdef HAS_PUT_TASK_STRUCT
-		get_task_struct(hw_priv->bh_thread);
+		get_task_struct(priv->bh.thread);
 #endif
-		wake_up_process(hw_priv->bh_thread);
+		wake_up_process(priv->bh.thread);
 	}
 	return err;
 }
 
-void xradio_unregister_bh(struct xradio_common *hw_priv)
-{
-	struct task_struct *thread = hw_priv->bh_thread;
-	bh_printk(XRADIO_DBG_TRC,"%s\n", __FUNCTION__);
-
-	if (SYS_WARN(!thread))
-		return;
-
-	hw_priv->bh_thread = NULL;
+void xradio_unregister_bh(struct sdio_priv *priv) {
+	struct task_struct *thread = priv->bh.thread;
+	priv->bh.thread = NULL;
 	kthread_stop(thread);
 #ifdef HAS_PUT_TASK_STRUCT
 	put_task_struct(thread);
 #endif
-	bh_printk(XRADIO_DBG_NIY, "Unregister success.\n");
 }
 
-void xradio_irq_handler(struct xradio_common *hw_priv)
-{
-
-	bh_printk(XRADIO_DBG_TRC,"%s\n", __FUNCTION__);
+void xradio_irq_handler(struct sdio_priv* priv) {
 	DBG_BH_IRQ_ADD;
-	if (/* SYS_WARN */(hw_priv->bh_error))
-		return;
 #ifdef BH_USE_SEMAPHORE
-	atomic_add(1, &hw_priv->bh_rx);
-	if (atomic_add_return(1, &hw_priv->bh_wk) == 1) {
-		up(&hw_priv->bh_sem);
+	atomic_add(1, &priv->bh.rx);
+	if (atomic_add_return(1, &priv->bh.wk) == 1) {
+		up(&priv->bh.sem);
 	}
 #else
-	if (atomic_add_return(1, &hw_priv->bh_rx) == 1) {
-		wake_up(&hw_priv->bh_wq);
-	}
-#endif
-
-}
-
-void xradio_bh_wakeup(struct xradio_common *hw_priv)
-{
-	bh_printk(XRADIO_DBG_MSG,"%s\n", __FUNCTION__);
-	if (SYS_WARN(hw_priv->bh_error))
-		return;
-#ifdef BH_USE_SEMAPHORE
-	atomic_add(1, &hw_priv->bh_tx);
-	if (atomic_add_return(1, &hw_priv->bh_wk) == 1) {
-		up(&hw_priv->bh_sem);
-	}
-#else
-	if (atomic_add_return(1, &hw_priv->bh_tx) == 1) {
-		wake_up(&hw_priv->bh_wq);
+	if (atomic_add_return(1, &priv->bh.rx) == 1) {
+		wake_up(&priv->bh.wq);
 	}
 #endif
 }
 
-int xradio_bh_suspend(struct xradio_common *hw_priv)
-{
+void xradio_bh_wakeup(struct sdio_priv* priv) {
+#ifdef BH_USE_SEMAPHORE
+	atomic_add(1, &priv->bh.tx);
+	if (atomic_add_return(1, &priv->bh.wk) == 1) {
+		up(&priv->bh.sem);
+	}
+#else
+	if (atomic_add_return(1, &priv->bh.tx) == 1) {
+		wake_up(&priv->bh.wq);
+	}
+#endif
+}
+
+int xradio_bh_suspend(struct sdio_priv* hw_priv) {
 
 #ifdef MCAST_FWDING
 	int i =0;
@@ -137,18 +117,18 @@ int xradio_bh_suspend(struct xradio_common *hw_priv)
 #endif
 
 	bh_printk(XRADIO_DBG_MSG,"%s\n", __FUNCTION__);
-	if (hw_priv->bh_error) {
+	if (hw_priv->bh.error) {
 		return -EINVAL;
 	}
 
 #ifdef MCAST_FWDING
- 	xradio_for_each_vif(hw_priv, priv, i) {
+	xradio_for_each_vif(hw_priv, priv, i) {
 		if (!priv)
-			continue;	
+		continue;
 		if ( (priv->multicast_filter.enable)
-			&& (priv->join_status == XRADIO_JOIN_STATUS_AP) ) {
+				&& (priv->join_status == XRADIO_JOIN_STATUS_AP) ) {
 			wsm_release_buffer_to_fw(priv,
-				(hw_priv->wsm_caps.numInpChBufs - 1));
+					(hw_priv->wsm_caps.numInpChBufs - 1));
 			break;
 		}
 	}
@@ -160,9 +140,10 @@ int xradio_bh_suspend(struct xradio_common *hw_priv)
 #else
 	wake_up(&hw_priv->bh_wq);
 #endif
-	return wait_event_timeout(hw_priv->bh_evt_wq, (hw_priv->bh_error || 
-	                          XRADIO_BH_SUSPENDED == atomic_read(&hw_priv->bh_suspend)),
-	                          1 * HZ)?  0 : -ETIMEDOUT;
+	return wait_event_timeout(hw_priv->bh_evt_wq,
+			(hw_priv->bh_error
+					|| XRADIO_BH_SUSPENDED == atomic_read(&hw_priv->bh_suspend)),
+			1 * HZ) ? 0 : -ETIMEDOUT;
 }
 
 int xradio_bh_resume(struct xradio_common *hw_priv)
@@ -426,12 +407,10 @@ static int xradio_bh_read_ctrl_reg(struct xradio_common *hw_priv,
 	return ret;
 }
 
-static int xradio_device_wakeup(struct xradio_common *hw_priv)
+static int xradio_device_wakeup(struct sdio_priv *hw_priv)
 {
 	u16 ctrl_reg;
 	int ret, i=0;
-
-	bh_printk(XRADIO_DBG_MSG, "%s\n", __FUNCTION__);
 
 	/* To force the device to be always-on, the host sets WLAN_UP to 1 */
 	ret = xradio_reg_write_16(hw_priv, HIF_CONTROL_REG_ID, HIF_CTRL_WUP_BIT);

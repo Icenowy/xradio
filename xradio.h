@@ -227,11 +227,6 @@ struct xradio_common {
 	struct sbus_priv		*sbus_priv;
 	int 			driver_ready;
 
-	/* HW/FW type (HIF_...) */
-	int				hw_type;
-	int				hw_revision;
-	int				fw_revision;
-
 	/* firmware/hardware info */
 	unsigned int tx_hdr_len;
 
@@ -242,11 +237,7 @@ struct xradio_common {
 	/* calibration, output power limit and rssi<->dBm conversation data */
 
 	/* BBP/MAC state */
-#ifdef USE_VFS_FIRMWARE
-	const struct xr_file		*sdd;
-#else
-	const struct firmware		*sdd;
-#endif
+
 	struct ieee80211_rate		*rates;
 	struct ieee80211_rate		*mcs_rates;
 	u8 mac_addr[ETH_ALEN];
@@ -271,28 +262,9 @@ struct xradio_common {
 	bool				ba_ena; /*TODO: Same as above */
 	struct work_struct              ba_work; /*TODO: Same as above */
 	struct xradio_pm_state		pm_state;
-	bool				is_BT_Present;
+
 	bool				is_go_thru_go_neg;
-	u8				conf_listen_interval;
 
-	/* BH */
-	atomic_t			bh_rx;
-	atomic_t			bh_tx;
-	atomic_t			bh_term;
-	atomic_t			bh_suspend;
-	struct task_struct		*bh_thread;
-	int				bh_error;
-#ifdef BH_USE_SEMAPHORE
-	struct semaphore		bh_sem;
-	atomic_t			    bh_wk;
-#else
-	wait_queue_head_t		bh_wq;
-#endif
-	wait_queue_head_t		bh_evt_wq;
-
-
-	int				buf_id_tx;	/* byte */
-	int				buf_id_rx;	/* byte */
 	int				wsm_rx_seq;	/* byte */
 	int				wsm_tx_seq;	/* byte */
 	int				hw_bufs_used;
@@ -643,19 +615,19 @@ struct xradio_vif *xrwl_get_activevif(struct xradio_common *hw_priv)
 	return xrwl_hwpriv_to_vifpriv(hw_priv, ffs(hw_priv->if_id_slot)-1);
 }
 
-static inline bool is_hardware_xradio(struct xradio_common *hw_priv)
+/*static inline bool is_hardware_xradio(struct xradio_common *hw_priv)
 {
 	return (hw_priv->hw_revision == XR819_HW_REV0);
-}
+}*/
 
-static inline int xrwl_get_nr_hw_ifaces(struct xradio_common *hw_priv)
+/*static inline int xrwl_get_nr_hw_ifaces(struct xradio_common *hw_priv)
 {
 	switch(hw_priv->hw_revision) {
 		case XR819_HW_REV0:
 		default:
 			return 1;
 	}
-}
+}*/
 
 #define xradio_for_each_vif(_hw_priv, _priv, _i)			\
 	for(		\

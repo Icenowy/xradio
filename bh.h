@@ -18,11 +18,13 @@
 
 #define SDIO_BLOCK_SIZE (528)
 
-int xradio_register_bh(struct xradio_common *hw_priv);
-void xradio_unregister_bh(struct xradio_common *hw_priv);
-void xradio_irq_handler(struct xradio_common *hw_priv);
-void xradio_bh_wakeup(struct xradio_common *hw_priv);
-int xradio_bh_suspend(struct xradio_common *hw_priv);
+int xradio_register_bh(struct sdio_priv *priv);
+void xradio_unregister_bh(struct sdio_priv *priv);
+void xradio_irq_handler(struct sdio_priv *priv);
+void xradio_bh_wakeup(struct sdio_priv *priv);
+int xradio_bh_suspend(struct sdio_priv *priv);
+
+
 int xradio_bh_resume(struct xradio_common *hw_priv);
 /* Must be called from BH thread. */
 void xradio_enable_powersave(struct xradio_vif *priv, bool enable);
