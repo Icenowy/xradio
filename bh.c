@@ -81,16 +81,8 @@ void xradio_unregister_bh(struct xr819 *priv) {
 }
 
 void xradio_irq_handler(struct xr819* priv) {
-#ifdef BH_USE_SEMAPHORE
-	atomic_add(1, &priv->bh.rx);
-	if (atomic_add_return(1, &priv->bh.wk) == 1) {
-		up(&priv->bh.sem);
-	}
-#else
-	if (atomic_add_return(1, &priv->bh.rx) == 1) {
-		wake_up(&priv->bh.wq);
-	}
-#endif
+	atomic_inc(&priv->bh.interrupt);
+	wake_up(&priv->bh.wq);
 }
 
 void xradio_bh_wakeup(struct xr819* priv) {
@@ -369,11 +361,9 @@ static int xradio_bh_read_ctrl_reg(struct xr819 *hw_priv, u16 *ctrl_reg) {
 	if (ret) {
 		ret = xradio_reg_read_16(hw_priv, HIF_CONTROL_REG_ID, ctrl_reg);
 		if (ret) {
-			hw_priv->bh.error = 1;
 			dev_err(hw_priv->dev, "Failed to read control register.\n");
 		}
 	}
-
 	return ret;
 }
 
@@ -423,7 +413,7 @@ static void xradio_bh_dump_rx(struct xr819* priv, u8* data, int len) {
 	print_hex_dump_bytes("<-- ", DUMP_PREFIX_NONE, data, min(len, 32));
 }
 
-static int xradio_bh_rx(struct xr819* hw_priv, u16 ctrl_reg) {
+static int xradio_bh_rx(struct xr819* hw_priv) {
 	size_t alloc_len;
 	u8 *data;
 	size_t read_len = 0;
@@ -432,14 +422,14 @@ static int xradio_bh_rx(struct xr819* hw_priv, u16 ctrl_reg) {
 	size_t wsm_len;
 	int wsm_id;
 	u8 wsm_seq;
+	u16 ctrl_reg;
 
-	/* Check ctrl_reg again. */
-	if (!(ctrl_reg & HIF_CTRL_NEXT_LEN_MASK)) {
-		if (xradio_bh_read_ctrl_reg(hw_priv, &ctrl_reg)) {
-			return 0;
-		}
+	// read control reg
+	if (xradio_bh_read_ctrl_reg(hw_priv, &ctrl_reg)) {
+		return -1;
 	}
 
+	// is something waiting?
 	read_len = (ctrl_reg & HIF_CTRL_NEXT_LEN_MASK) << 1; //read_len=ctrl_reg*2.
 	if (!read_len) {
 		return 0;
@@ -467,7 +457,6 @@ static int xradio_bh_rx(struct xr819* hw_priv, u16 ctrl_reg) {
 	skb_rx = xradio_get_skb(hw_priv, alloc_len);
 	if (!skb_rx) {
 		dev_err(hw_priv->dev, "ERR: xradio_get_skb failed.\n");
-		hw_priv->bh.error = __LINE__;
 		return -1;
 	}
 
@@ -482,8 +471,8 @@ static int xradio_bh_rx(struct xr819* hw_priv, u16 ctrl_reg) {
 
 	/* Read data from device. */
 	if (xradio_data_read(hw_priv, data, alloc_len)) {
-		dev_err(hw_priv->dev, "Failed to read from device");
-		return -1;
+		dev_err(hw_priv->dev, "Failed to read from device, no data?");
+		return 0;
 	}
 
 	/* Piggyback */
@@ -513,7 +502,7 @@ static int xradio_bh_rx(struct xr819* hw_priv, u16 ctrl_reg) {
 		dev_err(hw_priv->dev, "firmware exception!\n");
 		//wsm_handle_exception(hw_priv, &data[sizeof(*wsm)],
 		//		wsm_len - sizeof(*wsm));
-		return -1;
+		return 0;
 	} /*else if (unlikely(!rx_resync)) {
 	 if (wsm_seq != hw_priv->wsm.rx_seq) {
 	 dev_err(hw_priv->dev, "wsm_seq=%d.\n", wsm_seq);
@@ -533,7 +522,6 @@ static int xradio_bh_rx(struct xr819* hw_priv, u16 ctrl_reg) {
 		if (rc < 0) {
 			dev_err(hw_priv->dev,
 					"have tx confirm when there are no tx frames to confirm\n");
-			hw_priv->bh.error = __LINE__;
 			return -1;
 		} //else if (rc > 0)
 		  //tx = 1;
@@ -554,47 +542,62 @@ static int xradio_bh_rx(struct xr819* hw_priv, u16 ctrl_reg) {
 	return 0;
 }
 
-#if 0
+static void xradio_bh_tx_dump(struct xr819* hw_priv, u8* data, int len) {
+	u16 msgid, ifid;
+	u16 *p = (u16 *) data;
+	msgid = (*(p + 1)) & 0x3F;
+	ifid = (*(p + 1)) >> 6;
+	ifid &= 0xF;
+	if (msgid == 0x0006) {
+		dev_dbg(hw_priv->dev, "[DUMP] >>> msgid 0x%.4X ifid %d"
+				"len %d MIB 0x%.4X\n", msgid, ifid, *p, *(p + 2));
+	} else {
+		dev_dbg(hw_priv->dev, "[DUMP] >>> msgid 0x%.4X ifid %d "
+				"len %d\n", msgid, ifid, *p);
+	}
+	print_hex_dump_bytes("--> ", DUMP_PREFIX_NONE, data, min(len, 32));
+}
+
 static int xradio_bh_tx(struct xr819* hw_priv) {
-	//SYS_BUG(hw_priv->bh.hw_bufs_used > hw_priv->wsm.caps.numInpChBufs);
-	tx_burst = hw_priv->wsm.caps.numInpChBufs - hw_priv->bh.hw_bufs_used;
-	tx_allowed = tx_burst > 0;
-	if (tx && tx_allowed) {
-		int ret;
-		u8 *data;
-		size_t tx_len;
+	int tx, availablebuffers, vif_selected;
+	struct wsm_hdr* wsm;
+	int ret;
+	u8 *data;
+	size_t tx_len;
+
+	availablebuffers = hw_priv->wsm.caps.numInpChBufs
+			- hw_priv->bh.hw_bufs_used;
+
+	if (availablebuffers) {
+		dev_dbg(hw_priv->dev, "checking for outgoing data\n");
 
 		/* Wake up the devices */
-		if (hw_priv->bh.device_can_sleep) {
-			ret = xradio_device_wakeup(hw_priv);
-			if (ret < 0) {
-				hw_priv->bh.error = __LINE__;
-				break;
-			} else if (ret) {
-				hw_priv->bh.device_can_sleep = false;
-			} else { /* Wait for "awake" interrupt */
-				pending_tx = tx;
-				continue;
-			}
-		}
+		//if (hw_priv->bh.device_can_sleep) {
+		//	ret = xradio_device_wakeup(hw_priv);
+		//	if (ret < 0) {
+		//		return ret;
+		//	} else if (ret) {
+		//		hw_priv->bh.device_can_sleep = false;
+		//	} else { /* Wait for "awake" interrupt */
+		//		pending_tx = tx;
+		//		return 0;
+		//	}
+		//}
 		/* Increase Tx buffer*/
 		wsm_alloc_tx_buffer(hw_priv);
 
-#if defined(DGB_XRADIO_HWT)
-		//hardware test.
-		ret = get_hwt_hif_tx(hw_priv, &data, &tx_len, &tx_burst, &vif_selected);
-		if (ret <= 0)
-#endif //DGB_XRADIO_HWT
 		/* Get data to send and send it. */
-		//ret = wsm_get_tx(hw_priv, &data, &tx_len, &tx_burst, &vif_selected);
-		if (ret <= 0) {
+		ret = wsm_get_tx(hw_priv, &data, &tx_len, &availablebuffers,
+				&vif_selected);
+		if (ret == 0) {
+			// nothing to transmit
 			wsm_release_tx_buffer(hw_priv, 1);
-			if (ret < 0) {
-				//bh_printk(XRADIO_DBG_ERROR, "wsm_get_tx=%d.\n", ret);
-				hw_priv->bh.error = __LINE__;
-				break;
-			}
+		} else if (ret < 0) {
+			// error
+			dev_err(hw_priv->dev, "wsm_get_tx=%d.\n", ret);
+			return -1;
 		} else {
+			// lets do this
 			wsm = (struct wsm_hdr *) data;
 			//SYS_BUG(tx_len < sizeof(*wsm));
 			//SYS_BUG(__le32_to_cpu(wsm->len) != tx_len);
@@ -603,19 +606,11 @@ static int xradio_bh_tx(struct xr819* hw_priv) {
 			atomic_add(1, &hw_priv->bh.tx);
 
 			/* Align tx length and check it. */
-#if defined(CONFIG_XRADIO_NON_POWER_OF_TWO_BLOCKSIZES)
+
 			if (tx_len <= 8)
-			tx_len = 16;
+				tx_len = 16;
 			tx_len = sdio_align_len(hw_priv, tx_len);
-#else /* CONFIG_XRADIO_NON_POWER_OF_TWO_BLOCKSIZES */
-			/* HACK!!! Platform limitation.
-			 * It is also supported by upper layer:
-			 * there is always enough space at the end of the buffer. */
-			if (tx_len & (SDIO_BLOCK_SIZE - 1)) {
-				tx_len &= ~(SDIO_BLOCK_SIZE - 1);
-				tx_len += SDIO_BLOCK_SIZE;
-			}
-#endif /* CONFIG_XRADIO_NON_POWER_OF_TWO_BLOCKSIZES */
+
 			/* Check if not exceeding XRADIO capabilities */
 			if (tx_len > EFFECTIVE_BUF_SIZE) {
 				dev_warn(hw_priv->dev, "Write aligned len: %d\n", tx_len);
@@ -628,55 +623,27 @@ static int xradio_bh_tx(struct xr819* hw_priv) {
 			/* Send the data to devices. */
 			if (xradio_data_write(hw_priv, data, tx_len)) {
 				wsm_release_tx_buffer(hw_priv, 1);
-				//bh_printk(XRADIO_DBG_ERROR, "xradio_data_write failed\n");
-				hw_priv->bh.error = __LINE__;
-				break;
+				dev_err(hw_priv->dev, "xradio_data_write failed\n");
+				return -1;
 			}
 
-#if defined(CONFIG_XRADIO_DEBUG)
-			if (unlikely(hw_priv->wsm.enable_wsm_dumps)) {
-				u16 msgid, ifid;
-				u16 *p = (u16 *)data;
-				msgid = (*(p + 1)) & 0x3F;
-				ifid = (*(p + 1)) >> 6;
-				ifid &= 0xF;
-				if (msgid == 0x0006) {
-					bh_printk(XRADIO_DBG_ALWY, "[DUMP] >>> msgid 0x%.4X ifid %d"
-							"len %d MIB 0x%.4X\n", msgid, ifid,*p, *(p + 2));
-				} else {
-					//bh_printk(XRADIO_DBG_ALWY, "[DUMP] >>> msgid 0x%.4X ifid %d "
-					//		"len %d\n", msgid, ifid, *p);
-				}
-				print_hex_dump_bytes("--> ", DUMP_PREFIX_NONE, data,
-						min(__le32_to_cpu(wsm->len),
-								hw_priv->wsm.dump_max_size));
-			}
-#endif /* CONFIG_XRADIO_DEBUG */
+			xradio_bh_tx_dump(hw_priv, data, tx_len);
 
 			/* Process after data have sent. */
 			if (vif_selected != -1) {
 				hw_priv->bh.hw_bufs_used_vif[vif_selected]++;
 			}
 			//wsm_txed(hw_priv, data);
-			hw_priv->wsm.tx_seq =
-			(hw_priv->wsm.tx_seq + 1) & WSM_TX_SEQ_MAX;
+			hw_priv->wsm.tx_seq = (hw_priv->wsm.tx_seq + 1) & WSM_TX_SEQ_MAX;
 
-			/* Check for burst. */
-			if (tx_burst > 1) {
-				//xradio_debug_tx_burst(hw_priv);
-				++rx_burst;
-				goto tx;
-			}
 		}
-	} else {
-		pending_tx = tx;  //if not allow to tx, pending it.
 	}
+	return 0;
 }
-#endif
 
 #if 0
 static int xradio_bh_suspend() {
-	//bh_printk(XRADIO_DBG_NIY, "Host suspend request.\n");
+//bh_printk(XRADIO_DBG_NIY, "Host suspend request.\n");
 	/* Check powersave setting again. */
 	if (hw_priv->bh.powersave_enabled) {
 		dev_dbg(hw_priv->dev,
@@ -711,172 +678,137 @@ static int xradio_bh(void *arg) {
 
 	int busy = 0;
 
-	int rx = 0, tx = 0, term, suspend;
+	int interrupt;
+
+	int tx = 0, term, suspend;
 	int rx_resync = 1;
-	u16 ctrl_reg = 0;
-	int tx_allowed;
-	int pending_tx = 0;
-	int tx_burst;
+
 	int rx_burst = 0;
-	long status;
+	long status, wakeuptimeout;
 	u32 dummy;
-	int vif_selected;
 
 	for (;;) {
 
 		/* Check if devices can sleep, and set time to wait for interrupt. */
-		if (!hw_priv->bh.hw_bufs_used && !pending_tx
-				&& hw_priv->bh.powersave_enabled
-				&& !hw_priv->bh.device_can_sleep
-				&& !atomic_read(&hw_priv->bh.recent_scan)
-				&& atomic_read(&hw_priv->bh.rx) == 0
-				&& atomic_read(&hw_priv->bh.tx) == 0) {
-			dev_dbg(hw_priv->dev, "Device idle, can sleep.\n");
-			//SYS_WARN(xradio_reg_write_16(hw_priv, HIF_CONTROL_REG_ID, 0));
-			hw_priv->bh.device_can_sleep = true;
-			status = HZ / 8;    //125ms
-		} else if (hw_priv->bh.hw_bufs_used) {
-			/* don't wait too long if some frames to confirm 
-			 * and miss interrupt.*/
-			status = HZ / 20;   //50ms.
-		} else {
-			status = HZ / 8;    //125ms
-		}
+		//if (!hw_priv->bh.hw_bufs_used && !pending_tx
+		//		&& hw_priv->bh.powersave_enabled
+		//		&& !hw_priv->bh.device_can_sleep
+		//		&& !atomic_read(&hw_priv->bh.recent_scan)
+		//		&& atomic_read(&hw_priv->bh.rx) == 0
+		//		&& atomic_read(&hw_priv->bh.tx) == 0) {
+		//	dev_dbg(hw_priv->dev, "Device idle, can sleep.\n");
+		//	//SYS_WARN(xradio_reg_write_16(hw_priv, HIF_CONTROL_REG_ID, 0));
+		//	hw_priv->bh.device_can_sleep = true;
+		//	wakeuptimeout = HZ / 8;    //125ms
+		//} else if (hw_priv->bh.hw_bufs_used) {
+		//	/* don't wait too long if some frames to confirm
+		//	 * and miss interrupt.*/
+		//	wakeuptimeout = HZ / 20;   //50ms.
+		//} else {
+		wakeuptimeout = HZ / 8;    //125ms
+		//}
 
 		/* Dummy Read for SDIO retry mechanism*/
-		if (atomic_read(&hw_priv->bh.rx) == 0
-				&& atomic_read(&hw_priv->bh.tx) == 0) {
-			xradio_reg_read(hw_priv, HIF_CONFIG_REG_ID, &dummy, sizeof(dummy));
-		}
-		/* If a packet has already been txed to the device then read the 
+		//if (atomic_read(&hw_priv->bh.rx) == 0
+		//		&& atomic_read(&hw_priv->bh.tx) == 0) {
+		//	xradio_reg_read(hw_priv, HIF_CONFIG_REG_ID, &dummy, sizeof(dummy));
+		//}
+		/* If a packet has already been txed to the device then read the
 		 * control register for a probable interrupt miss before going
 		 * further to wait for interrupt; if the read length is non-zero
 		 * then it means there is some data to be received */
-		if (hw_priv->bh.hw_bufs_used) {
-			xradio_bh_read_ctrl_reg(hw_priv, &ctrl_reg);
-			if (ctrl_reg & HIF_CTRL_NEXT_LEN_MASK) {
-				rx = 1;
-				goto data_proc;
-			}
-		}
-
+		//if (hw_priv->bh.hw_bufs_used) {
+		//	xradio_bh_read_ctrl_reg(hw_priv, &ctrl_reg);
+		//	if (ctrl_reg & HIF_CTRL_NEXT_LEN_MASK) {
+		//		rx = 1;
+		//		goto data_proc;
+		//	}
+		//}
 		/* Wait for Events in HZ/8 */
 
-		status =
-				wait_event_interruptible_timeout(hw_priv->bh.wq,
-						( {
-									rx = atomic_xchg(&hw_priv->bh.rx, 0);
-									tx = atomic_xchg(&hw_priv->bh.tx, 0);
-									term = kthread_should_stop();
-									suspend = pending_tx ? 0 : atomic_read(&hw_priv->bh.suspend);
-									(rx || tx || term || suspend || hw_priv->bh.error);}),
-						status);
+		status = wait_event_interruptible_timeout(hw_priv->bh.wq, ( {
+					interrupt = atomic_xchg(&hw_priv->bh.interrupt, 0);
+					tx = atomic_xchg(&hw_priv->bh.tx, 0);
+					term = kthread_should_stop();
+					//suspend = pending_tx ? 0 : atomic_read(&hw_priv->bh.suspend);
+				(interrupt || tx || term);}), wakeuptimeout);
 
-		/* 0--bh is going to be shut down */
+		/* got told to terminate */
 		if (term) {
 			dev_dbg(hw_priv->dev, "xradio_bh exit!\n");
 			break;
 		}
-		/* 1--An fatal error occurs */
-		if (status < 0 || hw_priv->bh.error) {
-			dev_err(hw_priv->dev, "bh_error=%d, status=%ld\n",
-					hw_priv->bh.error, status);
-			hw_priv->bh.error = __LINE__;
+
+		/* got interrupted */
+		if (status < 0) {
+			dev_err(hw_priv->dev, "got interrupted, exiting");
 			break;
 		}
 
 		/* 2--Wait for interrupt time out */
-		if (!status) {
-			/* Check if miss interrupt. */
-			xradio_bh_read_ctrl_reg(hw_priv, &ctrl_reg);
-			if (ctrl_reg & HIF_CTRL_NEXT_LEN_MASK) {
-				dev_info(&hw_priv->sdio.func->dev, "miss interrupt!\n");
-				rx = 1;
-				goto data_proc;
-			}
-
-			/* There are some frames to be confirmed. */
-			if (hw_priv->bh.hw_bufs_used) {
-				long timeout = 0;
-				bool pending = 0;
-				//bh_printk(XRADIO_DBG_NIY, "Need confirm:%d!\n",
-				//		hw_priv->bh.hw_bufs_used);
-				/* Check if frame transmission is timed out. */
-				//pending = xradio_query_txpkt_timeout(hw_priv, XRWL_ALL_IFS,
-				//                                    hw_priv->pending_frame_id, &timeout);
-				/* There are some frames confirm time out. */
-				if (pending && timeout < 0) {
-					dev_err(hw_priv->dev, "query_txpkt_timeout:%ld!\n",
-							timeout);
-					hw_priv->bh.error = __LINE__;
-					break;
-				}
-				rx = 1; /* Go to check rx again. */
-			} else if (!pending_tx) {
-				if (hw_priv->bh.powersave_enabled
-						&& !hw_priv->bh.device_can_sleep
-						&& !atomic_read(&hw_priv->bh.recent_scan)) {
-					/* Device is idle, we can go to sleep. */
-					dev_info(hw_priv->dev,
-							"Device idle(timeout), can sleep.\n");
-					//SYS_WARN(
-					//		xradio_reg_write_16(hw_priv, HIF_CONTROL_REG_ID,
-					//				0));
-					hw_priv->bh.device_can_sleep = true;
-				}
-				continue;
-			}
-
-			/* 3--Host suspend request. */
-		} else if (suspend) {
-			//xradio_bh_suspend();
-		}
+		//if (!status) {
+		//	/* Check if miss interrupt. */
+		//	xradio_bh_read_ctrl_reg(hw_priv, &ctrl_reg);
+		//	if (ctrl_reg & HIF_CTRL_NEXT_LEN_MASK) {
+		//		dev_info(&hw_priv->sdio.func->dev, "miss interrupt!\n");
+		//		rx = 1;
+		//		goto data_proc;
+		//	}
+		//
+		//	/* There are some frames to be confirmed. */
+		//	if (hw_priv->bh.hw_bufs_used) {
+		//		long timeout = 0;
+		//		bool pending = 0;
+		//bh_printk(XRADIO_DBG_NIY, "Need confirm:%d!\n",
+		//		hw_priv->bh.hw_bufs_used);
+		/* Check if frame transmission is timed out. */
+		//pending = xradio_query_txpkt_timeout(hw_priv, XRWL_ALL_IFS,
+		//                                    hw_priv->pending_frame_id, &timeout);
+		/* There are some frames confirm time out. */
+		//		if (pending && timeout < 0) {
+		//			dev_err(hw_priv->dev, "query_txpkt_timeout:%ld!\n",
+		//					timeout);
+		//			break;
+		//		}
+		//		rx = 1; /* Go to check rx again. */
+		//	} else if (!pending_tx) {
+		//		if (hw_priv->bh.powersave_enabled
+		//				&& !hw_priv->bh.device_can_sleep
+		//				&& !atomic_read(&hw_priv->bh.recent_scan)) {
+		//			/* Device is idle, we can go to sleep. */
+		//			dev_info(hw_priv->dev,
+		//					"Device idle(timeout), can sleep.\n");
+		//			//SYS_WARN(
+		//			//		xradio_reg_write_16(hw_priv, HIF_CONTROL_REG_ID,
+		//			//				0));
+		//			hw_priv->bh.device_can_sleep = true;
+		//		}
+		//		continue;
+		//	}
+		//
+		//	/* 3--Host suspend request. */
+		//} else if (suspend) {
+		//	//xradio_bh_suspend();
+		//}
 		/* query stuck frames in firmware. */
-		if (atomic_xchg(&hw_priv->bh.query_cnt, 0)) {
-			if (schedule_work(&hw_priv->bh.query_work) <= 0)
-				atomic_add(1, &hw_priv->bh.query_cnt);
-		}
+		//if (atomic_xchg(&hw_priv->bh.query_cnt, 0)) {
+		//	if (schedule_work(&hw_priv->bh.query_work) <= 0)
+		//		atomic_add(1, &hw_priv->bh.query_cnt);
+		//}
+		if (xradio_bh_rx(hw_priv))
+			break;
 
-		/* 4--Rx & Tx process. */
-		data_proc: tx += pending_tx;
-		pending_tx = 0;
-		if (rx) {
-			if (xradio_bh_rx(hw_priv, ctrl_reg))
-				break;
-		}
-		//xradio_bh_tx();
+		if (xradio_bh_tx(hw_priv))
+			break;
 
 		/* Check if there are frames to be read. */
-		xradio_bh_read_ctrl_reg(hw_priv, &ctrl_reg);
-		if (ctrl_reg & HIF_CTRL_NEXT_LEN_MASK) {
-			goto data_proc;
-		}
-
+		//xradio_bh_read_ctrl_reg(hw_priv, &ctrl_reg);
+		//if (ctrl_reg & HIF_CTRL_NEXT_LEN_MASK) {
+		//	goto data_proc;
+		//}
 	} /* for (;;)*/
 
-	/* If BH Error, handle it. */
-	if (!term) {
-		dev_err(&hw_priv->sdio.func->dev, "Fatal error, exitting code=%d.\n",
-				hw_priv->bh.error);
+	dev_err(hw_priv->dev, "bh thread terminating\n");
 
-		/* TODO: schedule_work(recovery) */
-#ifndef HAS_PUT_TASK_STRUCT
-		/* The only reason of having this stupid code here is
-		 * that __put_task_struct is not exported by kernel. */
-		for (;;) {
-#ifdef BH_USE_SEMAPHORE
-			status = down_interruptible(&hw_priv->bh_sem);
-			term = kthread_should_stop();
-#else
-			int status = wait_event_interruptible(hw_priv->bh.wq, ( {
-						term = kthread_should_stop();
-						(term);}));
-#endif
-			if (status || term)
-				break;
-		}
-#endif
-	}
-	atomic_add(1, &hw_priv->bh.term);  //debug info, show bh status.
 	return 0;
 }

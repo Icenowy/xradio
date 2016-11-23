@@ -142,22 +142,18 @@ int xradio_reg_write(struct xr819* priv, u16 addr, const void *buf,
 }
 
 int xradio_data_read(struct xr819* priv, void *buf, size_t buf_len) {
-	int ret, retry = 1;
+	int ret;
 	sdio_lock(priv);
 	{
 		int buf_id_rx = priv->buf_id_rx;
-		while (retry <= MAX_RETRY) {
-			ret = __xradio_read(priv, HIF_IN_OUT_QUEUE_REG_ID, buf, buf_len,
-					buf_id_rx + 1);
-			if (!ret) {
-				buf_id_rx = (buf_id_rx + 1) & 3;
-				priv->buf_id_rx = buf_id_rx;
-				break;
-			} else {
-				retry++;
-				mdelay(1);
-				dev_err(&priv->sdio.func->dev, "error :[%d]\n", ret);
-			}
+		ret = __xradio_read(priv, HIF_IN_OUT_QUEUE_REG_ID, buf, buf_len,
+				buf_id_rx + 1);
+		if (!ret) {
+			buf_id_rx = (buf_id_rx + 1) & 3;
+			priv->buf_id_rx = buf_id_rx;
+		} else {
+			mdelay(1);
+			dev_err(&priv->sdio.func->dev, "data read failed %d\n", ret);
 		}
 	}
 	sdio_unlock(priv);
@@ -370,9 +366,13 @@ static const struct of_device_id xradio_sdio_of_match_table[] = { {
 
 /* Probe Function to be called by SDIO stack when device is discovered */
 static int sdio_probe(struct sdio_func *func, const struct sdio_device_id *id) {
-	int ret, irq;
+	int ret, irq, if_id;
 	struct xr819* priv;
 	const struct of_device_id* of_id;
+	u16 ctrl_reg;
+
+	struct wsm_operational_mode mode = { .power_mode = wsm_power_mode_quiescent,
+			.disableMoreFlagUsage = true, };
 
 	dev_dbg(&func->dev, "XRadio Device:sdio clk=%d\n",
 			func->card->host->ios.clock);
@@ -426,8 +426,7 @@ static int sdio_probe(struct sdio_func *func, const struct sdio_device_id *id) {
 //#endif
 	/* Register bh thread*/
 
-	init_waitqueue_head(&priv->wsm.wsm_startup_done);
-	priv->wsm.caps.firmwareReady = 0;
+	wsm_init(priv);
 
 	ret = xradio_register_bh(priv);
 	if (ret) {
@@ -453,20 +452,26 @@ static int sdio_probe(struct sdio_func *func, const struct sdio_device_id *id) {
 		ret = -ETIMEDOUT;
 		goto err0;
 	}
-	dev_err(&func->dev, "Firmware Startup Done.\n");
+	dev_dbg(&func->dev, "Firmware Startup Done.\n");
 
 	/* Keep device wake up. */
-	//xradio_reg_write_16( hw_priv, HIF_CONTROL_REG_ID, HIF_CTRL_WUP_BIT);
-	//if (xradio_reg_read_16(hw_priv, HIF_CONTROL_REG_ID, &ctrl_reg))
-	//	xradio_reg_read_16(hw_priv, HIF_CONTROL_REG_ID, &ctrl_reg);
+	xradio_reg_write_16(priv, HIF_CONTROL_REG_ID, HIF_CTRL_WUP_BIT);
+	if (xradio_reg_read_16(priv, HIF_CONTROL_REG_ID, &ctrl_reg))
+		xradio_reg_read_16(priv, HIF_CONTROL_REG_ID, &ctrl_reg);
 	//SYS_WARN(!(ctrl_reg & HIF_CTRL_RDY_BIT));
+
 	/* Set device mode parameter. */
-	//for (if_id = 0; if_id < xrwl_get_nr_hw_ifaces(hw_priv); if_id++) {
-	/* Set low-power mode. */
-	//wsm_set_operational_mode(hw_priv, &mode, if_id);
-	/* Enable multi-TX confirmation */
-	//wsm_use_multi_tx_conf( hw_priv, true, if_id);
-	//}
+	for (if_id = 0; if_id < xrwl_get_nr_hw_ifaces(priv); if_id++) {
+		/* Set low-power mode. */
+		ret = wsm_set_operational_mode(priv, &mode, if_id);
+		if (ret)
+			break;
+		/* Enable multi-TX confirmation */
+		ret = wsm_use_multi_tx_conf(priv, true, if_id);
+		if (ret)
+			break;
+	}
+
 	/* Register wireless net device. */
 	//err = xradio_register_common(dev);
 	//if (err) {

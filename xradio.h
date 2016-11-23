@@ -445,10 +445,7 @@ struct xradio_vif *xrwl_get_activevif(struct xradio_common *hw_priv)
 	return xrwl_hwpriv_to_vifpriv(hw_priv, ffs(hw_priv->if_id_slot)-1);
 }
 
-/*static inline bool is_hardware_xradio(struct xradio_common *hw_priv)
-{
-	return (hw_priv->hw_revision == XR819_HW_REV0);
-}*/
+/**/
 
 /*static inline int xrwl_get_nr_hw_ifaces(struct xradio_common *hw_priv)
 {

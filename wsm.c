@@ -379,12 +379,6 @@ int wsm_reset(struct xr819 *hw_priv, const struct wsm_reset *arg,
 
 /* ******************************************************************** */
 
-struct wsm_mib {
-	u16 mibId;
-	void *buf;
-	size_t buf_size;
-};
-
 int wsm_read_mib(struct xr819 *hw_priv, u16 mibId, void *_buf,
 		size_t buf_size, size_t arg_size)
 {
@@ -436,33 +430,27 @@ static int wsm_read_mib_confirm(struct xr819 *hw_priv,
 
 /* ******************************************************************** */
 
-int wsm_write_mib(struct xr819 *hw_priv, u16 mibId, void *_buf,
-		size_t buf_size, int if_id)
-{
+#endif
+int wsm_write_mib(struct xr819 *hw_priv, u16 mibId, void *_buf, size_t buf_size,
+		int if_id) {
 	int ret = 0;
 	struct wsm_buf *buf = &hw_priv->wsm.wsm_cmd_buf;
-	struct wsm_mib mib_buf = {
-		.mibId = mibId,
-		.buf = _buf,
-		.buf_size = buf_size,
-	};
+	struct wsm_mib mib_buf =
+			{ .mibId = mibId, .buf = _buf, .buf_size = buf_size, };
 
 	wsm_cmd_lock(hw_priv);
-
 	WSM_PUT16(buf, mibId);
 	WSM_PUT16(buf, buf_size);
 	WSM_PUT(buf, _buf, buf_size);
 
-	ret = wsm_cmd_send(hw_priv, buf, &mib_buf, 0x0006, WSM_CMD_TIMEOUT,
-			if_id);
+	ret = wsm_cmd_send(hw_priv, buf, &mib_buf, 0x0006, WSM_CMD_TIMEOUT, if_id);
 	wsm_cmd_unlock(hw_priv);
 	return ret;
 
-	nomem:
-	wsm_cmd_unlock(hw_priv);
+	nomem: wsm_cmd_unlock(hw_priv);
 	return -ENOMEM;
 }
-
+#if 0
 static int wsm_write_mib_confirm(struct xr819 *hw_priv,
 		struct wsm_mib *arg,
 		struct wsm_buf *buf,
@@ -1758,34 +1746,32 @@ static int wsm_suspend_resume_indication(struct xr819 *hw_priv,
 
 /* ******************************************************************** */
 /* WSM TX								*/
-
-int wsm_cmd_send(struct xr819 *hw_priv,
-		struct wsm_buf *buf,
-		void *arg, u16 cmd, long tmo, int if_id)
-{
+#endif
+int wsm_cmd_send(struct xr819 *hw_priv, struct wsm_buf *buf, void *arg, u16 cmd,
+		long tmo, int if_id) {
 	size_t buf_len = buf->data - buf->begin;
 	int ret;
 
 	if (cmd == 0x0006 || cmd == 0x0005) /* Write/Read MIB */
-	wsm_printk(XRADIO_DBG_MSG, ">>> 0x%.4X [MIB: 0x%.4X] (%d)\n",
-			cmd, __le16_to_cpu(((__le16 *)buf->begin)[2]),
-			buf_len);
+		dev_dbg(hw_priv->dev, ">>> 0x%.4X [MIB: 0x%.4X] (%d)\n", cmd,
+				__le16_to_cpu(((__le16 *) buf->begin)[2]), buf_len);
 	else
-	wsm_printk(XRADIO_DBG_MSG, ">>> 0x%.4X (%d)\n", cmd, buf_len);
+		dev_dbg(hw_priv->dev, ">>> 0x%.4X (%d)\n", cmd, buf_len);
 
-#ifdef HW_RESTART
-	if (hw_priv->hw_restart) {
-		wsm_printk(XRADIO_DBG_NIY, "hw reset!>>> 0x%.4X (%d)\n", cmd, buf_len);
-		wsm_buf_reset(buf);
-		return 0; /*return success, don't process cmd in power off.*/
-	}
+#ifdef HW_RESTART && 0
+//	if (hw_priv->hw_restart) {
+//		wsm_printk(XRADIO_DBG_NIY, "hw reset!>>> 0x%.4X (%d)\n", cmd, buf_len);
+//		wsm_buf_reset(buf);
+//		return 0; /*return success, don't process cmd in power off.*/
+//	}
 #endif
 
-	if (unlikely(hw_priv->bh.error)) {
-		wsm_buf_reset(buf);
-		wsm_printk(XRADIO_DBG_ERROR, "bh error!>>> 0x%.4X (%d)\n", cmd, buf_len);
-		return -ETIMEDOUT;
-	}
+	//if (unlikely(hw_priv->bh.error)) {
+	//	wsm_buf_reset(buf);
+	//	wsm_printk(XRADIO_DBG_ERROR, "bh error!>>> 0x%.4X (%d)\n", cmd,
+	//			buf_len);
+	//	return -ETIMEDOUT;
+	//}
 
 	/* Fill HI message header */
 	/* BH will add sequence number */
@@ -1797,21 +1783,20 @@ int wsm_cmd_send(struct xr819 *hw_priv,
 
 	/* send hw specific commands on if 0 */
 	if (if_id == -1)
-	if_id = 0;
+		if_id = 0;
 
-	((__le16 *)buf->begin)[0] = __cpu_to_le16(buf_len);
-	((__le16 *)buf->begin)[1] = __cpu_to_le16(cmd |
-			((is_hardware_xradio(hw_priv)) ? (if_id << 6) : 0));
+	((__le16 *) buf->begin)[0] = __cpu_to_le16(buf_len);
+	((__le16 *) buf->begin)[1] = __cpu_to_le16(
+			cmd | ((is_hardware_xradio(hw_priv)) ? (if_id << 6) : 0));
 
 	spin_lock(&hw_priv->wsm.wsm_cmd.lock);
-	SYS_BUG(hw_priv->wsm.wsm_cmd.ptr);
+	//SYS_BUG(hw_priv->wsm.wsm_cmd.ptr);
 	hw_priv->wsm.wsm_cmd.done = 0;
 	hw_priv->wsm.wsm_cmd.ptr = buf->begin;
 	hw_priv->wsm.wsm_cmd.len = buf_len;
 	hw_priv->wsm.wsm_cmd.arg = arg;
 	hw_priv->wsm.wsm_cmd.cmd = cmd;
 	spin_unlock(&hw_priv->wsm.wsm_cmd.lock);
-
 	xradio_bh_wakeup(hw_priv);
 
 	if (unlikely(hw_priv->bh.error)) {
@@ -1822,9 +1807,9 @@ int wsm_cmd_send(struct xr819 *hw_priv,
 
 		/* Give start cmd a little more time */
 		if (unlikely(tmo == WSM_CMD_START_TIMEOUT))
-		wsm_cmd_max_tmo = WSM_CMD_START_TIMEOUT;
+			wsm_cmd_max_tmo = WSM_CMD_START_TIMEOUT;
 		else
-		wsm_cmd_max_tmo = WSM_CMD_DEFAULT_TIMEOUT;
+			wsm_cmd_max_tmo = WSM_CMD_DEFAULT_TIMEOUT;
 
 		/*Set max timeout.*/
 		wsm_cmd_max_tmo = jiffies + wsm_cmd_max_tmo;
@@ -1834,12 +1819,13 @@ int wsm_cmd_send(struct xr819 *hw_priv,
 		 * accordingly. */
 		do {
 			/* It's safe to use unprotected access to wsm_cmd.done here */
-			ret = wait_event_timeout(hw_priv->wsm.wsm_cmd_wq, hw_priv->wsm.wsm_cmd.done, tmo);
+			ret = wait_event_timeout(hw_priv->wsm.wsm_cmd_wq,
+					hw_priv->wsm.wsm_cmd.done, tmo);
 
 			/* check time since last rxed and max timeout.*/
-		}while (!ret &&
-				time_before_eq(jiffies, hw_priv->rx_timestamp+tmo) &&
-				time_before(jiffies, wsm_cmd_max_tmo));
+		} while (!ret
+				&& time_before_eq(jiffies, hw_priv->txrx.rx_timestamp + tmo)
+				&& time_before(jiffies, wsm_cmd_max_tmo));
 
 	}
 
@@ -1852,39 +1838,35 @@ int wsm_cmd_send(struct xr819 *hw_priv,
 		hw_priv->wsm.wsm_cmd.ptr = NULL;
 		spin_unlock(&hw_priv->wsm.wsm_cmd.lock);
 
-		wsm_printk(XRADIO_DBG_ERROR,
+		dev_err(hw_priv->dev,
 				"***CMD timeout!>>> 0x%.4X (%d), buf_use=%d, bh_state=%d\n",
-				cmd, buf_len, hw_priv->hw_bufs_used, hw_priv->bh.error);
+				cmd, buf_len, hw_priv->bh.hw_bufs_used, hw_priv->bh.error);
 		/* Race condition check to make sure _confirm is not called
 		 * after exit of _send */
 		if (raceCheck == 0xFFFF) {
 			/* If wsm_handle_rx got stuck in _confirm we will hang
 			 * system there. It's better than silently currupt
 			 * stack or heap, isn't it? */
-			SYS_BUG(wait_event_timeout(
-							hw_priv->wsm.wsm_cmd_wq,
-							hw_priv->wsm.wsm_cmd.done,
-							WSM_CMD_LAST_CHANCE_TIMEOUT) <= 0);
+			//SYS_BUG(
+			//		wait_event_timeout(hw_priv->wsm.wsm_cmd_wq,
+			//				hw_priv->wsm.wsm_cmd.done,
+			//				WSM_CMD_LAST_CHANCE_TIMEOUT) <= 0);
 		}
 
 		/* Kill BH thread to report the error to the top layer. */
 		hw_priv->bh.error = 1;
-#ifdef BH_USE_SEMAPHORE
-		up(&hw_priv->bh_sem);
-#else
-		wake_up(&hw_priv->bh_wq);
-#endif
+		wake_up(&hw_priv->bh.wq);
 		ret = -ETIMEDOUT;
 	} else {
 		spin_lock(&hw_priv->wsm.wsm_cmd.lock);
-		SYS_BUG(!hw_priv->wsm.wsm_cmd.done);
+		//SYS_BUG(!hw_priv->wsm.wsm_cmd.done);
 		ret = hw_priv->wsm.wsm_cmd.ret;
 		spin_unlock(&hw_priv->wsm.wsm_cmd.lock);
 	}
 	wsm_buf_reset(buf);
 	return ret;
 }
-
+#if 0
 /* ******************************************************************** */
 /* WSM TX port control							*/
 
@@ -2263,7 +2245,7 @@ int wsm_handle_rx(struct xr819 *hw_priv, int id, struct wsm_hdr *wsm,
 	wsm_buf.data = (u8 *) &wsm[1];
 	wsm_buf.end = &wsm_buf.begin[__le32_to_cpu(wsm->len)];
 
-	dev_dbg(hw_priv->dev, "<<< 0x%.4X (%d)\n", id, wsm_buf.end - wsm_buf.begin);
+	dev_err(hw_priv->dev, "<<< 0x%.4X (%d)\n", id, wsm_buf.end - wsm_buf.begin);
 
 #if 0
 	if (id == 0x404) {
@@ -2821,10 +2803,10 @@ static int wsm_get_tx_queue_and_mask(struct xradio_vif *priv,
 	*tx_allowed_mask_p = tx_allowed_mask;
 	return 0;
 }
+#endif
 
-int wsm_get_tx(struct xr819 *hw_priv, u8 **data,
-		size_t *tx_len, int *burst, int *vif_selected)
-{
+int wsm_get_tx(struct xr819 *hw_priv, u8 **data, size_t *tx_len, int *burst,
+		int *vif_selected) {
 	struct wsm_tx *wsm = NULL;
 	struct ieee80211_tx_info *tx_info;
 	struct xradio_queue *queue = NULL;
@@ -2851,20 +2833,22 @@ int wsm_get_tx(struct xr819 *hw_priv, u8 **data,
 	/* More is used only for broadcasts. */
 	bool more = false;
 
-	count = xradio_itp_get_tx(hw_priv, data, tx_len, burst);
-	if (count)
-	return count;
+	//count = xradio_itp_get_tx(hw_priv, data, tx_len, burst);
+	//if (count)
+	//	return count;
 
+	// is there a command waiting?
 	if (hw_priv->wsm.wsm_cmd.ptr) {
 		++count;
 		spin_lock(&hw_priv->wsm.wsm_cmd.lock);
-		SYS_BUG(!hw_priv->wsm.wsm_cmd.ptr);
 		*data = hw_priv->wsm.wsm_cmd.ptr;
 		*tx_len = hw_priv->wsm.wsm_cmd.len;
 		*burst = 1;
 		*vif_selected = -1;
 		spin_unlock(&hw_priv->wsm.wsm_cmd.lock);
+		return 1;
 	} else {
+#if 0
 		for (;;) {
 			int ret;
 			struct xradio_vif *priv;
@@ -2876,8 +2860,7 @@ int wsm_get_tx(struct xr819 *hw_priv, u8 **data,
 			/* Keep one buffer reserved for commands. Note
 			 that, hw_bufs_used has already been incremented
 			 before reaching here. */
-			if (hw_priv->hw_bufs_used >=
-					hw_priv->wsm_caps.numInpChBufs)
+			if (hw_priv->hw_bufs_used >= hw_priv->wsm_caps.numInpChBufs)
 			break;
 #ifdef P2P_MULTIVIF
 			if (first) {
@@ -2937,19 +2920,16 @@ int wsm_get_tx(struct xr819 *hw_priv, u8 **data,
 			/* TODO:COMBO: Find the next interface for which
 			 * packet needs to be found */
 			spin_lock_bh(&priv->ps_state_lock);
-			ret = wsm_get_tx_queue_and_mask(priv, &queue,
-					&tx_allowed_mask, &more);
+			ret = wsm_get_tx_queue_and_mask(priv, &queue, &tx_allowed_mask,
+					&more);
 			queue_num = queue - hw_priv->tx_queue;
 
-			if (priv->buffered_multicasts &&
-					(ret || !more) &&
-					(priv->tx_multicast ||
-							!priv->sta_asleep_mask)) {
+			if (priv->buffered_multicasts && (ret || !more)
+					&& (priv->tx_multicast || !priv->sta_asleep_mask)) {
 				priv->buffered_multicasts = false;
 				if (priv->tx_multicast) {
 					priv->tx_multicast = false;
-					queue_work(hw_priv->workqueue,
-							&priv->multicast_stop_work);
+					queue_work(hw_priv->workqueue, &priv->multicast_stop_work);
 				}
 			}
 
@@ -2972,10 +2952,8 @@ int wsm_get_tx(struct xr819 *hw_priv, u8 **data,
 					break;
 				}
 
-				if (xradio_queue_get(queue,
-								priv->if_id,
-								tx_allowed_mask,
-								&wsm, &tx_info, &txpriv)) {
+				if (xradio_queue_get(queue, priv->if_id, tx_allowed_mask, &wsm,
+								&tx_info, &txpriv)) {
 					spin_unlock(&priv->vif_lock);
 					if_pending = 0;
 					continue;
@@ -3009,15 +2987,13 @@ int wsm_get_tx(struct xr819 *hw_priv, u8 **data,
 #endif
 #endif
 
-				if (wsm_handle_tx_data(priv, wsm,
-								tx_info, txpriv, queue)) {
+				if (wsm_handle_tx_data(priv, wsm, tx_info, txpriv, queue)) {
 					spin_unlock(&priv->vif_lock);
 					if_pending = 0;
 					continue; /* Handled by WSM */
 				}
 
-				wsm->hdr.id &= __cpu_to_le16(
-						~WSM_TX_IF_ID(WSM_TX_IF_ID_MAX));
+				wsm->hdr.id &= __cpu_to_le16(~WSM_TX_IF_ID(WSM_TX_IF_ID_MAX));
 #ifdef P2P_MULTIVIF
 				if (txpriv->raw_if_id)
 				wsm->hdr.id |= cpu_to_le16(
@@ -3028,8 +3004,7 @@ int wsm_get_tx(struct xr819 *hw_priv, u8 **data,
 						WSM_TX_IF_ID(txpriv->offchannel_if_id));
 #endif
 				else
-				wsm->hdr.id |= cpu_to_le16(
-						WSM_TX_IF_ID(priv->if_id));
+				wsm->hdr.id |= cpu_to_le16(WSM_TX_IF_ID(priv->if_id));
 
 				*vif_selected = priv->if_id;
 #ifdef ROC_DEBUG
@@ -3064,14 +3039,14 @@ int wsm_get_tx(struct xr819 *hw_priv, u8 **data,
 
 				priv->pspoll_mask &= ~BIT(txpriv->raw_link_id);
 
-				*data = (u8 *)wsm;
+				*data = (u8 *) wsm;
 				*tx_len = __le16_to_cpu(wsm->hdr.len);
 
 				/* allow bursting if txop is set */
 				if (priv->edca.params[queue_num].txOpLimit)
 				*burst = min(*burst,
-						(int)xradio_queue_get_num_queued(priv,
-								queue, tx_allowed_mask) + 1);
+						(int) xradio_queue_get_num_queued(priv, queue,
+								tx_allowed_mask) + 1);
 				else
 				*burst = 1;
 
@@ -3083,122 +3058,124 @@ int wsm_get_tx(struct xr819 *hw_priv, u8 **data,
 
 				if (more) {
 					struct ieee80211_hdr *hdr =
-					(struct ieee80211_hdr *)
-					&((u8 *)wsm)[txpriv->offset];
-					if(strstr(&priv->ssid[0], "6.1.12")) {
-						if(hdr->addr1[0] & 0x01 ) {
-							hdr->frame_control |=
-							cpu_to_le16(IEEE80211_FCTL_MOREDATA);
+					(struct ieee80211_hdr *) &((u8 *) wsm)[txpriv->offset];
+					if (strstr(&priv->ssid[0], "6.1.12")) {
+						if (hdr->addr1[0] & 0x01) {
+							hdr->frame_control |= cpu_to_le16(
+									IEEE80211_FCTL_MOREDATA);
 						}
-					}
-					else {
+					} else {
 						/* more buffered multicast/broadcast frames
 						 *  ==> set MoreData flag in IEEE 802.11 header
 						 *  to inform PS STAs */
-						hdr->frame_control |=
-						cpu_to_le16(IEEE80211_FCTL_MOREDATA);
+						hdr->frame_control |= cpu_to_le16(IEEE80211_FCTL_MOREDATA);
 					}
 				}
-				wsm_printk(XRADIO_DBG_MSG, ">>> 0x%.4X (%d) %p %c\n",
-						0x0004, *tx_len, *data,
-						wsm->more ? 'M' : ' ');
+				wsm_printk(XRADIO_DBG_MSG, ">>> 0x%.4X (%d) %p %c\n", 0x0004,
+						*tx_len, *data, wsm->more ? 'M' : ' ');
 				++count;
 				spin_unlock(&priv->vif_lock);
 				break;
 			}
-		}
-
-		return count;
-	}
-
-	void wsm_txed(struct xr819 *hw_priv, u8 *data)
-	{
-		if (data == hw_priv->wsm.wsm_cmd.ptr) {
-			spin_lock(&hw_priv->wsm.wsm_cmd.lock);
-			hw_priv->wsm.wsm_cmd.ptr = NULL;
-			spin_unlock(&hw_priv->wsm.wsm_cmd.lock);
-		}
-	}
-
-	/* ******************************************************************** */
-	/* WSM buffer								*/
-
-	void wsm_buf_init(struct wsm_buf *buf)
-	{
-		int size = (SDIO_BLOCK_SIZE<<1); //for sdd file big than SDIO_BLOCK_SIZE
-		SYS_BUG(buf->begin);
-		buf->begin = xr_kmalloc(size, true);
-		buf->end = buf->begin ? &buf->begin[size] : buf->begin;
-		wsm_buf_reset(buf);
-	}
-
-	void wsm_buf_deinit(struct wsm_buf *buf)
-	{
-		if(buf->begin)
-		kfree(buf->begin);
-		buf->begin = buf->data = buf->end = NULL;
-	}
-
-	static void wsm_buf_reset(struct wsm_buf *buf)
-	{
-		if (buf->begin) {
-			buf->data = &buf->begin[4];
-			*(u32 *)buf->begin = 0;
-		} else
-		buf->data = buf->begin;
-	}
-
-	static int wsm_buf_reserve(struct wsm_buf *buf, size_t extra_size)
-	{
-		size_t pos = buf->data - buf->begin;
-		size_t size = pos + extra_size;
-
-		if (size & (SDIO_BLOCK_SIZE - 1)) {
-			size &= SDIO_BLOCK_SIZE;
-			size += SDIO_BLOCK_SIZE;
-		}
-
-		buf->begin = xr_krealloc(buf->begin, size, true);
-		if (buf->begin) {
-			buf->data = &buf->begin[pos];
-			buf->end = &buf->begin[size];
-			return 0;
-		} else {
-			buf->end = buf->data = buf->begin;
-			return -ENOMEM;
-		}
-	}
-
-	static struct xradio_vif
-	*wsm_get_interface_for_tx(struct xr819 *hw_priv)
-	{
-		struct xradio_vif *priv = NULL, *i_priv;
-		int i = hw_priv->if_id_selected;
-
-		if ( 1 /*TODO:COMBO*/) {
-			spin_lock(&hw_priv->vif_list_lock);
-			i_priv = hw_priv->vif_list[i] ?
-			xrwl_get_vif_from_ieee80211(hw_priv->vif_list[i]) : NULL;
-			if (i_priv) {
-				priv = i_priv;
-				spin_lock(&priv->vif_lock);
-			}
-			/* TODO:COMBO:
-			 * Find next interface based on TX bitmap announced by the FW
-			 * Find next interface based on load balancing */
-			spin_unlock(&hw_priv->vif_list_lock);
-		} else {
-			priv = xrwl_hwpriv_to_vifpriv(hw_priv, 0);
-		}
-
-		return priv;
-	}
-
-	static inline int get_interface_id_scanning(struct xr819 *hw_priv)
-	{
-		if (hw_priv->scan.req || hw_priv->scan.direct_probe)
-		return hw_priv->scan.if_id;
-		else
-		return -1;
-	}
 #endif
+	}
+	return count;
+}
+#if 0
+void wsm_txed(struct xr819 *hw_priv, u8 *data)
+{
+	if (data == hw_priv->wsm.wsm_cmd.ptr) {
+		spin_lock(&hw_priv->wsm.wsm_cmd.lock);
+		hw_priv->wsm.wsm_cmd.ptr = NULL;
+		spin_unlock(&hw_priv->wsm.wsm_cmd.lock);
+	}
+}
+
+/* ******************************************************************** */
+/* WSM buffer								*/
+
+void wsm_buf_deinit(struct wsm_buf *buf)
+{
+	if(buf->begin)
+	kfree(buf->begin);
+	buf->begin = buf->data = buf->end = NULL;
+}
+#endif
+static void wsm_buf_reset(struct wsm_buf *buf) {
+	if (buf->begin) {
+		buf->data = &buf->begin[4];
+		*(u32 *) buf->begin = 0;
+	} else
+		buf->data = buf->begin;
+}
+
+static int wsm_buf_reserve(struct wsm_buf *buf, size_t extra_size) {
+	size_t pos = buf->data - buf->begin;
+	size_t size = pos + extra_size;
+
+	if (size & (SDIO_BLOCK_SIZE - 1)) {
+		size &= SDIO_BLOCK_SIZE;
+		size += SDIO_BLOCK_SIZE;
+	}
+
+	buf->begin = krealloc(buf->begin, size, GFP_KERNEL);
+	if (buf->begin) {
+		buf->data = &buf->begin[pos];
+		buf->end = &buf->begin[size];
+		return 0;
+	} else {
+		buf->end = buf->data = buf->begin;
+		return -ENOMEM;
+	}
+}
+#if 0
+static struct xradio_vif
+*wsm_get_interface_for_tx(struct xr819 *hw_priv)
+{
+	struct xradio_vif *priv = NULL, *i_priv;
+	int i = hw_priv->if_id_selected;
+
+	if ( 1 /*TODO:COMBO*/) {
+		spin_lock(&hw_priv->vif_list_lock);
+		i_priv = hw_priv->vif_list[i] ?
+		xrwl_get_vif_from_ieee80211(hw_priv->vif_list[i]) : NULL;
+		if (i_priv) {
+			priv = i_priv;
+			spin_lock(&priv->vif_lock);
+		}
+		/* TODO:COMBO:
+		 * Find next interface based on TX bitmap announced by the FW
+		 * Find next interface based on load balancing */
+		spin_unlock(&hw_priv->vif_list_lock);
+	} else {
+		priv = xrwl_hwpriv_to_vifpriv(hw_priv, 0);
+	}
+
+	return priv;
+}
+
+static inline int get_interface_id_scanning(struct xr819 *hw_priv)
+{
+	if (hw_priv->scan.req || hw_priv->scan.direct_probe)
+	return hw_priv->scan.if_id;
+	else
+	return -1;
+}
+#endif
+
+void wsm_buf_init(struct wsm_buf *buf) {
+	int size = (SDIO_BLOCK_SIZE << 1); //for sdd file big than SDIO_BLOCK_SIZE
+	buf->begin = kmalloc(size, GFP_KERNEL);
+	buf->end = buf->begin ? &buf->begin[size] : buf->begin;
+	wsm_buf_reset(buf);
+}
+
+int wsm_init(struct xr819* priv) {
+	mutex_init(&priv->wsm.wsm_cmd_mux);
+	wsm_buf_init(&priv->wsm.wsm_cmd_buf);
+	spin_lock_init(&priv->wsm.wsm_cmd.lock);
+	init_waitqueue_head(&priv->wsm.wsm_cmd_wq);
+
+	init_waitqueue_head(&priv->wsm.wsm_startup_done);
+	priv->wsm.caps.firmwareReady = 0;
+}

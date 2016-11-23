@@ -46,6 +46,7 @@ struct xr819_hardware {
 };
 
 struct xr819_bh {
+	atomic_t interrupt;
 	atomic_t rx;
 	atomic_t tx;
 	atomic_t term;
@@ -158,6 +159,10 @@ int direct_probe;
 u8 if_id;
 };
 
+struct xr819_txrx {
+unsigned long rx_timestamp;
+};
+
 struct xr819 {
 
 struct device *dev;
@@ -167,6 +172,7 @@ struct xr819_hardware hardware;
 struct xr819_firmware firmware;
 struct xr819_bh bh;
 struct xr819_wsm wsm;
+struct xr819_txrx txrx;
 
 int buf_id_tx; /* byte */
 int buf_id_rx; /* byte */
@@ -178,5 +184,19 @@ struct ieee80211_vif *vif_list[XRWL_MAX_VIFS];
 spinlock_t vif_list_lock;
 
 };
+
+#define XR819_HW_REV0       (8190)
+
+static inline int xrwl_get_nr_hw_ifaces(struct xr819* hw_priv) {
+switch (hw_priv->hardware.hw_revision) {
+case XR819_HW_REV0:
+default:
+	return 1;
+}
+}
+
+static inline bool is_hardware_xradio(struct xr819 *hw_priv) {
+return (hw_priv->hardware.hw_revision == XR819_HW_REV0);
+}
 
 #endif

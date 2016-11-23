@@ -126,7 +126,6 @@
 /* Maximum number of channels to be scanned. */
 #define WSM_SCAN_MAX_NUM_OF_CHANNELS	(48)
 
-
 #ifdef CONFIG_XRADIO_TESTMODE
 /* Transmit flags */
 /* Start Expiry time from the receipt of tx request */
@@ -407,7 +406,6 @@
 /* 4.5  dot11GroupAddressesTable */
 #define WSM_MIB_ID_DOT11_GROUP_ADDRESSES_TABLE	0x0004
 
-
 /* 4.6  dot11WepDefaultKeyId */
 #define WSM_MIB_ID_DOT11_WEP_DEFAULT_KEY_ID	0x0005
 
@@ -648,8 +646,6 @@
 #define WSM_FILTER_PORT_TYPE_DST	(0)
 #define WSM_FILTER_PORT_TYPE_SRC	(1)
 
-
-
 struct wsm_hdr {
 	__le16 len;
 	__le16 id;
@@ -677,10 +673,8 @@ struct wsm_hdr {
 
 #define WSM_RI_GET_PEER_ID_FROM_FLAGS(_f)         (((_f)&(0xF<<25)>>25))
 
-
 /* ******************************************************************** */
 /* WSM capcbility							*/
-
 
 /* ******************************************************************** */
 /* WSM commands								*/
@@ -693,29 +687,27 @@ struct wsm_tx_power_range {
 
 /* 3.1 */
 struct wsm_configuration {
-	/* [in] */ u32 dot11MaxTransmitMsduLifeTime;
-	/* [in] */ u32 dot11MaxReceiveLifeTime;
-	/* [in] */ u32 dot11RtsThreshold;
-	/* [in, out] */ u8 *dot11StationId;
-	/* [in] */ const void *dpdData;
-	/* [in] */ size_t dpdData_size;
-	/* [out] */ u8 dot11FrequencyBandsSupported;
-	/* [out] */ u32 supportedRateMask;
-	/* [out] */ struct wsm_tx_power_range txPowerRange[2];
+	/* [in] */u32 dot11MaxTransmitMsduLifeTime;
+	/* [in] */u32 dot11MaxReceiveLifeTime;
+	/* [in] */u32 dot11RtsThreshold;
+	/* [in, out] */u8 *dot11StationId;
+	/* [in] */const void *dpdData;
+	/* [in] */size_t dpdData_size;
+	/* [out] */u8 dot11FrequencyBandsSupported;
+	/* [out] */u32 supportedRateMask;
+	/* [out] */struct wsm_tx_power_range txPowerRange[2];
 };
 
-int wsm_configuration(struct xr819* priv,
-		      struct wsm_configuration *arg,
-		      int if_id);
+int wsm_configuration(struct xr819* priv, struct wsm_configuration *arg,
+		int if_id);
 
 /* 3.3 */
 struct wsm_reset {
-	/* [in] */ int link_id;
-	/* [in] */ bool reset_statistics;
+	/* [in] */int link_id;
+	/* [in] */bool reset_statistics;
 };
 
-int wsm_reset(struct xr819* priv, const struct wsm_reset *arg,
-	      int if_id);
+int wsm_reset(struct xr819* priv, const struct wsm_reset *arg, int if_id);
 
 //add by yangfh
 void wsm_upper_restart(struct xr819* priv);
@@ -724,66 +716,63 @@ void wsm_upper_restart(struct xr819* priv);
 void wsm_query_work(struct work_struct *work);
 
 /* 3.5 */
-int wsm_read_mib(struct xr819* priv, u16 mibId, void *buf,
-		 size_t buf_size, size_t arg_size);
+int wsm_read_mib(struct xr819* priv, u16 mibId, void *buf, size_t buf_size,
+		size_t arg_size);
 
 /* 3.7 */
-int wsm_write_mib(struct xr819* priv, u16 mibId, void *buf,
-		  size_t buf_size, int if_id);
+int wsm_write_mib(struct xr819* priv, u16 mibId, void *buf, size_t buf_size,
+		int if_id);
 
-
-
-typedef void (*wsm_scan_complete_cb) (struct xr819* priv,
-				      struct wsm_scan_complete *arg);
+typedef void (*wsm_scan_complete_cb)(struct xr819* priv,
+		struct wsm_scan_complete *arg);
 
 /* 3.9 */
 struct wsm_scan {
 	/* WSM_PHY_BAND_... */
-	/* [in] */ u8 band;
+	/* [in] */u8 band;
 
 	/* WSM_SCAN_TYPE_... */
-	/* [in] */ u8 scanType;
+	/* [in] */u8 scanType;
 
 	/* WSM_SCAN_FLAG_... */
-	/* [in] */ u8 scanFlags;
+	/* [in] */u8 scanFlags;
 
 	/* WSM_TRANSMIT_RATE_... */
-	/* [in] */ u8 maxTransmitRate;
+	/* [in] */u8 maxTransmitRate;
 
 	/* Interval period in TUs that the device shall the re- */
 	/* execute the requested scan. Max value supported by the device */
 	/* is 256s. */
-	/* [in] */ u32 autoScanInterval;
+	/* [in] */u32 autoScanInterval;
 
 	/* Number of probe requests (per SSID) sent to one (1) */
 	/* channel. Zero (0) means that none is send, which */
 	/* means that a passive scan is to be done. Value */
 	/* greater than zero (0) means that an active scan is to */
 	/* be done. */
-	/* [in] */ u32 numOfProbeRequests;
+	/* [in] */u32 numOfProbeRequests;
 
 	/* Number of channels to be scanned. */
 	/* Maximum value is WSM_SCAN_MAX_NUM_OF_CHANNELS. */
-	/* [in] */ u8 numOfChannels;
+	/* [in] */u8 numOfChannels;
 
 	/* Number of SSID provided in the scan command (this */
 	/* is zero (0) in broadcast scan) */
 	/* The maximum number of SSIDs is WSM_SCAN_MAX_NUM_OF_SSIDS. */
-	/* [in] */ u8 numOfSSIDs;
+	/* [in] */u8 numOfSSIDs;
 
 	/* The delay time (in microseconds) period */
 	/* before sending a probe-request. */
-	/* [in] */ u8 probeDelay;
+	/* [in] */u8 probeDelay;
 
 	/* SSIDs to be scanned [numOfSSIDs]; */
-	/* [in] */ struct wsm_ssid *ssids;
+	/* [in] */struct wsm_ssid *ssids;
 
 	/* Channels to be scanned [numOfChannels]; */
-	/* [in] */ struct wsm_scan_ch *ch;
+	/* [in] */struct wsm_scan_ch *ch;
 };
 
-int wsm_scan(struct xr819* priv, const struct wsm_scan *arg,
-			int if_id);
+int wsm_scan(struct xr819* priv, const struct wsm_scan *arg, int if_id);
 
 /* 3.11 */
 int wsm_stop_scan(struct xr819* priv, int if_id);
@@ -791,40 +780,40 @@ int wsm_stop_scan(struct xr819* priv, int if_id);
 /* 3.14 */
 struct wsm_tx_confirm {
 	/* Packet identifier used in wsm_tx. */
-	/* [out] */ u32 packetID;
+	/* [out] */u32 packetID;
 
 	/* WSM_STATUS_... */
-	/* [out] */ u32 status;
+	/* [out] */u32 status;
 
 	/* WSM_TRANSMIT_RATE_... */
-	/* [out] */ u8 txedRate;
+	/* [out] */u8 txedRate;
 
 	/* The number of times the frame was transmitted */
 	/* without receiving an acknowledgement. */
-	/* [out] */ u8 ackFailures;
+	/* [out] */u8 ackFailures;
 
 	/* WSM_TX_STATUS_... */
-	/* [out] */ u16 flags;
-	
+	/* [out] */u16 flags;
+
 	//rate feed back, add by yangfh
-	/* [out] */ u32 rate_try[3];
+	/* [out] */u32 rate_try[3];
 
 	/* The total time in microseconds that the frame spent in */
 	/* the WLAN device before transmission as completed. */
-	/* [out] */ u32 mediaDelay;
+	/* [out] */u32 mediaDelay;
 
 	/* The total time in microseconds that the frame spent in */
 	/* the WLAN device before transmission was started. */
-	/* [out] */ u32 txQueueDelay;
+	/* [out] */u32 txQueueDelay;
 
-	/* [out]*/ u32 link_id;
+	/* [out]*/u32 link_id;
 
-	/*[out]*/ int if_id;
+	/*[out]*/int if_id;
 };
 
 /* 3.15 */
-typedef void (*wsm_tx_confirm_cb) (struct xr819* priv,
-				   struct wsm_tx_confirm *arg);
+typedef void (*wsm_tx_confirm_cb)(struct xr819* priv,
+		struct wsm_tx_confirm *arg);
 
 /* Note that ideology of wsm_tx struct is different against the rest of
  * WSM API. wsm_hdr is /not/ a caller-adapted struct to be used as an input
@@ -838,39 +827,39 @@ typedef void (*wsm_tx_confirm_cb) (struct xr819* priv,
  */
 struct wsm_tx {
 	/* common WSM header */
-	/* [in/wsm] */ struct wsm_hdr hdr;
+	/* [in/wsm] */struct wsm_hdr hdr;
 
 	/* Packet identifier that meant to be used in completion. */
-	/* [in] */ __le32 packetID;
+	/* [in] */__le32 packetID;
 
 	/* WSM_TRANSMIT_RATE_... */
-	/* [in] */ u8 maxTxRate;
+	/* [in] */u8 maxTxRate;
 
 	/* WSM_QUEUE_... */
-	/* [in] */ u8 queueId;
+	/* [in] */u8 queueId;
 
 	/* True: another packet is pending on the host for transmission. */
-	/* [wsm] */ u8 more;
+	/* [wsm] */u8 more;
 
 	/* Bit 0 = 0 - Start expiry time from first Tx attempt (default) */
 	/* Bit 0 = 1 - Start expiry time from receipt of Tx Request */
 	/* Bits 3:1  - PTA Priority */
 	/* Bits 6:4  - Tx Rate Retry Policy */
 	/* Bit 7 - Reserved */
-	/* [in] */ u8 flags;
+	/* [in] */u8 flags;
 
 	/* Should be 0. */
-	/* [in] */ __le32 reserved;
+	/* [in] */__le32 reserved;
 
 	/* The elapsed time in TUs, after the initial transmission */
 	/* of an MSDU, after which further attempts to transmit */
 	/* the MSDU shall be terminated. Overrides the global */
 	/* dot11MaxTransmitMsduLifeTime setting [optional] */
 	/* Device will set the default value if this is 0. */
-	/* [wsm] */ __le32 expireTime;
+	/* [wsm] */__le32 expireTime;
 
 	/* WSM_HT_TX_... */
-	/* [in] */ __le32 htTxParameters;
+	/* [in] */__le32 htTxParameters;
 };
 
 /* = sizeof(generic hi hdr) + sizeof(wsm hdr) + sizeof(alignment) */
@@ -879,48 +868,48 @@ struct wsm_tx {
 /* 3.16 */
 struct wsm_rx {
 	/* WSM_STATUS_... */
-	/* [out] */ u32 status;
+	/* [out] */u32 status;
 
 	/* Specifies the channel of the received packet. */
-	/* [out] */ u16 channelNumber;
+	/* [out] */u16 channelNumber;
 
 	/* WSM_TRANSMIT_RATE_... */
-	/* [out] */ u8 rxedRate;
+	/* [out] */u8 rxedRate;
 
 	/* This value is expressed in signed Q8.0 format for */
 	/* RSSI and unsigned Q7.1 format for RCPI. */
-	/* [out] */ u8 rcpiRssi;
+	/* [out] */u8 rcpiRssi;
 
 	/* WSM_RX_STATUS_... */
-	/* [out] */ u32 flags;
+	/* [out] */u32 flags;
 
 	/* An 802.11 frame. */
-	/* [out] */ void *frame;
+	/* [out] */void *frame;
 
 	/* Size of the frame */
-	/* [out] */ size_t frame_size;
+	/* [out] */size_t frame_size;
 
 	/* Link ID */
-	/* [out] */ int link_id;
-	/* [out] */ int if_id;
+	/* [out] */int link_id;
+	/* [out] */int if_id;
 };
 
 /* = sizeof(generic hi hdr) + sizeof(wsm hdr) */
 #define WSM_RX_EXTRA_HEADROOM (16)
 
-typedef void (*wsm_rx_cb) (struct xradio_vif *priv, struct wsm_rx *arg,
-			   struct sk_buff **skb_p);
+typedef void (*wsm_rx_cb)(struct xradio_vif *priv, struct wsm_rx *arg,
+		struct sk_buff **skb_p);
 
 /* 3.17 */
 struct wsm_event {
 	/* WSM_STATUS_... */
-	/* [out] */ u32 eventId;
+	/* [out] */u32 eventId;
 
 	/* Indication parameters. */
 	/* For error indication, this shall be a 32-bit WSM status. */
 	/* For RCPI or RSSI indication, this should be an 8-bit */
 	/* RCPI or RSSI value. */
-	/* [out] */ u32 eventData;
+	/* [out] */u32 eventData;
 };
 
 struct xradio_wsm_event {
@@ -932,160 +921,151 @@ struct xradio_wsm_event {
 /* 3.18 - 3.22 */
 /* Measurement. Skipped for now. Irrelevent. */
 
-typedef void (*wsm_event_cb) (struct xr819* priv,
-			      struct wsm_event *arg);
+typedef void (*wsm_event_cb)(struct xr819* priv, struct wsm_event *arg);
 
 /* 3.23 */
 struct wsm_join {
 	/* WSM_JOIN_MODE_... */
-	/* [in] */ u8 mode;
+	/* [in] */u8 mode;
 
 	/* WSM_PHY_BAND_... */
-	/* [in] */ u8 band;
+	/* [in] */u8 band;
 
 	/* Specifies the channel number to join. The channel */
 	/* number will be mapped to an actual frequency */
 	/* according to the band */
-	/* [in] */ u16 channelNumber;
+	/* [in] */u16 channelNumber;
 
 	/* Specifies the BSSID of the BSS or IBSS to be joined */
 	/* or the IBSS to be started. */
-	/* [in] */ u8 bssid[6];
+	/* [in] */u8 bssid[6];
 
 	/* ATIM window of IBSS */
 	/* When ATIM window is zero the initiated IBSS does */
 	/* not support power saving. */
-	/* [in] */ u16 atimWindow;
+	/* [in] */u16 atimWindow;
 
 	/* WSM_JOIN_PREAMBLE_... */
-	/* [in] */ u8 preambleType;
+	/* [in] */u8 preambleType;
 
 	/* Specifies if a probe request should be send with the */
 	/* specified SSID when joining to the network. */
-	/* [in] */ u8 probeForJoin;
+	/* [in] */u8 probeForJoin;
 
 	/* DTIM Period (In multiples of beacon interval) */
-	/* [in] */ u8 dtimPeriod;
+	/* [in] */u8 dtimPeriod;
 
 	/* WSM_JOIN_FLAGS_... */
-	/* [in] */ u8 flags;
+	/* [in] */u8 flags;
 
 	/* Length of the SSID */
-	/* [in] */ u32 ssidLength;
+	/* [in] */u32 ssidLength;
 
 	/* Specifies the SSID of the IBSS to join or start */
-	/* [in] */ u8 ssid[32];
+	/* [in] */u8 ssid[32];
 
 	/* Specifies the time between TBTTs in TUs */
-	/* [in] */ u32 beaconInterval;
+	/* [in] */u32 beaconInterval;
 
 	/* A bit mask that defines the BSS basic rate set. */
-	/* [in] */ u32 basicRateSet;
+	/* [in] */u32 basicRateSet;
 
 	/* Minimum transmission power level in units of 0.1dBm */
-	/* [out] */ int minPowerLevel;
+	/* [out] */int minPowerLevel;
 
 	/* Maximum transmission power level in units of 0.1dBm */
-	/* [out] */ int maxPowerLevel;
+	/* [out] */int maxPowerLevel;
 };
 
 int wsm_join(struct xr819* priv, struct wsm_join *arg, int if_id);
 
-
-
-int wsm_set_pm(struct xr819* priv, const struct wsm_set_pm *arg,
-	       int if_id);
+int wsm_set_pm(struct xr819* priv, const struct wsm_set_pm *arg, int if_id);
 
 /* 3.27 */
 struct wsm_set_pm_complete {
-	u8 psm;			/* WSM_PSM_... */
+	u8 psm; /* WSM_PSM_... */
 };
 
-typedef void (*wsm_set_pm_complete_cb) (struct xr819* priv,
-					struct wsm_set_pm_complete *arg);
+typedef void (*wsm_set_pm_complete_cb)(struct xr819* priv,
+		struct wsm_set_pm_complete *arg);
 
-
-
-int wsm_set_bss_params(struct xr819* priv,
-		       const struct wsm_set_bss_params *arg, int if_id);
+int wsm_set_bss_params(struct xr819* priv, const struct wsm_set_bss_params *arg,
+		int if_id);
 
 /* 3.30 */
 struct wsm_add_key {
-	u8 type;		/* WSM_KEY_TYPE_... */
-	u8 entryIndex;		/* Key entry index: 0 -- WSM_KEY_MAX_INDEX */
+	u8 type; /* WSM_KEY_TYPE_... */
+	u8 entryIndex; /* Key entry index: 0 -- WSM_KEY_MAX_INDEX */
 	u16 reserved;
 	union {
-		struct {
-			u8 peerAddress[6];	/* MAC address of the
-						 * peer station */
-			u8 reserved;
-			u8 keyLength;		/* Key length in bytes */
-			u8 keyData[16];		/* Key data */
-		} __packed wepPairwiseKey;
-		struct {
-			u8 keyId;		/* Unique per key identifier
-						 * (0..3) */
-			u8 keyLength;		/* Key length in bytes */
-			u16 reserved;
-			u8 keyData[16];		/* Key data */
-		} __packed wepGroupKey;
-		struct {
-			u8 peerAddress[6];	/* MAC address of the
-						 * peer station */
-			u8 reserved[2];
-			u8 tkipKeyData[16];	/* TKIP key data */
-			u8 rxMicKey[8];		/* Rx MIC key */
-			u8 txMicKey[8];		/* Tx MIC key */
-		} __packed tkipPairwiseKey;
-		struct {
-			u8 tkipKeyData[16];	/* TKIP key data */
-			u8 rxMicKey[8];		/* Rx MIC key */
-			u8 keyId;		/* Key ID */
-			u8 reserved[3];
-			u8 rxSeqCounter[8];	/* Receive Sequence Counter */
-		} __packed tkipGroupKey;
-		struct {
-			u8 peerAddress[6];	/* MAC address of the
-						 * peer station */
-			u16 reserved;
-			u8 aesKeyData[16];	/* AES key data */
-		} __packed aesPairwiseKey;
-		struct {
-			u8 aesKeyData[16];	/* AES key data */
-			u8 keyId;		/* Key ID */
-			u8 reserved[3];
-			u8 rxSeqCounter[8];	/* Receive Sequence Counter */
-		} __packed aesGroupKey;
-		struct {
-			u8 peerAddress[6];	/* MAC address of the
-						 * peer station */
-			u8 keyId;		/* Key ID */
-			u8 reserved;
-			u8 wapiKeyData[16];	/* WAPI key data */
-			u8 micKeyData[16];	/* MIC key data */
-		} __packed wapiPairwiseKey;
-		struct {
-			u8 wapiKeyData[16];	/* WAPI key data */
-			u8 micKeyData[16];	/* MIC key data */
-			u8 keyId;		/* Key ID */
-			u8 reserved[3];
-		} __packed wapiGroupKey;
-	} __packed;
+	struct {
+		u8 peerAddress[6]; /* MAC address of the
+		 * peer station */
+		u8 reserved;
+		u8 keyLength; /* Key length in bytes */
+		u8 keyData[16]; /* Key data */
+	}__packed wepPairwiseKey;
+	struct {
+		u8 keyId; /* Unique per key identifier
+		 * (0..3) */
+		u8 keyLength; /* Key length in bytes */
+		u16 reserved;
+		u8 keyData[16]; /* Key data */
+	}__packed wepGroupKey;
+	struct {
+		u8 peerAddress[6]; /* MAC address of the
+		 * peer station */
+		u8 reserved[2];
+		u8 tkipKeyData[16]; /* TKIP key data */
+		u8 rxMicKey[8]; /* Rx MIC key */
+		u8 txMicKey[8]; /* Tx MIC key */
+	}__packed tkipPairwiseKey;
+	struct {
+		u8 tkipKeyData[16]; /* TKIP key data */
+		u8 rxMicKey[8]; /* Rx MIC key */
+		u8 keyId; /* Key ID */
+		u8 reserved[3];
+		u8 rxSeqCounter[8]; /* Receive Sequence Counter */
+	}__packed tkipGroupKey;
+	struct {
+		u8 peerAddress[6]; /* MAC address of the
+		 * peer station */
+		u16 reserved;
+		u8 aesKeyData[16]; /* AES key data */
+	}__packed aesPairwiseKey;
+	struct {
+		u8 aesKeyData[16]; /* AES key data */
+		u8 keyId; /* Key ID */
+		u8 reserved[3];
+		u8 rxSeqCounter[8]; /* Receive Sequence Counter */
+	}__packed aesGroupKey;
+	struct {
+		u8 peerAddress[6]; /* MAC address of the
+		 * peer station */
+		u8 keyId; /* Key ID */
+		u8 reserved;
+		u8 wapiKeyData[16]; /* WAPI key data */
+		u8 micKeyData[16]; /* MIC key data */
+	}__packed wapiPairwiseKey;
+	struct {
+		u8 wapiKeyData[16]; /* WAPI key data */
+		u8 micKeyData[16]; /* MIC key data */
+		u8 keyId; /* Key ID */
+		u8 reserved[3];
+	}__packed wapiGroupKey;
+} __packed;
 } __packed;
 
-int wsm_add_key(struct xr819* priv, const struct wsm_add_key *arg,
-			int if_id);
+int wsm_add_key(struct xr819* priv, const struct wsm_add_key *arg, int if_id);
 
 /* 3.32 */
 struct wsm_remove_key {
-	/* Key entry index : 0-10 */
-	u8 entryIndex;
+/* Key entry index : 0-10 */
+u8 entryIndex;
 };
 
-int wsm_remove_key(struct xr819* priv,
-		   const struct wsm_remove_key *arg, int if_id);
-
-
+int wsm_remove_key(struct xr819* priv, const struct wsm_remove_key *arg,
+	int if_id);
 
 #define WSM_TX_QUEUE_SET(queue_params, queue, ack_policy, allowed_time,     \
 			 max_life_time)					    \
@@ -1097,12 +1077,7 @@ do {									    \
 } while (0)
 
 int wsm_set_tx_queue_params(struct xr819* priv,
-			    const struct wsm_set_tx_queue_params *arg,
-			    u8 id, int if_id);
-
-
-
-
+	const struct wsm_set_tx_queue_params *arg, u8 id, int if_id);
 
 #define TXOP_UNIT 32
 #define WSM_EDCA_SET(edca, queue, aifs, cw_min, cw_max, txop, life_time,\
@@ -1117,145 +1092,141 @@ int wsm_set_tx_queue_params(struct xr819* priv,
 		p->uapsdEnable = (uapsd);			\
 	} while (0)
 
-int wsm_set_edca_params(struct xr819* priv,
-			const struct wsm_edca_params *arg, int if_id);
+int wsm_set_edca_params(struct xr819* priv, const struct wsm_edca_params *arg,
+	int if_id);
 
-int wsm_set_uapsd_param(struct xr819* priv,
-			const struct wsm_edca_params *arg);
+int wsm_set_uapsd_param(struct xr819* priv, const struct wsm_edca_params *arg);
 
 /* 3.38 */
 /* Set-System info. Skipped for now. Irrelevent. */
 
 /* 3.40 */
 struct wsm_switch_channel {
-	/* 1 - means the STA shall not transmit any further */
-	/* frames until the channel switch has completed */
-	/* [in] */ u8 channelMode;
+/* 1 - means the STA shall not transmit any further */
+/* frames until the channel switch has completed */
+/* [in] */u8 channelMode;
 
-	/* Number of TBTTs until channel switch occurs. */
-	/* 0 - indicates switch shall occur at any time */
-	/* 1 - occurs immediately before the next TBTT */
-	/* [in] */ u8 channelSwitchCount;
+/* Number of TBTTs until channel switch occurs. */
+/* 0 - indicates switch shall occur at any time */
+/* 1 - occurs immediately before the next TBTT */
+/* [in] */u8 channelSwitchCount;
 
-	/* The new channel number to switch to. */
-	/* Note this is defined as per section 2.7. */
-	/* [in] */ u16 newChannelNumber;
+/* The new channel number to switch to. */
+/* Note this is defined as per section 2.7. */
+/* [in] */u16 newChannelNumber;
 };
 
-int wsm_switch_channel(struct xr819* priv,
-		       const struct wsm_switch_channel *arg, int if_id);
+int wsm_switch_channel(struct xr819* priv, const struct wsm_switch_channel *arg,
+	int if_id);
 
-typedef void (*wsm_channel_switch_cb) (struct xr819* priv);
+typedef void (*wsm_channel_switch_cb)(struct xr819* priv);
 
 struct wsm_start {
-	/* WSM_START_MODE_... */
-	/* [in] */ u8 mode;
+/* WSM_START_MODE_... */
+/* [in] */u8 mode;
 
-	/* WSM_PHY_BAND_... */
-	/* [in] */ u8 band;
+/* WSM_PHY_BAND_... */
+/* [in] */u8 band;
 
-	/* Channel number */
-	/* [in] */ u16 channelNumber;
+/* Channel number */
+/* [in] */u16 channelNumber;
 
-	/* Client Traffic window in units of TU */
-	/* Valid only when mode == ..._P2P */
-	/* [in] */ u32 CTWindow;
+/* Client Traffic window in units of TU */
+/* Valid only when mode == ..._P2P */
+/* [in] */u32 CTWindow;
 
-	/* Interval between two consecutive */
-	/* beacon transmissions in TU. */
-	/* [in] */ u32 beaconInterval;
+/* Interval between two consecutive */
+/* beacon transmissions in TU. */
+/* [in] */u32 beaconInterval;
 
-	/* DTIM period in terms of beacon intervals */
-	/* [in] */ u8 DTIMPeriod;
+/* DTIM period in terms of beacon intervals */
+/* [in] */u8 DTIMPeriod;
 
-	/* WSM_JOIN_PREAMBLE_... */
-	/* [in] */ u8 preambleType;
+/* WSM_JOIN_PREAMBLE_... */
+/* [in] */u8 preambleType;
 
-	/* The delay time (in microseconds) period */
-	/* before sending a probe-request. */
-	/* [in] */ u8 probeDelay;
+/* The delay time (in microseconds) period */
+/* before sending a probe-request. */
+/* [in] */u8 probeDelay;
 
-	/* Length of the SSID */
-	/* [in] */ u8 ssidLength;
+/* Length of the SSID */
+/* [in] */u8 ssidLength;
 
-	/* SSID of the BSS or P2P_GO to be started now. */
-	/* [in] */ u8 ssid[32];
+/* SSID of the BSS or P2P_GO to be started now. */
+/* [in] */u8 ssid[32];
 
-	/* The basic supported rates for the MiniAP. */
-	/* [in] */ u32 basicRateSet;
+/* The basic supported rates for the MiniAP. */
+/* [in] */u32 basicRateSet;
 };
 
-int wsm_start(struct xr819* priv, const struct wsm_start *arg,
-		int if_id);
+int wsm_start(struct xr819* priv, const struct wsm_start *arg, int if_id);
 
 #if 0
 struct wsm_beacon_transmit {
-	/* 1: enable; 0: disable */
-	/* [in] */ u8 enableBeaconing;
+/* 1: enable; 0: disable */
+/* [in] */u8 enableBeaconing;
 };
 
 int wsm_beacon_transmit(struct xr819* priv,
-			const struct wsm_beacon_transmit *arg,
-			int if_id);
+	const struct wsm_beacon_transmit *arg,
+	int if_id);
 #endif
 
 int wsm_start_find(struct xr819* priv, int if_id);
 
 int wsm_stop_find(struct xr819* priv, int if_id);
 
-typedef void (*wsm_find_complete_cb) (struct xr819* priv,
-				      u32 status);
+typedef void (*wsm_find_complete_cb)(struct xr819* priv, u32 status);
 
 struct wsm_suspend_resume {
-	/* See 3.52 */
-	/* Link ID */
-	/* [out] */ int link_id;
-	/* Stop sending further Tx requests down to device for this link */
-	/* [out] */ bool stop;
-	/* Transmit multicast Frames */
-	/* [out] */ bool multicast;
-	/* The AC on which Tx to be suspended /resumed. */
-	/* This is applicable only for U-APSD */
-	/* WSM_QUEUE_... */
-	/* [out] */ int queue;
-	/* [out] */ int if_id;
+/* See 3.52 */
+/* Link ID */
+/* [out] */int link_id;
+/* Stop sending further Tx requests down to device for this link */
+/* [out] */bool stop;
+/* Transmit multicast Frames */
+/* [out] */bool multicast;
+/* The AC on which Tx to be suspended /resumed. */
+/* This is applicable only for U-APSD */
+/* WSM_QUEUE_... */
+/* [out] */int queue;
+/* [out] */int if_id;
 };
 
-typedef void (*wsm_suspend_resume_cb) (struct xradio_vif *priv,
-				       struct wsm_suspend_resume *arg);
+typedef void (*wsm_suspend_resume_cb)(struct xradio_vif *priv,
+	struct wsm_suspend_resume *arg);
 
 /* 3.54 Update-IE request. */
 struct wsm_update_ie {
-	/* WSM_UPDATE_IE_... */
-	/* [in] */ u16 what;
-	/* [in] */ u16 count;
-	/* [in] */ u8 *ies;
-	/* [in] */ size_t length;
+/* WSM_UPDATE_IE_... */
+/* [in] */u16 what;
+/* [in] */u16 count;
+/* [in] */u8 *ies;
+/* [in] */size_t length;
 };
 
-int wsm_update_ie(struct xr819* priv,
-		  const struct wsm_update_ie *arg, int if_id);
+int wsm_update_ie(struct xr819* priv, const struct wsm_update_ie *arg,
+	int if_id);
 
 /* 3.56 */
 struct wsm_map_link {
-	/* MAC address of the remote device */
-	/* [in] */ u8 mac_addr[6];
-	/* [in] */ u8 unmap;
-	/* [in] */ u8 link_id;
+/* MAC address of the remote device */
+/* [in] */u8 mac_addr[6];
+/* [in] */u8 unmap;
+/* [in] */u8 link_id;
 };
 
-int wsm_map_link(struct xr819* priv, const struct wsm_map_link *arg,
-		int if_id);
+int wsm_map_link(struct xr819* priv, const struct wsm_map_link *arg, int if_id);
 
 struct wsm_cbc {
-	wsm_scan_complete_cb scan_complete;
-	wsm_tx_confirm_cb tx_confirm;
-	wsm_rx_cb rx;
-	wsm_event_cb event;
-	wsm_set_pm_complete_cb set_pm_complete;
-	wsm_channel_switch_cb channel_switch;
-	wsm_find_complete_cb find_complete;
-	wsm_suspend_resume_cb suspend_resume;
+wsm_scan_complete_cb scan_complete;
+wsm_tx_confirm_cb tx_confirm;
+wsm_rx_cb rx;
+wsm_event_cb event;
+wsm_set_pm_complete_cb set_pm_complete;
+wsm_channel_switch_cb channel_switch;
+wsm_find_complete_cb find_complete;
+wsm_suspend_resume_cb suspend_resume;
 };
 #ifdef MCAST_FWDING
 
@@ -1267,7 +1238,7 @@ int wsm_deinit_release_buffer(struct xr819* priv);
 
 /* 3.67	Request Buffer Request */
 int wsm_request_buffer_request(struct xradio_vif *priv,
-                                u8 *arg);
+	u8 *arg);
 #endif
 /* ******************************************************************** */
 /* MIB shortcats							*/
@@ -1276,343 +1247,313 @@ int wsm_request_buffer_request(struct xradio_vif *priv,
 /* RadioResourceMeasurement Request*/
 #define MEAS_CCA         0
 #define MEAS_CHANNELLOAD 1
-typedef struct LMAC_MEAS_CHANNEL_LOAD_PARAMS_S
-{
-    u8    Reserved;
-    u8    ChannelLoadCCA;
-    u16   ChannelNum;
-    u16   RandomInterval;
-    u16   MeasurementDuration;
-    u32   MeasurementStartTimel;
-    u32   MeasurementStartTimeh;
-}LMAC_MEAS_CHANNEL_LOAD_PARAMS;
+typedef struct LMAC_MEAS_CHANNEL_LOAD_PARAMS_S {
+u8 Reserved;
+u8 ChannelLoadCCA;
+u16 ChannelNum;
+u16 RandomInterval;
+u16 MeasurementDuration;
+u32 MeasurementStartTimel;
+u32 MeasurementStartTimeh;
+} LMAC_MEAS_CHANNEL_LOAD_PARAMS;
 
 #define MEAS_RPI 0
 #define MEAS_IPI 1
 
-typedef struct LMAC_MEAS_NOISE_HISTOGRAM_PARAMS_S
-{
-    u8    Reserved;
-    u8    IpiRpi;
-    u16   ChannelNum;
-    u16   RandomInterval;
-    u16   MeasurementDuration;
-    u32   MeasurementStartTimel;
-    u32   MeasurementStartTimeh;
-}LMAC_MEAS_NOISE_HISTOGRAM_PARAMS;
+typedef struct LMAC_MEAS_NOISE_HISTOGRAM_PARAMS_S {
+u8 Reserved;
+u8 IpiRpi;
+u16 ChannelNum;
+u16 RandomInterval;
+u16 MeasurementDuration;
+u32 MeasurementStartTimel;
+u32 MeasurementStartTimeh;
+} LMAC_MEAS_NOISE_HISTOGRAM_PARAMS;
 
 #define LMAC_MAX_SSIDS       16 
 #define LMAC_MAX_SSID_LENGTH 32
-typedef struct LMAC_CHANNELS_S
-{
-    u32  ChannelNum;
-    u32  MinChannelTime;
-    u32  MaxChannelTime;
-    s32  TxPowerLevel;
-}LMAC_CHANNELS;
+typedef struct LMAC_CHANNELS_S {
+u32 ChannelNum;
+u32 MinChannelTime;
+u32 MaxChannelTime;
+s32 TxPowerLevel;
+} LMAC_CHANNELS;
 
-typedef struct LMAC_SSIDS_S
-{
-    u32  SSIDLength;
-    u8   SSID[LMAC_MAX_SSID_LENGTH];
-}LMAC_SSIDS;
+typedef struct LMAC_SSIDS_S {
+u32 SSIDLength;
+u8 SSID[LMAC_MAX_SSID_LENGTH];
+} LMAC_SSIDS;
 
-typedef struct LMAC_MEAS_BEACON_PARAMS_S
-{
-    //u8    RegulatoryClass;
-    //u8    MeasurementMode;
-    //u16   ChannelNum;
-    u16   RandomInterval;
-    //u16   MeasurementDuration;
-    //u8    Bssid[6];
-    u16   Reserved;
-    //SCAN_PARAMETERS ScanParameters;
-    u8   Band;
-    u8   ScanType;
-    u8   ScanFlags;
-    u8   MaxTransmitRate;
-    u32  AutoScanInterval;
-    u8   NumOfProbeRequests;
-    u8   NumOfChannels;
-    u8   NumOfSSIDs;
-    u8   ProbeDelay;
-    LMAC_CHANNELS Channels;
-    LMAC_SSIDS    Ssids; // here for SCAN_PARAMETER sizing purposes
-}LMAC_MEAS_BEACON_PARAMS;
+typedef struct LMAC_MEAS_BEACON_PARAMS_S {
+//u8    RegulatoryClass;
+//u8    MeasurementMode;
+//u16   ChannelNum;
+u16 RandomInterval;
+//u16   MeasurementDuration;
+//u8    Bssid[6];
+u16 Reserved;
+//SCAN_PARAMETERS ScanParameters;
+u8 Band;
+u8 ScanType;
+u8 ScanFlags;
+u8 MaxTransmitRate;
+u32 AutoScanInterval;
+u8 NumOfProbeRequests;
+u8 NumOfChannels;
+u8 NumOfSSIDs;
+u8 ProbeDelay;
+LMAC_CHANNELS Channels;
+LMAC_SSIDS Ssids; // here for SCAN_PARAMETER sizing purposes
+} LMAC_MEAS_BEACON_PARAMS;
 
-typedef struct LMAC_MEAS_STA_STATS_PARAMS_S
-{
-    u8    PeerMacAddress[6];
-    u16   RandomInterval;
-    u16   MeasurementDuration;
-    u8    GroupId;
-    u8    Reserved;
-}LMAC_MEAS_STA_STATS_PARAMS;
+typedef struct LMAC_MEAS_STA_STATS_PARAMS_S {
+u8 PeerMacAddress[6];
+u16 RandomInterval;
+u16 MeasurementDuration;
+u8 GroupId;
+u8 Reserved;
+} LMAC_MEAS_STA_STATS_PARAMS;
 
-typedef struct LMAC_MEAS_LINK_MEASUREMENT_PARAMS_S
-{
-    u8    Reserved[4];
-}LMAC_MEAS_LINK_MEASUREMENT_PARAMS;
+typedef struct LMAC_MEAS_LINK_MEASUREMENT_PARAMS_S {
+u8 Reserved[4];
+} LMAC_MEAS_LINK_MEASUREMENT_PARAMS;
 
-typedef union LMAC_MEAS_REQUEST_U
-{
-    LMAC_MEAS_CHANNEL_LOAD_PARAMS     ChannelLoadParams;
-    LMAC_MEAS_NOISE_HISTOGRAM_PARAMS  NoisHistogramParams;
-    LMAC_MEAS_BEACON_PARAMS           BeaconParams;
-    LMAC_MEAS_STA_STATS_PARAMS        StaStatsParams;
-   LMAC_MEAS_LINK_MEASUREMENT_PARAMS LinkMeasurementParams;
+typedef union LMAC_MEAS_REQUEST_U {
+LMAC_MEAS_CHANNEL_LOAD_PARAMS ChannelLoadParams;
+LMAC_MEAS_NOISE_HISTOGRAM_PARAMS NoisHistogramParams;
+LMAC_MEAS_BEACON_PARAMS BeaconParams;
+LMAC_MEAS_STA_STATS_PARAMS StaStatsParams;
+LMAC_MEAS_LINK_MEASUREMENT_PARAMS LinkMeasurementParams;
 } LMAC_MEAS_REQUEST;
 
 // This struct is a copy of WSM_HI_START_MEASUREMENT_REQ, except that MsgLen and MsgId is not included
-typedef struct MEASUREMENT_PARAMETERS_S
-{
+typedef struct MEASUREMENT_PARAMETERS_S {
 //    u16           MsgLen;
 //    u16           MsgId;
-    s32           TxPowerLevel;
-    u8            DurationMandatory;
-    u8            MeasurementType;
-    u8            MeasurementRequestLength;
-    u8            Reserved[5];
-    LMAC_MEAS_REQUEST MeasurementRequest;
-}MEASUREMENT_PARAMETERS;
+s32 TxPowerLevel;
+u8 DurationMandatory;
+u8 MeasurementType;
+u8 MeasurementRequestLength;
+u8 Reserved[5];
+LMAC_MEAS_REQUEST MeasurementRequest;
+} MEASUREMENT_PARAMETERS;
 
 /* RadioResourceMeasurement Result*/
- typedef struct LMAC_MEAS_CHANNEL_LOAD_RESULTS_S
-{
-    u8   Reserved;
-    u8   ChannelLoadCCA;
-    u16  ChannelNum;
-    u32  ActualMeasurementStartTimel;
-    u32  ActualMeasurementStartTimeh;
-    u16  MeasurementDuration;
-    u8   CCAbusyFraction;
-    u8   ChannelLoad;
-}LMAC_MEAS_CHANNEL_LOAD_RESULTS;
+typedef struct LMAC_MEAS_CHANNEL_LOAD_RESULTS_S {
+u8 Reserved;
+u8 ChannelLoadCCA;
+u16 ChannelNum;
+u32 ActualMeasurementStartTimel;
+u32 ActualMeasurementStartTimeh;
+u16 MeasurementDuration;
+u8 CCAbusyFraction;
+u8 ChannelLoad;
+} LMAC_MEAS_CHANNEL_LOAD_RESULTS;
 
-typedef struct LMAC_MEAS_NOISE_HISTOGRAM_RESULTS_S
-{
-    u16  Reserved;
-    u16  ChannelNum;
-    u32  ActualMeasurementStartTimel;
-    u32  ActualMeasurementStartTimeh;
-    u16  MeasurementDuration;
-    u8   AntennaID;
-    u8   IpiRpi;
-    u8   PI_0_Density;
-    u8   PI_1_Density;
-    u8   PI_2_Density;
-    u8   PI_3_Density;
-    u8   PI_4_Density;
-    u8   PI_5_Density;
-    u8   PI_6_Density;
-    u8   PI_7_Density;
-    u8   PI_8_Density;
-    u8   PI_9_Density;
-    u8   PI_10_Density;
-    u8   Reserved2;
-}LMAC_MEAS_NOISE_HISTOGRAM_RESULTS;
+typedef struct LMAC_MEAS_NOISE_HISTOGRAM_RESULTS_S {
+u16 Reserved;
+u16 ChannelNum;
+u32 ActualMeasurementStartTimel;
+u32 ActualMeasurementStartTimeh;
+u16 MeasurementDuration;
+u8 AntennaID;
+u8 IpiRpi;
+u8 PI_0_Density;
+u8 PI_1_Density;
+u8 PI_2_Density;
+u8 PI_3_Density;
+u8 PI_4_Density;
+u8 PI_5_Density;
+u8 PI_6_Density;
+u8 PI_7_Density;
+u8 PI_8_Density;
+u8 PI_9_Density;
+u8 PI_10_Density;
+u8 Reserved2;
+} LMAC_MEAS_NOISE_HISTOGRAM_RESULTS;
 
-typedef struct LMAC_MEAS_BEACON_RESULTS_S
-{
-    u16  MeasurementDuration;
-    u16  Reserved;
-    u32  StartTsfl;
-    u32  StartTsfh;
-    u32  Durationl;
-    u32  Durationh;
-    //SCAN_PARAMETERS ScanParameters;
-    u8   Band;
-    u8   ScanType;
-    u8   ScanFlags;
-    u8   MaxTransmitRate;
-    u32  AutoScanInterval;
-    u8   NumOfProbeRequests;
-    u8   NumOfChannels;
-    u8   NumOfSSIDs;
-    u8   ProbeDelay;
-    LMAC_CHANNELS Channels;
-    LMAC_SSIDS    Ssids;
-}LMAC_MEAS_BEACON_RESULTS;
+typedef struct LMAC_MEAS_BEACON_RESULTS_S {
+u16 MeasurementDuration;
+u16 Reserved;
+u32 StartTsfl;
+u32 StartTsfh;
+u32 Durationl;
+u32 Durationh;
+//SCAN_PARAMETERS ScanParameters;
+u8 Band;
+u8 ScanType;
+u8 ScanFlags;
+u8 MaxTransmitRate;
+u32 AutoScanInterval;
+u8 NumOfProbeRequests;
+u8 NumOfChannels;
+u8 NumOfSSIDs;
+u8 ProbeDelay;
+LMAC_CHANNELS Channels;
+LMAC_SSIDS Ssids;
+} LMAC_MEAS_BEACON_RESULTS;
 
-typedef struct LMAC_MEAS_STA_STATS_RESULTS_S
-{
-    u16  MeasurementDuration;
-    u8   GroupId;
-    u8   StatisticsGroupDataLength;
-    u8   StatisticsGroupData[52];
-}LMAC_MEAS_STA_STATS_RESULTS;
+typedef struct LMAC_MEAS_STA_STATS_RESULTS_S {
+u16 MeasurementDuration;
+u8 GroupId;
+u8 StatisticsGroupDataLength;
+u8 StatisticsGroupData[52];
+} LMAC_MEAS_STA_STATS_RESULTS;
 
-typedef struct LMAC_MEAS_LINK_MEASUREMENT_RESULTS_S
-{
-    s16  TransmitPower;
-    u8   RxAntennaID;
-    u8   TxAntennaID;
-    s32  NoiseLeveldBm;
-    s8   LatestRssi;
-    u8   Reserved1;
-    u8   Reserved2;
-    u8   Reserved3;
-}LMAC_MEAS_LINK_MEASUREMENT_RESULTS;
+typedef struct LMAC_MEAS_LINK_MEASUREMENT_RESULTS_S {
+s16 TransmitPower;
+u8 RxAntennaID;
+u8 TxAntennaID;
+s32 NoiseLeveldBm;
+s8 LatestRssi;
+u8 Reserved1;
+u8 Reserved2;
+u8 Reserved3;
+} LMAC_MEAS_LINK_MEASUREMENT_RESULTS;
 
-typedef union LMAC_MEAS_REPORT_U
-{
-    LMAC_MEAS_CHANNEL_LOAD_RESULTS     ChannelLoadResults;
-    LMAC_MEAS_NOISE_HISTOGRAM_RESULTS  NoiseHistogramResults;
-    LMAC_MEAS_BEACON_RESULTS           BeaconResults;
-    LMAC_MEAS_STA_STATS_RESULTS        StaStatsResults;
-    LMAC_MEAS_LINK_MEASUREMENT_RESULTS LinkMeasurementResults;
-}LMAC_MEAS_REPORT;
+typedef union LMAC_MEAS_REPORT_U {
+LMAC_MEAS_CHANNEL_LOAD_RESULTS ChannelLoadResults;
+LMAC_MEAS_NOISE_HISTOGRAM_RESULTS NoiseHistogramResults;
+LMAC_MEAS_BEACON_RESULTS BeaconResults;
+LMAC_MEAS_STA_STATS_RESULTS StaStatsResults;
+LMAC_MEAS_LINK_MEASUREMENT_RESULTS LinkMeasurementResults;
+} LMAC_MEAS_REPORT;
 
 // Note: eMeasurementTypes MUST match the #define WSM_MEASURE_TYPE_XXX from wsm_api.h
-typedef enum {
-    ChannelLoadMeasurement=0,
-    NoiseHistrogramMeasurement,
-    BeaconReport,
-    STAstatisticsReport,
-    LinkMeasurement
-}eMeasurementTypes;
+typedef enum {ChannelLoadMeasurement = 0,
+NoiseHistrogramMeasurement,
+BeaconReport,
+STAstatisticsReport,
+LinkMeasurement
+} eMeasurementTypes;
 
-typedef struct MEASUREMENT_COMPLETE_S
-{
+typedef struct MEASUREMENT_COMPLETE_S {
 //    u16          RandomInterval;      
 //    u16          Reserved0;          
-    u8           Dot11PowerMgmtMode;  // From here WSM_HI_MEASURE_CMPL_IND and MEASUREMENT_COMPLETE_S must be identical
-    u8           MeasurementType;
-    u16          MoreInd;   // Set to 1 if more indications are to follow for this measurement, otherwise 0;
-    u32          Status;
-    u8           MeasurementReportLength;
-    u8           Reserved2[3];
-    LMAC_MEAS_REPORT MeasurementReport;
-}MEASUREMENT_COMPLETE; // Note: must be 32 bit aligned
+u8 Dot11PowerMgmtMode; // From here WSM_HI_MEASURE_CMPL_IND and MEASUREMENT_COMPLETE_S must be identical
+u8 MeasurementType;
+u16 MoreInd; // Set to 1 if more indications are to follow for this measurement, otherwise 0;
+u32 Status;
+u8 MeasurementReportLength;
+u8 Reserved2[3];
+LMAC_MEAS_REPORT MeasurementReport;
+} MEASUREMENT_COMPLETE; // Note: must be 32 bit aligned
 
 #endif
-int wsm_11k_measure_requset(struct xr819  *priv,
-                                               u8  measure_type,
-                                              u16  ChannelNum,
-                                              u16  Duration);
-
+int wsm_11k_measure_requset(struct xr819 *priv, u8 measure_type, u16 ChannelNum,
+	u16 Duration);
 
 static inline int wsm_set_fw_debug_control(struct xr819* priv,
-				       int debug_control, int if_id)
-{
-	__le32 val = __cpu_to_le32(debug_control);
-	return wsm_write_mib(priv, WSM_MIB_ID_FW_DEBUG_CONTROL,
-			     &val, sizeof(val), if_id);
+	int debug_control, int if_id) {
+__le32 val = __cpu_to_le32(debug_control);
+return wsm_write_mib(priv, WSM_MIB_ID_FW_DEBUG_CONTROL, &val, sizeof(val),
+		if_id);
 }
 
-static inline int wsm_set_host_sleep(struct xr819* priv,
-				       u8 host_sleep, int if_id)
-{
-	return wsm_write_mib(priv, WSM_MIB_ID_SET_HOST_SLEEP,
-			     &host_sleep, sizeof(host_sleep), if_id);
+static inline int wsm_set_host_sleep(struct xr819* priv, u8 host_sleep,
+	int if_id) {
+return wsm_write_mib(priv, WSM_MIB_ID_SET_HOST_SLEEP, &host_sleep,
+		sizeof(host_sleep), if_id);
 }
 
-static inline int wsm_set_output_power(struct xr819* priv,
-				       int power_level, int if_id)
-{
-	__le32 val = __cpu_to_le32(power_level);
-	return wsm_write_mib(priv, WSM_MIB_ID_DOT11_CURRENT_TX_POWER_LEVEL,
-			     &val, sizeof(val), if_id);
+static inline int wsm_set_output_power(struct xr819* priv, int power_level,
+	int if_id) {
+__le32 val = __cpu_to_le32(power_level);
+return wsm_write_mib(priv, WSM_MIB_ID_DOT11_CURRENT_TX_POWER_LEVEL, &val,
+		sizeof(val), if_id);
 }
 
 static inline int wsm_set_beacon_wakeup_period(struct xr819* priv,
-					       unsigned dtim_interval,
-					       unsigned listen_interval,
-					       int if_id)
-{
-	struct {
-		u8 numBeaconPeriods;
-		u8 reserved;
-		__le16 listenInterval;
-	} val = {
-	dtim_interval, 0, __cpu_to_le16(listen_interval)};
-	if (dtim_interval > 0xFF || listen_interval > 0xFFFF)
-		return -EINVAL;
-	else
-		return wsm_write_mib(priv, WSM_MIB_ID_BEACON_WAKEUP_PERIOD,
-				     &val, sizeof(val), if_id);
+	unsigned dtim_interval, unsigned listen_interval, int if_id) {
+struct {
+	u8 numBeaconPeriods;
+	u8 reserved;
+	__le16 listenInterval;
+} val = { dtim_interval, 0, __cpu_to_le16(listen_interval) };
+if (dtim_interval > 0xFF || listen_interval > 0xFFFF)
+	return -EINVAL;
+else
+	return wsm_write_mib(priv, WSM_MIB_ID_BEACON_WAKEUP_PERIOD, &val,
+			sizeof(val), if_id);
 }
 
 struct wsm_rcpi_rssi_threshold {
-	u8 rssiRcpiMode;	/* WSM_RCPI_RSSI_... */
-	u8 lowerThreshold;
-	u8 upperThreshold;
-	u8 rollingAverageCount;
+u8 rssiRcpiMode; /* WSM_RCPI_RSSI_... */
+u8 lowerThreshold;
+u8 upperThreshold;
+u8 rollingAverageCount;
 };
 
 static inline int wsm_set_rcpi_rssi_threshold(struct xr819* priv,
-					struct wsm_rcpi_rssi_threshold *arg,
-					int if_id)
-{
-	return wsm_write_mib(priv, WSM_MIB_ID_RCPI_RSSI_THRESHOLD, arg,
-			     sizeof(*arg), if_id);
+	struct wsm_rcpi_rssi_threshold *arg, int if_id) {
+return wsm_write_mib(priv, WSM_MIB_ID_RCPI_RSSI_THRESHOLD, arg, sizeof(*arg),
+		if_id);
 }
 
 struct wsm_counters_table {
-	__le32 countPlcpErrors;
-	__le32 countFcsErrors;
-	__le32 countTxPackets;
-	__le32 countRxPackets;
-	__le32 countRxPacketErrors;
-	__le32 countRtsSuccess;
-	__le32 countRtsFailures;
-	__le32 countRxFramesSuccess;
-	__le32 countRxDecryptionFailures;
-	__le32 countRxMicFailures;
-	__le32 countRxNoKeyFailures;
-	__le32 countTxMulticastFrames;
-	__le32 countTxFramesSuccess;
-	__le32 countTxFrameFailures;
-	__le32 countTxFramesRetried;
-	__le32 countTxFramesMultiRetried;
-	__le32 countRxFrameDuplicates;
-	__le32 countAckFailures;
-	__le32 countRxMulticastFrames;
-	__le32 countRxCMACICVErrors;
-	__le32 countRxCMACReplays;
-	__le32 countRxMgmtCCMPReplays;
-	__le32 countRxBIPMICErrors;
+__le32 countPlcpErrors;
+__le32 countFcsErrors;
+__le32 countTxPackets;
+__le32 countRxPackets;
+__le32 countRxPacketErrors;
+__le32 countRtsSuccess;
+__le32 countRtsFailures;
+__le32 countRxFramesSuccess;
+__le32 countRxDecryptionFailures;
+__le32 countRxMicFailures;
+__le32 countRxNoKeyFailures;
+__le32 countTxMulticastFrames;
+__le32 countTxFramesSuccess;
+__le32 countTxFrameFailures;
+__le32 countTxFramesRetried;
+__le32 countTxFramesMultiRetried;
+__le32 countRxFrameDuplicates;
+__le32 countAckFailures;
+__le32 countRxMulticastFrames;
+__le32 countRxCMACICVErrors;
+__le32 countRxCMACReplays;
+__le32 countRxMgmtCCMPReplays;
+__le32 countRxBIPMICErrors;
 };
 
-
 struct wsm_ampducounters_table {
-	u32 countTxAMPDUs;
-	u32 countTxMPDUsInAMPDUs;
-	u32 countTxOctetsInAMPDUs_l32;
-	u32 countTxOctetsInAMPDUs_h32;
-	u32 countRxAMPDUs;
-	u32 countRxMPDUsInAMPDUs;
-	u32 countRxOctetsInAMPDUs_l32;
-	u32 countRxOctetsInAMPDUs_h32;
-	u32 countRxDelimeterCRCErrorCount;
-	u32 countImplictBARFailures;
-	u32 countExplictBARFailures;
+u32 countTxAMPDUs;
+u32 countTxMPDUsInAMPDUs;
+u32 countTxOctetsInAMPDUs_l32;
+u32 countTxOctetsInAMPDUs_h32;
+u32 countRxAMPDUs;
+u32 countRxMPDUsInAMPDUs;
+u32 countRxOctetsInAMPDUs_l32;
+u32 countRxOctetsInAMPDUs_h32;
+u32 countRxDelimeterCRCErrorCount;
+u32 countImplictBARFailures;
+u32 countExplictBARFailures;
 };
 
 struct wsm_txpipe_counter {
-    u32 count1;
-    u32 count2;
-    u32 count3;
-    u32 count4;
-    u32 count5;
-    u32 count6;
-    u32 count7;
-    u32 count8;
-    u32 count9;
-    u32 counta;
+u32 count1;
+u32 count2;
+u32 count3;
+u32 count4;
+u32 count5;
+u32 count6;
+u32 count7;
+u32 count8;
+u32 count9;
+u32 counta;
 };
 
 struct wsm_backoff_counter {
-    u32 count0;
-    u32 count1;
-    u32 count2;
-    u32 count3;
-    u32 count4;
-    u32 count5;
-    u32 count6;
-    u32 count7;
-    u32 count8;
-    u32 count9;
+u32 count0;
+u32 count1;
+u32 count2;
+u32 count3;
+u32 count4;
+u32 count5;
+u32 count6;
+u32 count7;
+u32 count8;
+u32 count9;
 };
 //add by yangfh for read/write fw registers
 #define WSM_REG_RW_F   BIT(0)  //0:read, 1:write
@@ -1620,95 +1561,77 @@ struct wsm_backoff_counter {
 #define WSM_REG_BK_F   BIT(4)  //operate in block mode.
 
 struct reg_data {
-	u32 reg_addr;
-	u32 reg_val;
+u32 reg_addr;
+u32 reg_val;
 };
 
 typedef struct tag_wsm_reg_w {
-	u16 flag;
-	u16 data_size;
-	struct reg_data arg[16];
+u16 flag;
+u16 data_size;
+struct reg_data arg[16];
 } WSM_REG_W;
 
 typedef struct tag_wsm_reg_r {
-	u16 flag;
-	u16 data_size;
-	u32 arg[16];
+u16 flag;
+u16 data_size;
+u32 arg[16];
 } WSM_REG_R;
 
 struct wsm_backoff_ctrl {
-    u32 enable;
-    u32 min;
-    u32 max;
+u32 enable;
+u32 min;
+u32 max;
 };
 struct wsm_tala_para {
-    u32 para;
-    u32 thresh;
+u32 para;
+u32 thresh;
 };
 static inline int wsm_get_counters_table(struct xr819* priv,
-					 struct wsm_counters_table *arg)
-{
-	return wsm_read_mib(priv, WSM_MIB_ID_COUNTERS_TABLE,
-			arg, sizeof(*arg), 0);
+	struct wsm_counters_table *arg) {
+return wsm_read_mib(priv, WSM_MIB_ID_COUNTERS_TABLE, arg, sizeof(*arg), 0);
 }
 
 static inline int wsm_get_ampducounters_table(struct xr819* priv,
-					 struct wsm_ampducounters_table *arg)
-{
-	return wsm_read_mib(priv, WSM_MIB_ID_AMPDUCOUNTERS_TABLE,
-			arg, sizeof(*arg), 0);
+	struct wsm_ampducounters_table *arg) {
+return wsm_read_mib(priv, WSM_MIB_ID_AMPDUCOUNTERS_TABLE, arg, sizeof(*arg), 0);
 }
 
 static inline int wsm_get_txpipe_table(struct xr819* priv,
-					 struct wsm_txpipe_counter *arg)
-{
-	return wsm_read_mib(priv, WSM_MIB_ID_TXPIPE_TABLE,
-			arg, sizeof(*arg), 0);
+	struct wsm_txpipe_counter *arg) {
+return wsm_read_mib(priv, WSM_MIB_ID_TXPIPE_TABLE, arg, sizeof(*arg), 0);
 }
 
 static inline int wsm_get_backoff_dbg(struct xr819* priv,
-					 struct wsm_backoff_counter *arg)
-{
-	return wsm_read_mib(priv, WSM_MIB_ID_BACKOFF_DBG,
-			arg, sizeof(*arg), 0);
+	struct wsm_backoff_counter *arg) {
+return wsm_read_mib(priv, WSM_MIB_ID_BACKOFF_DBG, arg, sizeof(*arg), 0);
 }
 
 static inline int wsm_set_backoff_ctrl(struct xr819* priv,
-					 struct wsm_backoff_ctrl *arg)
-{
-	return wsm_write_mib(priv, WSM_MIB_ID_BACKOFF_CTRL,
-			arg, sizeof(*arg), 0);
+	struct wsm_backoff_ctrl *arg) {
+return wsm_write_mib(priv, WSM_MIB_ID_BACKOFF_CTRL, arg, sizeof(*arg), 0);
 }
 
-static inline int wsm_set_tala(struct xr819* priv,
-					 struct wsm_tala_para *arg)
-{
-	return wsm_write_mib(priv, WSM_MIB_ID_SET_TALA_PARA,
-			arg, sizeof(*arg), 0);
+static inline int wsm_set_tala(struct xr819* priv, struct wsm_tala_para *arg) {
+return wsm_write_mib(priv, WSM_MIB_ID_SET_TALA_PARA, arg, sizeof(*arg), 0);
 }
-static inline int wsm_get_station_id(struct xr819* priv, u8 *mac)
-{
-	return wsm_read_mib(priv, WSM_MIB_ID_DOT11_STATION_ID, mac,
-			    ETH_ALEN, 0);
+static inline int wsm_get_station_id(struct xr819* priv, u8 *mac) {
+return wsm_read_mib(priv, WSM_MIB_ID_DOT11_STATION_ID, mac, ETH_ALEN, 0);
 }
 
 static inline int wsm_set_rx_filter(struct xr819* priv,
-				    const struct wsm_rx_filter *arg,
-				    int if_id)
-{
-	__le32 val = 0;
-	if (arg->promiscuous)
-		val |= __cpu_to_le32(BIT(0));
-	if (arg->bssid)
-		val |= __cpu_to_le32(BIT(1));
-	if (arg->fcs)
-		val |= __cpu_to_le32(BIT(2));
-	if (arg->probeResponder)
-		val |= __cpu_to_le32(BIT(3));
-	if (arg->keepalive)
-		val |= __cpu_to_le32(BIT(4));
-	return wsm_write_mib(priv, WSM_MIB_ID_RX_FILTER, &val, sizeof(val),
-			if_id);
+	const struct wsm_rx_filter *arg, int if_id) {
+__le32 val = 0;
+if (arg->promiscuous)
+	val |= __cpu_to_le32(BIT(0));
+if (arg->bssid)
+	val |= __cpu_to_le32(BIT(1));
+if (arg->fcs)
+	val |= __cpu_to_le32(BIT(2));
+if (arg->probeResponder)
+	val |= __cpu_to_le32(BIT(3));
+if (arg->keepalive)
+	val |= __cpu_to_le32(BIT(4));
+return wsm_write_mib(priv, WSM_MIB_ID_RX_FILTER, &val, sizeof(val), if_id);
 }
 
 int wsm_set_probe_responder(struct xradio_vif *priv, bool enable);
@@ -1719,44 +1642,36 @@ int wsm_set_keepalive_filter(struct xradio_vif *priv, bool enable);
 #define WSM_BEACON_FILTER_IE_HAS_APPEARED	BIT(2)
 
 static inline int wsm_set_beacon_filter_table(struct xr819* priv,
-					struct wsm_beacon_filter_table *ft,
-					int if_id)
-{
-	size_t size = __le32_to_cpu(ft->numOfIEs) *
-		     sizeof(struct wsm_beacon_filter_table_entry) +
-		     sizeof(__le32);
+	struct wsm_beacon_filter_table *ft, int if_id) {
+size_t size = __le32_to_cpu(ft->numOfIEs)
+		* sizeof(struct wsm_beacon_filter_table_entry) + sizeof(__le32 );
 
-	return wsm_write_mib(priv, WSM_MIB_ID_BEACON_FILTER_TABLE, ft, size,
-			if_id);
+return wsm_write_mib(priv, WSM_MIB_ID_BEACON_FILTER_TABLE, ft, size, if_id);
 }
 
 #define WSM_BEACON_FILTER_ENABLE	BIT(0) /* Enable/disable beacon filtering */
 #define WSM_BEACON_FILTER_AUTO_ERP	BIT(1) /* If 1 FW will handle ERP IE changes internally */
 
 static inline int wsm_beacon_filter_control(struct xr819* priv,
-					struct wsm_beacon_filter_control *arg,
-					int if_id)
-{
-	struct {
-		__le32 enabled;
-		__le32 bcn_count;
-	} val;
-	val.enabled = __cpu_to_le32(arg->enabled);
-	val.bcn_count = __cpu_to_le32(arg->bcn_count);
-	return wsm_write_mib(priv, WSM_MIB_ID_BEACON_FILTER_ENABLE, &val,
-			     sizeof(val), if_id);
+	struct wsm_beacon_filter_control *arg, int if_id) {
+struct {
+	__le32 enabled;
+	__le32 bcn_count;
+} val;
+val.enabled = __cpu_to_le32(arg->enabled);
+val.bcn_count = __cpu_to_le32(arg->bcn_count);
+return wsm_write_mib(priv, WSM_MIB_ID_BEACON_FILTER_ENABLE, &val, sizeof(val),
+		if_id);
 }
 
 enum wsm_power_mode {
-	wsm_power_mode_active = 0,
-	wsm_power_mode_doze = 1,
-	wsm_power_mode_quiescent = 2,
+wsm_power_mode_active = 0, wsm_power_mode_doze = 1, wsm_power_mode_quiescent = 2,
 };
 
 struct wsm_operational_mode {
-	enum wsm_power_mode power_mode;
-	int disableMoreFlagUsage;
-	int performAntDiversity;
+enum wsm_power_mode power_mode;
+int disableMoreFlagUsage;
+int performAntDiversity;
 };
 
 #ifdef CONFIG_XRADIO_DEBUGFS
@@ -1764,197 +1679,171 @@ extern u8 low_pwr_disable;
 #endif
 
 static inline int wsm_set_operational_mode(struct xr819* priv,
-					const struct wsm_operational_mode *arg,
-					int if_id)
-{
-	u32 val = arg->power_mode;
-	
+	const struct wsm_operational_mode *arg, int if_id) {
+u32 val = arg->power_mode;
+
 #ifdef CONFIG_XRADIO_DEBUGFS  //add by yangfh for disable low_power mode.
-	if(low_pwr_disable)
-		val = wsm_power_mode_active;
+if(low_pwr_disable)
+val = wsm_power_mode_active;
 #endif
 
-	if (arg->disableMoreFlagUsage)
-		val |= BIT(4);
-	if (arg->performAntDiversity)
-		val |= BIT(5);
-	return wsm_write_mib(priv, WSM_MIB_ID_OPERATIONAL_POWER_MODE, &val,
-			     sizeof(val), if_id);
+if (arg->disableMoreFlagUsage)
+	val |= BIT(4);
+if (arg->performAntDiversity)
+	val |= BIT(5);
+return wsm_write_mib(priv, WSM_MIB_ID_OPERATIONAL_POWER_MODE, &val, sizeof(val),
+		if_id);
 }
 
 struct wsm_inactivity {
-	u8 max_inactivity;
-	u8 min_inactivity;
+u8 max_inactivity;
+u8 min_inactivity;
 };
 
 static inline int wsm_set_inactivity(struct xr819* priv,
-					const struct wsm_inactivity *arg,
-					int if_id)
-{
-	struct {
-	       u8	min_inactive;
-	       u8	max_inactive;
-	       u16	reserved;
-	} val;
+	const struct wsm_inactivity *arg, int if_id) {
+struct {
+	u8 min_inactive;
+	u8 max_inactive;
+	u16 reserved;
+} val;
 
-	val.max_inactive = arg->max_inactivity;
-	val.min_inactive = arg->min_inactivity;
-	val.reserved = 0;
+val.max_inactive = arg->max_inactivity;
+val.min_inactive = arg->min_inactivity;
+val.reserved = 0;
 
-	return wsm_write_mib(priv, WSM_MIB_ID_SET_INACTIVITY, &val,
-			     sizeof(val), if_id);
+return wsm_write_mib(priv, WSM_MIB_ID_SET_INACTIVITY, &val, sizeof(val), if_id);
 }
 
 struct wsm_template_frame {
-	u8 frame_type;
-	u8 rate;
-	bool disable;
-	struct sk_buff *skb;
+u8 frame_type;
+u8 rate;
+bool disable;
+struct sk_buff *skb;
 };
 
 static inline int wsm_set_template_frame(struct xr819* priv,
-					 struct wsm_template_frame *arg,
-					 int if_id)
-{
-	int ret;
-	u8 *p = skb_push(arg->skb, 4);
-	p[0] = arg->frame_type;
-	p[1] = arg->rate;
-	if (arg->disable)
-		((u16 *) p)[1] = 0;
-	else
-		((u16 *) p)[1] = __cpu_to_le16(arg->skb->len - 4);
-	ret = wsm_write_mib(priv, WSM_MIB_ID_TEMPLATE_FRAME, p,
-			    arg->skb->len, if_id);
-	skb_pull(arg->skb, 4);
-	return ret;
+	struct wsm_template_frame *arg, int if_id) {
+int ret;
+u8 *p = skb_push(arg->skb, 4);
+p[0] = arg->frame_type;
+p[1] = arg->rate;
+if (arg->disable)
+	((u16 *) p)[1] = 0;
+else
+	((u16 *) p)[1] = __cpu_to_le16(arg->skb->len - 4);
+ret = wsm_write_mib(priv, WSM_MIB_ID_TEMPLATE_FRAME, p, arg->skb->len, if_id);
+skb_pull(arg->skb, 4);
+return ret;
 }
 
-
 struct wsm_protected_mgmt_policy {
-	bool protectedMgmtEnable;
-	bool unprotectedMgmtFramesAllowed;
-	bool encryptionForAuthFrame;
+bool protectedMgmtEnable;
+bool unprotectedMgmtFramesAllowed;
+bool encryptionForAuthFrame;
 };
 
-static inline int
-wsm_set_protected_mgmt_policy(struct xr819* priv,
-			      struct wsm_protected_mgmt_policy *arg,
-			      int if_id)
-{
-	__le32 val = 0;
-	int ret;
-	if (arg->protectedMgmtEnable)
-		val |= __cpu_to_le32(BIT(0));
-	if (arg->unprotectedMgmtFramesAllowed)
-		val |= __cpu_to_le32(BIT(1));
-	if (arg->encryptionForAuthFrame)
-		val |= __cpu_to_le32(BIT(2));
-	ret = wsm_write_mib(priv, WSM_MIB_ID_PROTECTED_MGMT_POLICY, &val,
-			    sizeof(val), if_id);
-	return ret;
+static inline int wsm_set_protected_mgmt_policy(struct xr819* priv,
+	struct wsm_protected_mgmt_policy *arg, int if_id) {
+__le32 val = 0;
+int ret;
+if (arg->protectedMgmtEnable)
+	val |= __cpu_to_le32(BIT(0));
+if (arg->unprotectedMgmtFramesAllowed)
+	val |= __cpu_to_le32(BIT(1));
+if (arg->encryptionForAuthFrame)
+	val |= __cpu_to_le32(BIT(2));
+ret = wsm_write_mib(priv, WSM_MIB_ID_PROTECTED_MGMT_POLICY, &val, sizeof(val),
+		if_id);
+return ret;
 }
 
 static inline int wsm_set_block_ack_policy(struct xr819* priv,
-					   u8 blockAckTxTidPolicy,
-					   u8 blockAckRxTidPolicy,
-					   int if_id)
-{
-	struct {
-		u8 blockAckTxTidPolicy;
-		u8 reserved1;
-		u8 blockAckRxTidPolicy;
-		u8 reserved2;
-	} val = {
-		.blockAckTxTidPolicy = blockAckTxTidPolicy,
-		.blockAckRxTidPolicy = blockAckRxTidPolicy,
-	};
-	return wsm_write_mib(priv, WSM_MIB_ID_BLOCK_ACK_POLICY, &val,
-			     sizeof(val), if_id);
+	u8 blockAckTxTidPolicy, u8 blockAckRxTidPolicy, int if_id) {
+struct {
+	u8 blockAckTxTidPolicy;
+	u8 reserved1;
+	u8 blockAckRxTidPolicy;
+	u8 reserved2;
+} val = { .blockAckTxTidPolicy = blockAckTxTidPolicy, .blockAckRxTidPolicy =
+		blockAckRxTidPolicy, };
+return wsm_write_mib(priv, WSM_MIB_ID_BLOCK_ACK_POLICY, &val, sizeof(val),
+		if_id);
 }
 
 static inline int wsm_set_association_mode(struct xr819* priv,
-					   struct wsm_association_mode *arg,
-					   int if_id)
-{
-	return wsm_write_mib(priv, WSM_MIB_ID_SET_ASSOCIATION_MODE, arg,
-			     sizeof(*arg), if_id);
+	struct wsm_association_mode *arg, int if_id) {
+return wsm_write_mib(priv, WSM_MIB_ID_SET_ASSOCIATION_MODE, arg, sizeof(*arg),
+		if_id);
 }
 
 struct wsm_set_tx_rate_retry_policy_header {
-	u8 numTxRatePolicies;
-	u8 reserved[3];
+u8 numTxRatePolicies;
+u8 reserved[3];
 } __packed;
 
 struct wsm_set_tx_rate_retry_policy_policy {
-	u8 policyIndex;
-	u8 shortRetryCount;
-	u8 longRetryCount;
-	u8 policyFlags;
-	u8 rateRecoveryCount;
-	u8 reserved[3];
-	__le32 rateCountIndices[3];
+u8 policyIndex;
+u8 shortRetryCount;
+u8 longRetryCount;
+u8 policyFlags;
+u8 rateRecoveryCount;
+u8 reserved[3];
+__le32 rateCountIndices[3];
 } __packed;
 
 struct wsm_set_tx_rate_retry_policy {
-	struct wsm_set_tx_rate_retry_policy_header hdr;
-	struct wsm_set_tx_rate_retry_policy_policy tbl[8];
+struct wsm_set_tx_rate_retry_policy_header hdr;
+struct wsm_set_tx_rate_retry_policy_policy tbl[8];
 } __packed;
 
 static inline int wsm_set_tx_rate_retry_policy(struct xr819* priv,
-				struct wsm_set_tx_rate_retry_policy *arg,
-				int if_id)
-{
-	size_t size = sizeof(struct wsm_set_tx_rate_retry_policy_header) +
-	    arg->hdr.numTxRatePolicies *
-	    sizeof(struct wsm_set_tx_rate_retry_policy_policy);
-	return wsm_write_mib(priv, WSM_MIB_ID_SET_TX_RATE_RETRY_POLICY, arg,
-			     size, if_id);
+	struct wsm_set_tx_rate_retry_policy *arg, int if_id) {
+size_t size = sizeof(struct wsm_set_tx_rate_retry_policy_header)
+		+ arg->hdr.numTxRatePolicies
+				* sizeof(struct wsm_set_tx_rate_retry_policy_policy);
+return wsm_write_mib(priv, WSM_MIB_ID_SET_TX_RATE_RETRY_POLICY, arg, size,
+		if_id);
 }
 
 /* 4.32 SetEtherTypeDataFrameFilter */
 struct wsm_ether_type_filter_hdr {
-	u8 nrFilters;		/* Up to WSM_MAX_FILTER_ELEMENTS */
-	u8 reserved[3];
+u8 nrFilters; /* Up to WSM_MAX_FILTER_ELEMENTS */
+u8 reserved[3];
 } __packed;
 
 struct wsm_ether_type_filter {
-	u8 filterAction;	/* WSM_FILTER_ACTION_XXX */
-	u8 reserved;
-	__le16 etherType;	/* Type of ethernet frame */
+u8 filterAction; /* WSM_FILTER_ACTION_XXX */
+u8 reserved;
+__le16 etherType; /* Type of ethernet frame */
 } __packed;
 
 static inline int wsm_set_ether_type_filter(struct xr819* priv,
-				struct wsm_ether_type_filter_hdr *arg,
-				int if_id)
-{
-	size_t size = sizeof(struct wsm_ether_type_filter_hdr) +
-		arg->nrFilters * sizeof(struct wsm_ether_type_filter);
-	return wsm_write_mib(priv, WSM_MIB_ID_SET_ETHERTYPE_DATAFRAME_FILTER,
-		arg, size, if_id);
+	struct wsm_ether_type_filter_hdr *arg, int if_id) {
+size_t size = sizeof(struct wsm_ether_type_filter_hdr)
+		+ arg->nrFilters * sizeof(struct wsm_ether_type_filter);
+return wsm_write_mib(priv, WSM_MIB_ID_SET_ETHERTYPE_DATAFRAME_FILTER, arg, size,
+		if_id);
 }
-
 
 /* 4.33 SetUDPPortDataFrameFilter */
 struct wsm_udp_port_filter_hdr {
-	u8 nrFilters;		/* Up to WSM_MAX_FILTER_ELEMENTS */
-	u8 reserved[3];
+u8 nrFilters; /* Up to WSM_MAX_FILTER_ELEMENTS */
+u8 reserved[3];
 } __packed;
 
 struct wsm_udp_port_filter {
-	u8 filterAction;	/* WSM_FILTER_ACTION_XXX */
-	u8 portType;		/* WSM_FILTER_PORT_TYPE_XXX */
-	__le16 udpPort;		/* Port number */
+u8 filterAction; /* WSM_FILTER_ACTION_XXX */
+u8 portType; /* WSM_FILTER_PORT_TYPE_XXX */
+__le16 udpPort; /* Port number */
 } __packed;
 
 static inline int wsm_set_udp_port_filter(struct xr819* priv,
-				struct wsm_udp_port_filter_hdr *arg,
-				int if_id)
-{
-	size_t size = sizeof(struct wsm_udp_port_filter_hdr) +
-		arg->nrFilters * sizeof(struct wsm_udp_port_filter);
-	return wsm_write_mib(priv, WSM_MIB_ID_SET_UDPPORT_DATAFRAME_FILTER,
-		arg, size, if_id);
+	struct wsm_udp_port_filter_hdr *arg, int if_id) {
+size_t size = sizeof(struct wsm_udp_port_filter_hdr)
+		+ arg->nrFilters * sizeof(struct wsm_udp_port_filter);
+return wsm_write_mib(priv, WSM_MIB_ID_SET_UDPPORT_DATAFRAME_FILTER, arg, size,
+		if_id);
 }
 
 /* Undocumented MIBs: */
@@ -1962,32 +1851,32 @@ static inline int wsm_set_udp_port_filter(struct xr819* priv,
 #define D11_MAX_SSID_LEN		(32)
 
 struct wsm_p2p_device_type {
-	__le16 categoryId;
-	u8 oui[4];
-	__le16 subCategoryId;
+__le16 categoryId;
+u8 oui[4];
+__le16 subCategoryId;
 } __packed;
 
 struct wsm_p2p_device_info {
-	struct wsm_p2p_device_type primaryDevice;
-	u8 reserved1[3];
-	u8 devNameSize;
-	u8 localDevName[D11_MAX_SSID_LEN];
-	u8 reserved2[3];
-	u8 numSecDevSupported;
-	struct wsm_p2p_device_type secondaryDevices[0];
+struct wsm_p2p_device_type primaryDevice;
+u8 reserved1[3];
+u8 devNameSize;
+u8 localDevName[D11_MAX_SSID_LEN];
+u8 reserved2[3];
+u8 numSecDevSupported;
+struct wsm_p2p_device_type secondaryDevices[0];
 } __packed;
 
 /* 4.36 SetWCDMABand - WO */
 struct wsm_cdma_band {
-	u8 WCDMA_Band;
-	u8 reserved[3];
+u8 WCDMA_Band;
+u8 reserved[3];
 } __packed;
 
 /* 4.37 GroupTxSequenceCounter - RO */
 struct wsm_group_tx_seq {
-	__le32 bits_47_16;
-	__le16 bits_15_00;
-	__le16 reserved;
+__le32 bits_47_16;
+__le16 bits_15_00;
+__le16 reserved;
 } __packed;
 
 /* 4.39 SetHtProtection - WO */
@@ -2001,7 +1890,7 @@ struct wsm_group_tx_seq {
 #define WSM_LARGE_L_LENGTH_PROT		(1 << 5)
 
 struct wsm_ht_protection {
-	__le32 flags;
+__le32 flags;
 } __packed;
 
 /* 4.40 GPIO Command - R/W */
@@ -2012,158 +1901,131 @@ struct wsm_ht_protection {
 #define WSM_GPIO_ALL_PINS	0xFF
 
 struct wsm_gpio_command {
-	u8 GPIO_Command;
-	u8 pin;
-	__le16 config;
+u8 GPIO_Command;
+u8 pin;
+__le16 config;
 } __packed;
 
 /* 4.41 TSFCounter - RO */
 struct wsm_tsf_counter {
-	__le64 TSF_Counter;
+__le64 TSF_Counter;
 } __packed;
 
 /* 4.43 Keep alive period */
 struct wsm_keep_alive_period {
-	__le16 keepAlivePeriod;
-	u8 reserved[2];
+__le16 keepAlivePeriod;
+u8 reserved[2];
 } __packed;
 
-static inline int wsm_keep_alive_period(struct xr819* priv,
-					int period, int if_id)
-{
-	struct wsm_keep_alive_period arg = {
-		.keepAlivePeriod = __cpu_to_le16(period),
-	};
-	return wsm_write_mib(priv, WSM_MIB_ID_KEEP_ALIVE_PERIOD,
-			&arg, sizeof(arg), if_id);
-};
+static inline int wsm_keep_alive_period(struct xr819* priv, int period,
+	int if_id) {
+struct wsm_keep_alive_period arg = { .keepAlivePeriod = __cpu_to_le16(period), };
+return wsm_write_mib(priv, WSM_MIB_ID_KEEP_ALIVE_PERIOD, &arg, sizeof(arg),
+		if_id);
+}
+;
 
 /* BSSID filtering */
 struct wsm_set_bssid_filtering {
-	u8 filter;
-	u8 reserved[3];
+u8 filter;
+u8 reserved[3];
 } __packed;
 
-static inline int wsm_set_bssid_filtering(struct xr819* priv,
-					  bool enabled, int if_id)
-{
-	struct wsm_set_bssid_filtering arg = {
-		.filter = !enabled,
-	};
-	return wsm_write_mib(priv, WSM_MIB_ID_DISABLE_BSSID_FILTER,
-			&arg, sizeof(arg), if_id);
+static inline int wsm_set_bssid_filtering(struct xr819* priv, bool enabled,
+	int if_id) {
+struct wsm_set_bssid_filtering arg = { .filter = !enabled, };
+return wsm_write_mib(priv, WSM_MIB_ID_DISABLE_BSSID_FILTER, &arg, sizeof(arg),
+		if_id);
 }
-
-
 
 /* Mac Addr Filter Info */
 struct wsm_mac_addr_info {
-	u8 filter_mode;
-	u8 address_mode;
-	u8 MacAddr[6];
+u8 filter_mode;
+u8 address_mode;
+u8 MacAddr[6];
 } __packed;
 
 /* Mac Addr Filter */
 struct wsm_mac_addr_filter {
-	u8 numfilter;
-	u8 action_mode;
-	u8 Reserved[2];
-	struct wsm_mac_addr_info macaddrfilter[0];
+u8 numfilter;
+u8 action_mode;
+u8 Reserved[2];
+struct wsm_mac_addr_info macaddrfilter[0];
 } __packed;
 
-
-
 static inline int wsm_set_multicast_filter(struct xr819* priv,
-					   struct wsm_multicast_filter *fp,
-					   int if_id)
-{
-	return wsm_write_mib(priv, WSM_MIB_ID_DOT11_GROUP_ADDRESSES_TABLE,
-			     fp, sizeof(*fp), if_id);
+	struct wsm_multicast_filter *fp, int if_id) {
+return wsm_write_mib(priv, WSM_MIB_ID_DOT11_GROUP_ADDRESSES_TABLE, fp,
+		sizeof(*fp), if_id);
 }
 
-
-
 static inline int wsm_set_arp_ipv4_filter(struct xr819* priv,
-					  struct wsm_arp_ipv4_filter *fp,
-					  int if_id)
-{
-	return wsm_write_mib(priv, WSM_MIB_ID_ARP_IP_ADDRESSES_TABLE,
-			    fp, sizeof(*fp), if_id);
+	struct wsm_arp_ipv4_filter *fp, int if_id) {
+return wsm_write_mib(priv, WSM_MIB_ID_ARP_IP_ADDRESSES_TABLE, fp, sizeof(*fp),
+		if_id);
 }
 
 #ifdef IPV6_FILTERING
 static inline int wsm_set_ndp_ipv6_filter(struct xr819 *priv,
-					  struct wsm_ndp_ipv6_filter *fp,
-					  int if_id)
+	struct wsm_ndp_ipv6_filter *fp,
+	int if_id)
 {
-	return wsm_write_mib(priv, WSM_MIB_ID_NS_IP_ADDRESSES_TABLE,
-			    fp, sizeof(*fp), if_id);
+return wsm_write_mib(priv, WSM_MIB_ID_NS_IP_ADDRESSES_TABLE,
+		fp, sizeof(*fp), if_id);
 }
 #endif /*IPV6_FILTERING*/
 
 static inline int wsm_set_p2p_ps_modeinfo(struct xr819* priv,
-					  struct wsm_p2p_ps_modeinfo *mi,
-					  int if_id)
-{
-	return wsm_write_mib(priv, WSM_MIB_ID_P2P_PS_MODE_INFO,
-			     mi, sizeof(*mi), if_id);
+	struct wsm_p2p_ps_modeinfo *mi, int if_id) {
+return wsm_write_mib(priv, WSM_MIB_ID_P2P_PS_MODE_INFO, mi, sizeof(*mi), if_id);
 }
 
 static inline int wsm_get_p2p_ps_modeinfo(struct xr819* priv,
-					  struct wsm_p2p_ps_modeinfo *mi)
-{
-	return wsm_read_mib(priv, WSM_MIB_ID_P2P_PS_MODE_INFO,
-			    mi, sizeof(*mi), 0);
+	struct wsm_p2p_ps_modeinfo *mi) {
+return wsm_read_mib(priv, WSM_MIB_ID_P2P_PS_MODE_INFO, mi, sizeof(*mi), 0);
 }
 
 /* UseMultiTxConfMessage */
 
-static inline int wsm_use_multi_tx_conf(struct xr819* priv,
-					bool enabled, int if_id)
-{
-	__le32 arg = enabled ? __cpu_to_le32(1) : 0;
+static inline int wsm_use_multi_tx_conf(struct xr819* priv, bool enabled,
+	int if_id) {
+__le32 arg = enabled ? __cpu_to_le32(1) : 0;
 
-	return wsm_write_mib(priv, WSM_MIB_USE_MULTI_TX_CONF,
-			&arg, sizeof(arg), if_id);
+return wsm_write_mib(priv, WSM_MIB_USE_MULTI_TX_CONF, &arg, sizeof(arg), if_id);
 }
 
 static inline int wsm_set_uapsd_info(struct xr819* priv,
-				     struct wsm_uapsd_info *arg,
-				     int if_id)
-{
-	/* TODO:COMBO:UAPSD will be supported only on one interface */
-	return wsm_write_mib(priv, WSM_MIB_ID_SET_UAPSD_INFORMATION,
-				arg, sizeof(*arg), if_id);
+	struct wsm_uapsd_info *arg, int if_id) {
+/* TODO:COMBO:UAPSD will be supported only on one interface */
+return wsm_write_mib(priv, WSM_MIB_ID_SET_UAPSD_INFORMATION, arg, sizeof(*arg),
+		if_id);
 }
 
 /* 4.22 OverrideInternalTxRate */
 struct wsm_override_internal_txrate {
-	u8 internalTxRate;
-	u8 nonErpInternalTxRate;
-	u8 reserved[2];
+u8 internalTxRate;
+u8 nonErpInternalTxRate;
+u8 reserved[2];
 } __packed;
 
-static inline int
-wsm_set_override_internal_txrate(struct xr819* priv,
-				     struct wsm_override_internal_txrate *arg,
-				     int if_id)
-{
-	return wsm_write_mib(priv, WSM_MIB_ID_OVERRIDE_INTERNAL_TX_RATE,
-				arg, sizeof(*arg), if_id);
+static inline int wsm_set_override_internal_txrate(struct xr819* priv,
+	struct wsm_override_internal_txrate *arg, int if_id) {
+return wsm_write_mib(priv, WSM_MIB_ID_OVERRIDE_INTERNAL_TX_RATE, arg,
+		sizeof(*arg), if_id);
 }
 #ifdef MCAST_FWDING
 /* 4.51 SetForwardingOffload */
 struct wsm_forwarding_offload {
-	u8 fwenable;
-	u8 flags;
-	u8 reserved[2];
-} __packed;
+u8 fwenable;
+u8 flags;
+u8 reserved[2];
+}__packed;
 
 static inline int wsm_set_forwarding_offlad(struct xr819* priv,
-				     struct wsm_forwarding_offload *arg,int if_id)
+	struct wsm_forwarding_offload *arg,int if_id)
 {
-	return wsm_write_mib(priv, WSM_MIB_ID_FORWARDING_OFFLOAD,
-				arg, sizeof(*arg),if_id);
+return wsm_write_mib(priv, WSM_MIB_ID_FORWARDING_OFFLOAD,
+		arg, sizeof(*arg),if_id);
 }
 
 #endif
@@ -2182,14 +2044,12 @@ void wsm_unlock_tx(struct xr819* priv);
 
 int wsm_handle_exception(struct xr819* priv, u8 * data, size_t len);
 int wsm_handle_rx(struct xr819* priv, int id, struct wsm_hdr *wsm,
-		  struct sk_buff **skb_p);
+	struct sk_buff **skb_p);
 void wms_send_deauth_to_self(struct xr819* priv, struct xradio_vif *vif);
 void wms_send_disassoc_to_self(struct xr819* priv, struct xradio_vif *vif);
 
 /* ******************************************************************** */
 /* wsm_buf API								*/
-
-
 
 void wsm_buf_init(struct wsm_buf *buf);
 void wsm_buf_deinit(struct wsm_buf *buf);
@@ -2197,13 +2057,11 @@ void wsm_buf_deinit(struct wsm_buf *buf);
 /* ******************************************************************** */
 /* wsm_cmd API								*/
 
-
-
 /* ******************************************************************** */
 /* WSM TX buffer access							*/
 
-int wsm_get_tx(struct xr819* priv, u8 **data,
-	       size_t *tx_len, int *burst, int *vif_selected);
+int wsm_get_tx(struct xr819* priv, u8 **data, size_t *tx_len, int *burst,
+	int *vif_selected);
 void wsm_txed(struct xr819* priv, u8 *data);
 
 /* ******************************************************************** */
@@ -2211,20 +2069,22 @@ void wsm_txed(struct xr819* priv, u8 *data);
 /* Linux: VO VI BE BK							*/
 /* WSM:   BE BK VI VO							*/
 
-static inline u8 wsm_queue_id_to_linux(u8 queueId)
-{
-	static const u8 queue_mapping[] = {
-		2, 3, 1, 0
-	};
-	return queue_mapping[queueId];
+static inline u8 wsm_queue_id_to_linux(u8 queueId) {
+static const u8 queue_mapping[] = { 2, 3, 1, 0 };
+return queue_mapping[queueId];
 }
 
-static inline u8 wsm_queue_id_to_wsm(u8 queueId)
-{
-	static const u8 queue_mapping[] = {
-		3, 2, 0, 1
-	};
-	return queue_mapping[queueId];
+static inline u8 wsm_queue_id_to_wsm(u8 queueId) {
+static const u8 queue_mapping[] = { 3, 2, 0, 1 };
+return queue_mapping[queueId];
 }
+
+struct wsm_mib {
+u16 mibId;
+void *buf;
+size_t buf_size;
+};
+
+int wsm_init(struct xr819* priv);
 
 #endif /* XRADIO_HWIO_H_INCLUDED */

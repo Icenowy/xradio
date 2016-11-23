@@ -380,7 +380,6 @@ struct ieee80211_hw *xradio_init_common(size_t hw_priv_data_len) {
 
 	/* Initialize locks. */
 	spin_lock_init(&hw_priv->vif_list_lock);
-	mutex_init(&hw_priv->wsm_cmd_mux);
 	mutex_init(&hw_priv->conf_mutex);
 	mutex_init(&hw_priv->wsm_oper_lock);
 	atomic_set(&hw_priv->tx_lock, 0);
@@ -433,12 +432,12 @@ struct ieee80211_hw *xradio_init_common(size_t hw_priv_data_len) {
 
 
 	init_waitqueue_head(&hw_priv->offchannel_wq);
-	init_waitqueue_head(&hw_priv->wsm_cmd_wq);
+
 
 	hw_priv->driver_ready = 0;
 	hw_priv->offchannel_done = 0;
-	wsm_buf_init(&hw_priv->wsm_cmd_buf);
-	spin_lock_init(&hw_priv->wsm_cmd.lock);
+
+
 	tx_policy_init(hw_priv);
 	xradio_init_resv_skb(hw_priv);
 	/* add for setting short_frame_max_tx_count(mean wdev->retry_short) to drv,init the max_rate_tries */

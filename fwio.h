@@ -13,17 +13,9 @@
 
 #include "sdio.h"
 
-
-#define XR819_HW_REV0       (8190)
-#ifdef USE_VFS_FIRMWARE
-#define XR819_BOOTLOADER    ("/lib/firmware/xr819/boot_xr819.bin")
-#define XR819_FIRMWARE      ("/lib/firmware/xr819/fw_xr819.bin")
-#define XR819_SDD_FILE      ("/lib/firmware/xr819/sdd_xr819.bin")
-#else
 #define XR819_BOOTLOADER    ("xr819/boot_xr819.bin")
 #define XR819_FIRMWARE      ("xr819/fw_xr819.bin")
 #define XR819_SDD_FILE      ("xr819/sdd_xr819.bin")
-#endif
 
 #define SDD_PTA_CFG_ELT_ID             0xEB
 #define SDD_REFERENCE_FREQUENCY_ELT_ID 0xC5
@@ -36,7 +28,6 @@ struct xradio_sdd {
 	u8 data[];
 };
 
-struct xradio_common;
 int xradio_load_firmware(struct xr819* priv);
 int xradio_dev_deinit(struct xr819* priv);
 
