@@ -15,6 +15,7 @@
 #include "bh.h"
 #include "hwio.h"
 #include "wsm.h"
+#include "wsm_firmware.h"
 #include "sdio.h"
 
 /* TODO: Verify these numbers with WSM specification. */
@@ -500,8 +501,8 @@ static int xradio_bh_rx(struct xr819* hw_priv) {
 		printk("wtf?\n");
 	} else if (unlikely(wsm_id == 0x0800)) {
 		dev_err(hw_priv->dev, "firmware exception!\n");
-		//wsm_handle_exception(hw_priv, &data[sizeof(*wsm)],
-		//		wsm_len - sizeof(*wsm));
+		wsm_handle_exception(hw_priv, &data[sizeof(*wsm)],
+				wsm_len - sizeof(*wsm));
 		return 0;
 	} /*else if (unlikely(!rx_resync)) {
 	 if (wsm_seq != hw_priv->wsm.rx_seq) {

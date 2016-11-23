@@ -23,16 +23,16 @@
 #include <linux/slab.h>
 
 #include "xr819.h"
+#include "sdio.h"
 
 #include "wsm.h"
-#include "sdio.h"
 #include "ap.h"
 #include "bh.h"
 #include "sta.h"
 #include "hwio.h"
 #include "fwio.h"
 
-#include "netif.h"
+#include "mac80211.h"
 
 // r/w functions
 #define CHECK_ADDR_LEN  1
@@ -76,7 +76,11 @@ size_t sdio_align_len(struct xr819 *self, size_t size) {
 }
 
 static int sdio_set_blk_size(struct xr819 *self, size_t size) {
-	return sdio_set_block_size(self->sdio.func, size);
+	int ret;
+	sdio_lock(self);
+	ret = sdio_set_block_size(self->sdio.func, size);
+	sdio_unlock(self);
+	return ret;
 }
 
 static int __xradio_read(struct xr819* priv, u16 addr, void *buf,
@@ -325,6 +329,7 @@ static void enablecardinterrupt(struct xr819* self) {
 	u8 cccr;
 	/* Hack to access Fuction-0 */
 
+	sdio_lock(self);
 	func_num = self->sdio.func->num;
 	self->sdio.func->num = 0;
 	cccr = sdio_readb(self->sdio.func, SDIO_CCCR_IENx, &ret);
@@ -334,6 +339,7 @@ static void enablecardinterrupt(struct xr819* self) {
 
 	/* Restore the WLAN function number */
 	self->sdio.func->num = func_num;
+	sdio_unlock(self);
 }
 
 static int sdio_pm(struct xr819 *self, bool suspend) {

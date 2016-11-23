@@ -2,6 +2,7 @@
 #define __XR819_H
 
 #include <linux/mmc/sdio_func.h>
+#include <linux/firmware.h>
 
 #include "xr819_vif.h"
 
@@ -30,11 +31,7 @@ struct xr819_sdio {
 };
 
 struct xr819_firmware {
-#ifdef USE_VFS_FIRMWARE
-	const struct xr_file *sdd;
-#else
 	const struct firmware *sdd;
-#endif
 	u8 conf_listen_interval;
 	bool is_BT_Present;
 };
@@ -163,6 +160,11 @@ struct xr819_txrx {
 unsigned long rx_timestamp;
 };
 
+struct xr819_netif {
+struct mutex conf_mutex;
+u8 mac_addr[ETH_ALEN];
+};
+
 struct xr819 {
 
 struct device *dev;
@@ -183,7 +185,9 @@ struct xradio_scan scan;
 struct ieee80211_vif *vif_list[XRWL_MAX_VIFS];
 spinlock_t vif_list_lock;
 
-struct ieee80211_hw* netif;
+struct ieee80211_hw* mac80211;
+
+struct xr819_netif netif;
 
 };
 

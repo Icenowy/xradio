@@ -17,6 +17,10 @@
 #include <linux/random.h>
 
 #include "wsm.h"
+#include "wsm_command.h"
+#include "wsm_confirm.h"
+#include "wsm_putget.h"
+
 #include "bh.h"
 #include "itp.h"
 #ifdef ROAM_OFFLOAD
@@ -28,74 +32,11 @@
 #define WSM_CMD_START_TIMEOUT	(7 * HZ)
 #define WSM_CMD_RESET_TIMEOUT	(3 * HZ) /* 2 sec. timeout was observed.   */
 #define WSM_CMD_DEFAULT_TIMEOUT	(3 * HZ)
-#define WSM_SKIP(buf, size)						\
-	do {								\
-		if (unlikely((buf)->data + size > (buf)->end))		\
-			goto underflow;					\
-		(buf)->data += size;					\
-	} while (0)
 
-#define WSM_GET(buf, ptr, size)						\
-	do {								\
-		if (unlikely((buf)->data + size > (buf)->end))		\
-			goto underflow;					\
-		memcpy(ptr, (buf)->data, size);				\
-		(buf)->data += size;					\
-	} while (0)
-
-#define __WSM_GET(buf, type, cvt)					\
-	({								\
-		type val;						\
-		if (unlikely((buf)->data + sizeof(type) > (buf)->end))	\
-			goto underflow;					\
-		val = cvt(*(type *)(buf)->data);			\
-		(buf)->data += sizeof(type);				\
-		val;							\
-	})
-
-#define WSM_GET8(buf)  __WSM_GET(buf, u8, (u8))
-#define WSM_GET16(buf) __WSM_GET(buf, u16, __le16_to_cpu)
-#define WSM_GET32(buf) __WSM_GET(buf, u32, __le32_to_cpu)
-
-#define WSM_PUT(buf, ptr, size)						\
-	do {								\
-		if (unlikely((buf)->data + size > (buf)->end))		\
-			if (unlikely(wsm_buf_reserve((buf), size)))	\
-				goto nomem;				\
-		memcpy((buf)->data, ptr, size);				\
-		(buf)->data += size;					\
-	} while (0)
-
-#define __WSM_PUT(buf, val, type, cvt)					\
-	do {								\
-		if (unlikely((buf)->data + sizeof(type) > (buf)->end))	\
-			if (unlikely(wsm_buf_reserve((buf), sizeof(type)))) \
-				goto nomem;				\
-		*(type *)(buf)->data = cvt(val);			\
-		(buf)->data += sizeof(type);				\
-	} while (0)
-
-#define WSM_PUT8(buf, val)  __WSM_PUT(buf, val, u8, (u8))
-#define WSM_PUT16(buf, val) __WSM_PUT(buf, val, u16, __cpu_to_le16)
-#define WSM_PUT32(buf, val) __WSM_PUT(buf, val, u32, __cpu_to_le32)
-
-static void wsm_buf_reset(struct wsm_buf *buf);
-static int wsm_buf_reserve(struct wsm_buf *buf, size_t extra_size);
 static int get_interface_id_scanning(struct xr819 *hw_priv);
-
-static int wsm_cmd_send(struct xr819 *hw_priv, struct wsm_buf *buf, void *arg,
-		u16 cmd, long tmo, int if_id);
 
 static struct xradio_vif
 *wsm_get_interface_for_tx(struct xr819 *hw_priv);
-
-static inline void wsm_cmd_lock(struct xr819 *hw_priv) {
-	mutex_lock(&hw_priv->wsm.wsm_cmd_mux);
-}
-
-static inline void wsm_cmd_unlock(struct xr819 *hw_priv) {
-	mutex_unlock(&hw_priv->wsm.wsm_cmd_mux);
-}
 
 static inline void wsm_oper_lock(struct xr819 *hw_priv) {
 	mutex_lock(&hw_priv->wsm.wsm_oper_lock);
@@ -108,14 +49,6 @@ static inline void wsm_oper_unlock(struct xr819 *hw_priv) {
 /* ******************************************************************** */
 /* WSM API implementation						*/
 
-static int wsm_generic_confirm(struct xr819 *hw_priv, void *arg,
-		struct wsm_buf *buf) {
-	u32 status = WSM_GET32(buf);
-	if (status != WSM_STATUS_SUCCESS)
-		return -EINVAL;
-	return 0;
-	underflow: return -EINVAL;
-}
 #if 0
 #if defined(DGB_XRADIO_HWT)
 int wsm_hwt_cmd(struct xr819 *hw_priv, void *arg, size_t arg_size)
@@ -201,62 +134,6 @@ int wsm_11k_measure_requset(struct xr819 *hw_priv,
 }
 
 #endif//RadioResourceMeasurement
-int wsm_configuration(struct xr819 *hw_priv,
-		struct wsm_configuration *arg,
-		int if_id)
-{
-	int ret;
-	struct wsm_buf *buf = &hw_priv->wsm.wsm_cmd_buf;
-
-	wsm_cmd_lock(hw_priv);
-
-	WSM_PUT32(buf, arg->dot11MaxTransmitMsduLifeTime);
-	WSM_PUT32(buf, arg->dot11MaxReceiveLifeTime);
-	WSM_PUT32(buf, arg->dot11RtsThreshold);
-
-	/* DPD block. */
-	WSM_PUT16(buf, arg->dpdData_size + 12);
-	WSM_PUT16(buf, 1); /* DPD version */
-	WSM_PUT(buf, arg->dot11StationId, ETH_ALEN);
-	WSM_PUT16(buf, 5); /* DPD flags */
-	WSM_PUT(buf, arg->dpdData, arg->dpdData_size);
-
-	ret = wsm_cmd_send(hw_priv, buf, arg, 0x0009, WSM_CMD_TIMEOUT, if_id);
-
-	wsm_cmd_unlock(hw_priv);
-	return ret;
-
-	nomem:
-	wsm_cmd_unlock(hw_priv);
-	return -ENOMEM;
-}
-
-static int wsm_configuration_confirm(struct xr819 *hw_priv,
-		struct wsm_configuration *arg,
-		struct wsm_buf *buf)
-{
-	int i;
-	int status;
-
-	status = WSM_GET32(buf);
-	if (SYS_WARN(status != WSM_STATUS_SUCCESS))
-	return -EINVAL;
-
-	WSM_GET(buf, arg->dot11StationId, ETH_ALEN);
-	arg->dot11FrequencyBandsSupported = WSM_GET8(buf);
-	WSM_SKIP(buf, 1);
-	arg->supportedRateMask = WSM_GET32(buf);
-	for (i = 0; i < 2; ++i) {
-		arg->txPowerRange[i].min_power_level = WSM_GET32(buf);
-		arg->txPowerRange[i].max_power_level = WSM_GET32(buf);
-		arg->txPowerRange[i].stepping = WSM_GET32(buf);
-	}
-	return 0;
-
-	underflow:
-	SYS_WARN(1);
-	return -EINVAL;
-}
 
 /* ******************************************************************** */
 /*forcing upper layer to restart wifi.*/
@@ -426,66 +303,7 @@ static int wsm_read_mib_confirm(struct xr819 *hw_priv,
 /* ******************************************************************** */
 
 #endif
-int wsm_write_mib(struct xr819 *hw_priv, u16 mibId, void *_buf, size_t buf_size,
-		int if_id) {
-	int ret = 0;
-	struct wsm_buf *buf = &hw_priv->wsm.wsm_cmd_buf;
-	struct wsm_mib mib_buf =
-			{ .mibId = mibId, .buf = _buf, .buf_size = buf_size, };
 
-	wsm_cmd_lock(hw_priv);
-	WSM_PUT16(buf, mibId);
-	WSM_PUT16(buf, buf_size);
-	WSM_PUT(buf, _buf, buf_size);
-
-	ret = wsm_cmd_send(hw_priv, buf, &mib_buf, 0x0006, WSM_CMD_TIMEOUT, if_id);
-	wsm_cmd_unlock(hw_priv);
-	return ret;
-
-	nomem: wsm_cmd_unlock(hw_priv);
-	return -ENOMEM;
-}
-
-static int wsm_write_mib_confirm(struct xr819 *hw_priv, struct wsm_mib *arg,
-		struct wsm_buf *buf, int interface_link_id) {
-	int ret;
-	int i;
-	struct xradio_vif *priv;
-	ret = wsm_generic_confirm(hw_priv, arg, buf);
-	if (ret)
-		return ret;
-
-	/*wsm_set_operational_mode confirm.*/
-	if (arg->mibId == 0x1006) {
-#if 0
-		const char *p = arg->buf;
-		bool powersave_enabled = (p[0] & 0x0F) ? true : false;
-
-		/* update vif PM status. */
-		priv = xrwl_hwpriv_to_vifpriv(hw_priv, interface_link_id);
-		if (priv) {
-			xradio_enable_powersave(priv, powersave_enabled);
-			spin_unlock(&priv->vif_lock);
-		}
-
-		/* HW powersave base on vif except for generic vif. */
-		spin_lock(&hw_priv->vif_list_lock);
-		xradio_for_each_vif(hw_priv, priv, i)
-		{
-#ifdef P2P_MULTIVIF
-			if ((i == (XRWL_MAX_VIFS - 1)) || !priv)
-#else
-			if (!priv)
-#endif
-			continue;
-			powersave_enabled &= !!priv->powersave_enabled;
-		}
-		hw_priv->powersave_enabled = powersave_enabled;
-		spin_unlock(&hw_priv->vif_list_lock);
-#endif
-	}
-	return 0;
-}
 #if 0
 /* ******************************************************************** */
 
@@ -844,36 +662,6 @@ int wsm_set_edca_params(struct xr819 *hw_priv,
 }
 
 /* ******************************************************************** */
-
-int wsm_switch_channel(struct xr819 *hw_priv,
-		const struct wsm_switch_channel *arg,
-		int if_id)
-{
-	int ret;
-	struct wsm_buf *buf = &hw_priv->wsm.wsm_cmd_buf;
-
-	wsm_lock_tx(hw_priv);
-	wsm_cmd_lock(hw_priv);
-
-	WSM_PUT8(buf, arg->channelMode);
-	WSM_PUT8(buf, arg->channelSwitchCount);
-	WSM_PUT16(buf, arg->newChannelNumber);
-
-	hw_priv->channel_switch_in_progress = 1;
-
-	ret = wsm_cmd_send(hw_priv, buf, NULL, 0x0016, WSM_CMD_TIMEOUT, if_id);
-	wsm_cmd_unlock(hw_priv);
-	if (ret) {
-		wsm_unlock_tx(hw_priv);
-		hw_priv->channel_switch_in_progress = 0;
-	}
-	return ret;
-
-	nomem:
-	wsm_cmd_unlock(hw_priv);
-	wsm_unlock_tx(hw_priv);
-	return -ENOMEM;
-}
 
 /* ******************************************************************** */
 
@@ -1741,125 +1529,7 @@ static int wsm_suspend_resume_indication(struct xr819 *hw_priv,
 /* ******************************************************************** */
 /* WSM TX								*/
 #endif
-int wsm_cmd_send(struct xr819 *hw_priv, struct wsm_buf *buf, void *arg, u16 cmd,
-		long tmo, int if_id) {
-	size_t buf_len = buf->data - buf->begin;
-	int ret;
 
-	if (cmd == 0x0006 || cmd == 0x0005) /* Write/Read MIB */
-		dev_dbg(hw_priv->dev, ">>> 0x%.4X [MIB: 0x%.4X] (%d)\n", cmd,
-				__le16_to_cpu(((__le16 *) buf->begin)[2]), buf_len);
-	else
-		dev_dbg(hw_priv->dev, ">>> 0x%.4X (%d)\n", cmd, buf_len);
-
-#ifdef HW_RESTART && 0
-//	if (hw_priv->hw_restart) {
-//		wsm_printk(XRADIO_DBG_NIY, "hw reset!>>> 0x%.4X (%d)\n", cmd, buf_len);
-//		wsm_buf_reset(buf);
-//		return 0; /*return success, don't process cmd in power off.*/
-//	}
-#endif
-
-	//if (unlikely(hw_priv->bh.error)) {
-	//	wsm_buf_reset(buf);
-	//	wsm_printk(XRADIO_DBG_ERROR, "bh error!>>> 0x%.4X (%d)\n", cmd,
-	//			buf_len);
-	//	return -ETIMEDOUT;
-	//}
-
-	/* Fill HI message header */
-	/* BH will add sequence number */
-
-	/* TODO:COMBO: Add if_id from  to the WSM header */
-	/* if_id == -1 indicates that command is HW specific,
-	 * eg. wsm_configuration which is called during driver initialzation
-	 *  (mac80211 .start callback called when first ifce is created. )*/
-
-	/* send hw specific commands on if 0 */
-	if (if_id == -1)
-		if_id = 0;
-
-	((__le16 *) buf->begin)[0] = __cpu_to_le16(buf_len);
-	((__le16 *) buf->begin)[1] = __cpu_to_le16(
-			cmd | ((is_hardware_xradio(hw_priv)) ? (if_id << 6) : 0));
-
-	spin_lock(&hw_priv->wsm.wsm_cmd.lock);
-	//SYS_BUG(hw_priv->wsm.wsm_cmd.ptr);
-	hw_priv->wsm.wsm_cmd.done = 0;
-	hw_priv->wsm.wsm_cmd.ptr = buf->begin;
-	hw_priv->wsm.wsm_cmd.len = buf_len;
-	hw_priv->wsm.wsm_cmd.arg = arg;
-	hw_priv->wsm.wsm_cmd.cmd = cmd;
-	spin_unlock(&hw_priv->wsm.wsm_cmd.lock);
-	xradio_bh_wakeup(hw_priv);
-
-	if (unlikely(hw_priv->bh.error)) {
-		/* Do not wait for timeout if BH is dead. Exit immediately. */
-		ret = 0;
-	} else {
-		unsigned long wsm_cmd_max_tmo;
-
-		/* Give start cmd a little more time */
-		if (unlikely(tmo == WSM_CMD_START_TIMEOUT))
-			wsm_cmd_max_tmo = WSM_CMD_START_TIMEOUT;
-		else
-			wsm_cmd_max_tmo = WSM_CMD_DEFAULT_TIMEOUT;
-
-		/*Set max timeout.*/
-		wsm_cmd_max_tmo = jiffies + wsm_cmd_max_tmo;
-
-		/* Firmware prioritizes data traffic over control confirm.
-		 * Loop below checks if data was RXed and increases timeout
-		 * accordingly. */
-		do {
-			/* It's safe to use unprotected access to wsm_cmd.done here */
-			ret = wait_event_timeout(hw_priv->wsm.wsm_cmd_wq,
-					hw_priv->wsm.wsm_cmd.done, tmo);
-
-			/* check time since last rxed and max timeout.*/
-		} while (!ret
-				&& time_before_eq(jiffies, hw_priv->txrx.rx_timestamp + tmo)
-				&& time_before(jiffies, wsm_cmd_max_tmo));
-
-	}
-
-	if (unlikely(ret == 0)) {
-		u16 raceCheck;
-
-		spin_lock(&hw_priv->wsm.wsm_cmd.lock);
-		raceCheck = hw_priv->wsm.wsm_cmd.cmd;
-		hw_priv->wsm.wsm_cmd.arg = NULL;
-		hw_priv->wsm.wsm_cmd.ptr = NULL;
-		spin_unlock(&hw_priv->wsm.wsm_cmd.lock);
-
-		dev_err(hw_priv->dev,
-				"***CMD timeout!>>> 0x%.4X (%d), buf_use=%d, bh_state=%d\n",
-				cmd, buf_len, hw_priv->bh.hw_bufs_used, hw_priv->bh.error);
-		/* Race condition check to make sure _confirm is not called
-		 * after exit of _send */
-		if (raceCheck == 0xFFFF) {
-			/* If wsm_handle_rx got stuck in _confirm we will hang
-			 * system there. It's better than silently currupt
-			 * stack or heap, isn't it? */
-			//SYS_BUG(
-			//		wait_event_timeout(hw_priv->wsm.wsm_cmd_wq,
-			//				hw_priv->wsm.wsm_cmd.done,
-			//				WSM_CMD_LAST_CHANCE_TIMEOUT) <= 0);
-		}
-
-		/* Kill BH thread to report the error to the top layer. */
-		hw_priv->bh.error = 1;
-		wake_up(&hw_priv->bh.wq);
-		ret = -ETIMEDOUT;
-	} else {
-		spin_lock(&hw_priv->wsm.wsm_cmd.lock);
-		//SYS_BUG(!hw_priv->wsm.wsm_cmd.done);
-		ret = hw_priv->wsm.wsm_cmd.ret;
-		spin_unlock(&hw_priv->wsm.wsm_cmd.lock);
-	}
-	wsm_buf_reset(buf);
-	return ret;
-}
 #if 0
 /* ******************************************************************** */
 /* WSM TX port control							*/
@@ -2013,75 +1683,7 @@ void wsm_unlock_tx(struct xr819 *hw_priv)
 /* ******************************************************************** */
 /* WSM RX								*/
 
-int wsm_handle_exception(struct xr819 *hw_priv, u8 *data, size_t len)
-{
-	struct wsm_buf buf;
-	u32 reason;
-	u32 reg[18];
-	char fname[48];
-	int i = 0;
-#if defined(CONFIG_XRADIO_USE_EXTENSIONS)
-	struct xradio_vif *priv = NULL;
-#endif
 
-#ifdef CONFIG_XRADIO_DEBUG
-	static const char * const reason_str[] = {
-		"undefined instruction",
-		"prefetch abort",
-		"data abort",
-		"unknown error",
-	};
-#endif
-
-#if defined(CONFIG_XRADIO_USE_EXTENSIONS)
-	/* Send the event upwards on the FW exception */
-	xradio_pm_stay_awake(&hw_priv->pm_state, 3*HZ);
-
-	spin_lock(&hw_priv->vif_list_lock);
-	xradio_for_each_vif(hw_priv, priv, i) {
-		if (!priv)
-		continue;
-		//ieee80211_driver_hang_notify(priv->vif, GFP_KERNEL);
-	}
-	spin_unlock(&hw_priv->vif_list_lock);
-#endif
-
-	buf.begin = buf.data = data;
-	buf.end = &buf.begin[len];
-
-	reason = WSM_GET32(&buf);
-	for (i = 0; i < ARRAY_SIZE(reg); ++i)
-	reg[i] = WSM_GET32(&buf);
-	WSM_GET(&buf, fname, sizeof(fname));
-
-	if (reason < 4) {
-		wsm_printk(XRADIO_DBG_ERROR, "Firmware exception: %s.\n",
-				reason_str[reason]);
-	} else {
-		wsm_printk(XRADIO_DBG_ERROR, "Firmware assert at %.*s, line %d, reason=0x%x\n",
-				sizeof(fname), fname, reg[1], reg[2]);
-	}
-
-	for (i = 0; i < 12; i += 4) {
-		wsm_printk(XRADIO_DBG_ERROR, "Firmware:"
-				"R%d: 0x%.8X, R%d: 0x%.8X, R%d: 0x%.8X, R%d: 0x%.8X,\n",
-				i + 0, reg[i + 0], i + 1, reg[i + 1],
-				i + 2, reg[i + 2], i + 3, reg[i + 3]);
-	}
-	wsm_printk(XRADIO_DBG_ERROR, "Firmware:"
-			"R12: 0x%.8X, SP: 0x%.8X, LR: 0x%.8X, PC: 0x%.8X,\n",
-			reg[i + 0], reg[i + 1], reg[i + 2], reg[i + 3]);
-	i += 4;
-	wsm_printk(XRADIO_DBG_ERROR, "Firmware:CPSR: 0x%.8X, SPSR: 0x%.8X\n",
-			reg[i + 0], reg[i + 1]);
-
-	return 0;
-
-	underflow:
-	wiphy_err(hw_priv->hw->wiphy, "Firmware exception.\n");
-	print_hex_dump_bytes("Exception: ", DUMP_PREFIX_NONE, data, len);
-	return -EINVAL;
-}
 
 static int wsm_debug_indication(struct xr819 *hw_priv,
 		struct wsm_buf *buf)
@@ -2233,8 +1835,8 @@ int wsm_handle_rx_confirmation(struct xr819 *hw_priv, int id,
 	case 0x0409:
 		/* Note that wsm_arg can be NULL in case of timeout in
 		 * wsm_cmd_send(). */
-		//if (likely(wsm_arg))
-		//	ret = wsm_configuration_confirm(hw_priv, wsm_arg, &wsm_buf);
+		if (likely(wsm_arg))
+			ret = wsm_configuration_confirm(hw_priv, wsm_arg, wsm_buf);
 		break;
 	case 0x0405:
 		//if (likely(wsm_arg))
@@ -3103,33 +2705,8 @@ void wsm_buf_deinit(struct wsm_buf *buf)
 	buf->begin = buf->data = buf->end = NULL;
 }
 #endif
-static void wsm_buf_reset(struct wsm_buf *buf) {
-	if (buf->begin) {
-		buf->data = &buf->begin[4];
-		*(u32 *) buf->begin = 0;
-	} else
-		buf->data = buf->begin;
-}
 
-static int wsm_buf_reserve(struct wsm_buf *buf, size_t extra_size) {
-	size_t pos = buf->data - buf->begin;
-	size_t size = pos + extra_size;
 
-	if (size & (SDIO_BLOCK_SIZE - 1)) {
-		size &= SDIO_BLOCK_SIZE;
-		size += SDIO_BLOCK_SIZE;
-	}
-
-	buf->begin = krealloc(buf->begin, size, GFP_KERNEL);
-	if (buf->begin) {
-		buf->data = &buf->begin[pos];
-		buf->end = &buf->begin[size];
-		return 0;
-	} else {
-		buf->end = buf->data = buf->begin;
-		return -ENOMEM;
-	}
-}
 #if 0
 static struct xradio_vif
 *wsm_get_interface_for_tx(struct xr819 *hw_priv)
@@ -3165,19 +2742,3 @@ static inline int get_interface_id_scanning(struct xr819 *hw_priv)
 }
 #endif
 
-void wsm_buf_init(struct wsm_buf *buf) {
-	int size = (SDIO_BLOCK_SIZE << 1); //for sdd file big than SDIO_BLOCK_SIZE
-	buf->begin = kmalloc(size, GFP_KERNEL);
-	buf->end = buf->begin ? &buf->begin[size] : buf->begin;
-	wsm_buf_reset(buf);
-}
-
-int wsm_init(struct xr819* priv) {
-	mutex_init(&priv->wsm.wsm_cmd_mux);
-	wsm_buf_init(&priv->wsm.wsm_cmd_buf);
-	spin_lock_init(&priv->wsm.wsm_cmd.lock);
-	init_waitqueue_head(&priv->wsm.wsm_cmd_wq);
-
-	init_waitqueue_head(&priv->wsm.wsm_startup_done);
-	priv->wsm.caps.firmwareReady = 0;
-}

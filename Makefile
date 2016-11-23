@@ -8,7 +8,6 @@ CONFIG_XRADIO_USE_EXTENSIONS := y
 #	scan.o \
 #	queue.o \
 #	debug.o \
-#	sta.o
 
 xradio_wlan-y := \
 	main.o \
@@ -16,7 +15,14 @@ xradio_wlan-y := \
 	fwio.o \
 	bh.o \
 	wsm.o \
-	netif.o
+	wsm_buf.o \
+	wsm_command.o \
+	wsm_confirm.o \
+	wsm_firmware.o \
+	mac80211.o \
+	txrx.o \
+	sta.o \
+	ap.o
 
 #xradio_wlan-$(CONFIG_PM)		+= pm.o
 xradio_wlan-$(CONFIG_XRADIO_ITP)	+= itp.o

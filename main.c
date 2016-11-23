@@ -13,7 +13,6 @@
 #include <linux/module.h>
 #include <linux/init.h>
 
-#include "xr_version.h"
 #include "sdio.h"
 
 MODULE_AUTHOR("XRadioTech");

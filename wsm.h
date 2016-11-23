@@ -16,6 +16,7 @@
 #include <uapi/linux/if_ether.h>
 
 #include "xr819.h"
+#include "wsm_command.h"
 
 /* Bands */
 /* Radio band 2.412 -2.484 GHz. */
@@ -387,196 +388,7 @@
 
 #define WSM_EVENT_INACTIVITY		(9)
 
-/* MAC Addr Filter */
-#define WSM_MIB_ID_MAC_ADDR_FILTER	0x1030
 
-/* MIB IDs */
-/* 4.1  dot11StationId */
-#define WSM_MIB_ID_DOT11_STATION_ID		0x0000
-
-/* 4.2  dot11MaxtransmitMsduLifeTime */
-#define WSM_MIB_ID_DOT11_MAX_TRANSMIT_LIFTIME	0x0001
-
-/* 4.3  dot11MaxReceiveLifeTime */
-#define WSM_MIB_ID_DOT11_MAX_RECEIVE_LIFETIME	0x0002
-
-/* 4.4  dot11SlotTime */
-#define WSM_MIB_ID_DOT11_SLOT_TIME		0x0003
-
-/* 4.5  dot11GroupAddressesTable */
-#define WSM_MIB_ID_DOT11_GROUP_ADDRESSES_TABLE	0x0004
-
-/* 4.6  dot11WepDefaultKeyId */
-#define WSM_MIB_ID_DOT11_WEP_DEFAULT_KEY_ID	0x0005
-
-/* 4.7  dot11CurrentTxPowerLevel */
-#define WSM_MIB_ID_DOT11_CURRENT_TX_POWER_LEVEL	0x0006
-
-/* 4.8  dot11RTSThreshold */
-#define WSM_MIB_ID_DOT11_RTS_THRESHOLD		0x0007
-
-/* Huanglu add for firmware debug control */
-#define WSM_MIB_ID_FW_DEBUG_CONTROL		0x0008
-
-/* yangfh add for read/write registers from firmware*/
-#define WSM_MIB_ID_RW_FW_REG		0x0009
-
-/* yangfh add for Set max number of mpdus in a-mpdu*/
-#define WSM_MIB_ID_SET_AMPDU_NUM		0x000a
-
-/* Huanglu add for tx-ampdu-len-adaption */
-#define WSM_MIB_ID_SET_TALA_PARA		0x000b
-
-/* yangfh add for set TPA param */
-#define WSM_MIB_ID_SET_TPA_PARAM		0x000c
-
-/* 4.9  NonErpProtection */
-#define WSM_MIB_ID_NON_ERP_PROTECTION		0x1000
-
-/* 4.10 ArpIpAddressesTable */
-#define WSM_MIB_ID_ARP_IP_ADDRESSES_TABLE	0x1001
-
-/* 4.11 TemplateFrame */
-#define WSM_MIB_ID_TEMPLATE_FRAME		0x1002
-
-/* 4.12 RxFilter */
-#define WSM_MIB_ID_RX_FILTER			0x1003
-
-/* 4.13 BeaconFilterTable */
-#define WSM_MIB_ID_BEACON_FILTER_TABLE		0x1004
-
-/* 4.14 BeaconFilterEnable */
-#define WSM_MIB_ID_BEACON_FILTER_ENABLE		0x1005
-
-/* 4.15 OperationalPowerMode */
-#define WSM_MIB_ID_OPERATIONAL_POWER_MODE	0x1006
-
-/* 4.16 BeaconWakeUpPeriod */
-#define WSM_MIB_ID_BEACON_WAKEUP_PERIOD		0x1007
-
-/* 4.17 RcpiRssiThreshold */
-#define WSM_MIB_ID_RCPI_RSSI_THRESHOLD		0x1009
-
-/* 4.18 StatisticsTable */
-#define WSM_MIB_ID_STATISTICS_TABLE		0x100A
-
-/* 4.19 IbssPsConfig */
-#define WSM_MIB_ID_IBSS_PS_CONFIG		0x100B
-
-/* 4.20 CountersTable */
-#define WSM_MIB_ID_COUNTERS_TABLE		0x100C
-#define WSM_MIB_ID_AMPDUCOUNTERS_TABLE		0x1036
-#define WSM_MIB_ID_TXPIPE_TABLE		0x1037
-#define WSM_MIB_ID_BACKOFF_DBG		0x1038
-#define WSM_MIB_ID_BACKOFF_CTRL		0x1039
-
-//add yangfh for requery packet status
-#define WSM_MIB_ID_REQ_PKT_STATUS	0x1040
-
-//add yangfh for TPA debug informations
-#define WSM_MIB_ID_TPA_DEBUG_INFO	0x1041
-
-//add yangfh for tx power informations
-#define WSM_MIB_ID_TX_POWER_INFO	0x1042
-
-//add yangfh for some hardware information
-#define WSM_MIB_ID_HW_INFO	        0x1043
-
-/* 4.21 BlockAckPolicy */
-#define WSM_MIB_ID_BLOCK_ACK_POLICY		0x100E
-
-/* 4.22 OverrideInternalTxRate */
-#define WSM_MIB_ID_OVERRIDE_INTERNAL_TX_RATE	0x100F
-
-/* 4.23 SetAssociationMode */
-#define WSM_MIB_ID_SET_ASSOCIATION_MODE		0x1010
-
-/* 4.24 UpdateEptaConfigData */
-#define WSM_MIB_ID_UPDATE_EPTA_CONFIG_DATA	0x1011
-
-/* 4.25 SelectCcaMethod */
-#define WSM_MIB_ID_SELECT_CCA_METHOD		0x1012
-
-/* 4.26 SetUpasdInformation */
-#define WSM_MIB_ID_SET_UAPSD_INFORMATION	0x1013
-
-/* 4.27 SetAutoCalibrationMode  WBF00004073 */
-#define WSM_MIB_ID_SET_AUTO_CALIBRATION_MODE	0x1015
-
-/* 4.28 SetTxRateRetryPolicy */
-#define WSM_MIB_ID_SET_TX_RATE_RETRY_POLICY	0x1016
-
-/* 4.29 SetHostMessageTypeFilter */
-#define WSM_MIB_ID_SET_HOST_MSG_TYPE_FILTER	0x1017
-
-/* 4.30 P2PFindInfo */
-#define WSM_MIB_ID_P2P_FIND_INFO		0x1018
-
-/* 4.31 P2PPsModeInfo */
-#define WSM_MIB_ID_P2P_PS_MODE_INFO		0x1019
-
-/* 4.32 SetEtherTypeDataFrameFilter */
-#define WSM_MIB_ID_SET_ETHERTYPE_DATAFRAME_FILTER 0x101A
-
-/* 4.33 SetUDPPortDataFrameFilter */
-#define WSM_MIB_ID_SET_UDPPORT_DATAFRAME_FILTER	0x101B
-
-/* 4.34 SetMagicDataFrameFilter */
-#define WSM_MIB_ID_SET_MAGIC_DATAFRAME_FILTER	0x101C
-#define WSM_MIB_ID_SET_HOST_SLEEP	0x1050
-
-/* This is the end of specification. */
-
-/* 4.35 P2PDeviceInfo */
-#define WSM_MIB_ID_P2P_DEVICE_INFO		0x101D
-
-/* 4.36 SetWCDMABand */
-#define WSM_MIB_ID_SET_WCDMA_BAND		0x101E
-
-/* 4.37 GroupTxSequenceCounter */
-#define WSM_MIB_ID_GRP_SEQ_COUNTER		0x101F
-
-/* 4.38 ProtectedMgmtPolicy */
-#define WSM_MIB_ID_PROTECTED_MGMT_POLICY	0x1020
-
-/* 4.39 SetHtProtection */
-#define WSM_MID_ID_SET_HT_PROTECTION		0x1021
-
-/* 4.40 GPIO Command */
-#define WSM_MIB_ID_GPIO_COMMAND			0x1022
-
-/* 4.41 TSF Counter Value */
-#define WSM_MIB_ID_TSF_COUNTER			0x1023
-
-/* Test Purposes Only */
-#define WSM_MIB_ID_BLOCK_ACK_INFO		0x100D
-
-/* 4.42 UseMultiTxConfMessage */
-#define WSM_MIB_USE_MULTI_TX_CONF		0x1024
-
-/* 4.43 Keep-alive period */
-#define WSM_MIB_ID_KEEP_ALIVE_PERIOD		0x1025
-
-/* 4.44 Disable BSSID filter */
-#define WSM_MIB_ID_DISABLE_BSSID_FILTER		0x1026
-
-/* Inactivity */
-#define WSM_MIB_ID_SET_INACTIVITY		0x1035
-
-/* MAC Addr Filter */
-#define WSM_MIB_ID_MAC_ADDR_FILTER		0x1030
-
-#ifdef MCAST_FWDING
-/* 4.51 Set Forwarding Offload */
-#define WSM_MIB_ID_FORWARDING_OFFLOAD		0x1033
-#endif
-
-#ifdef IPV6_FILTERING
-/* IpV6 Addr Filter */
-/* 4.52 Neighbor solicitation IPv6 address table */
-#define WSM_MIB_IP_IPV6_ADDR_FILTER		0x1032
-#define WSM_MIB_ID_NS_IP_ADDRESSES_TABLE	0x1034
-#endif /*IPV6_FILTERING*/
 
 /* Frame template types */
 #define WSM_FRAME_TYPE_PROBE_REQUEST	(0)
@@ -679,27 +491,7 @@ struct wsm_hdr {
 /* ******************************************************************** */
 /* WSM commands								*/
 
-struct wsm_tx_power_range {
-	int min_power_level;
-	int max_power_level;
-	u32 stepping;
-};
 
-/* 3.1 */
-struct wsm_configuration {
-	/* [in] */u32 dot11MaxTransmitMsduLifeTime;
-	/* [in] */u32 dot11MaxReceiveLifeTime;
-	/* [in] */u32 dot11RtsThreshold;
-	/* [in, out] */u8 *dot11StationId;
-	/* [in] */const void *dpdData;
-	/* [in] */size_t dpdData_size;
-	/* [out] */u8 dot11FrequencyBandsSupported;
-	/* [out] */u32 supportedRateMask;
-	/* [out] */struct wsm_tx_power_range txPowerRange[2];
-};
-
-int wsm_configuration(struct xr819* priv, struct wsm_configuration *arg,
-		int if_id);
 
 /* 3.3 */
 struct wsm_reset {
@@ -720,8 +512,6 @@ int wsm_read_mib(struct xr819* priv, u16 mibId, void *buf, size_t buf_size,
 		size_t arg_size);
 
 /* 3.7 */
-int wsm_write_mib(struct xr819* priv, u16 mibId, void *buf, size_t buf_size,
-		int if_id);
 
 typedef void (*wsm_scan_complete_cb)(struct xr819* priv,
 		struct wsm_scan_complete *arg);
@@ -1100,25 +890,6 @@ int wsm_set_uapsd_param(struct xr819* priv, const struct wsm_edca_params *arg);
 /* 3.38 */
 /* Set-System info. Skipped for now. Irrelevent. */
 
-/* 3.40 */
-struct wsm_switch_channel {
-/* 1 - means the STA shall not transmit any further */
-/* frames until the channel switch has completed */
-/* [in] */u8 channelMode;
-
-/* Number of TBTTs until channel switch occurs. */
-/* 0 - indicates switch shall occur at any time */
-/* 1 - occurs immediately before the next TBTT */
-/* [in] */u8 channelSwitchCount;
-
-/* The new channel number to switch to. */
-/* Note this is defined as per section 2.7. */
-/* [in] */u16 newChannelNumber;
-};
-
-int wsm_switch_channel(struct xr819* priv, const struct wsm_switch_channel *arg,
-	int if_id);
-
 typedef void (*wsm_channel_switch_cb)(struct xr819* priv);
 
 struct wsm_start {
@@ -1442,53 +1213,6 @@ LMAC_MEAS_REPORT MeasurementReport;
 #endif
 int wsm_11k_measure_requset(struct xr819 *priv, u8 measure_type, u16 ChannelNum,
 	u16 Duration);
-
-static inline int wsm_set_fw_debug_control(struct xr819* priv,
-	int debug_control, int if_id) {
-__le32 val = __cpu_to_le32(debug_control);
-return wsm_write_mib(priv, WSM_MIB_ID_FW_DEBUG_CONTROL, &val, sizeof(val),
-		if_id);
-}
-
-static inline int wsm_set_host_sleep(struct xr819* priv, u8 host_sleep,
-	int if_id) {
-return wsm_write_mib(priv, WSM_MIB_ID_SET_HOST_SLEEP, &host_sleep,
-		sizeof(host_sleep), if_id);
-}
-
-static inline int wsm_set_output_power(struct xr819* priv, int power_level,
-	int if_id) {
-__le32 val = __cpu_to_le32(power_level);
-return wsm_write_mib(priv, WSM_MIB_ID_DOT11_CURRENT_TX_POWER_LEVEL, &val,
-		sizeof(val), if_id);
-}
-
-static inline int wsm_set_beacon_wakeup_period(struct xr819* priv,
-	unsigned dtim_interval, unsigned listen_interval, int if_id) {
-struct {
-	u8 numBeaconPeriods;
-	u8 reserved;
-	__le16 listenInterval;
-} val = { dtim_interval, 0, __cpu_to_le16(listen_interval) };
-if (dtim_interval > 0xFF || listen_interval > 0xFFFF)
-	return -EINVAL;
-else
-	return wsm_write_mib(priv, WSM_MIB_ID_BEACON_WAKEUP_PERIOD, &val,
-			sizeof(val), if_id);
-}
-
-struct wsm_rcpi_rssi_threshold {
-u8 rssiRcpiMode; /* WSM_RCPI_RSSI_... */
-u8 lowerThreshold;
-u8 upperThreshold;
-u8 rollingAverageCount;
-};
-
-static inline int wsm_set_rcpi_rssi_threshold(struct xr819* priv,
-	struct wsm_rcpi_rssi_threshold *arg, int if_id) {
-return wsm_write_mib(priv, WSM_MIB_ID_RCPI_RSSI_THRESHOLD, arg, sizeof(*arg),
-		if_id);
-}
 
 struct wsm_counters_table {
 __le32 countPlcpErrors;
@@ -2042,7 +1766,7 @@ void wsm_unlock_tx(struct xr819* priv);
 /* ******************************************************************** */
 /* WSM / BH API								*/
 
-int wsm_handle_exception(struct xr819* priv, u8 * data, size_t len);
+
 int wsm_handle_rx(struct xr819* priv, int id, struct wsm_hdr *wsm,
 	struct sk_buff **skb_p);
 void wms_send_deauth_to_self(struct xr819* priv, struct xradio_vif *vif);
