@@ -183,6 +183,8 @@ struct xradio_scan scan;
 struct ieee80211_vif *vif_list[XRWL_MAX_VIFS];
 spinlock_t vif_list_lock;
 
+struct ieee80211_hw* netif;
+
 };
 
 #define XR819_HW_REV0       (8190)

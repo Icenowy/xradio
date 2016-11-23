@@ -633,7 +633,8 @@ static int xradio_bh_tx(struct xr819* hw_priv) {
 			if (vif_selected != -1) {
 				hw_priv->bh.hw_bufs_used_vif[vif_selected]++;
 			}
-			//wsm_txed(hw_priv, data);
+
+			wsm_txed(hw_priv, data);
 			hw_priv->wsm.tx_seq = (hw_priv->wsm.tx_seq + 1) & WSM_TX_SEQ_MAX;
 
 		}

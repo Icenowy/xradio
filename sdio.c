@@ -32,6 +32,8 @@
 #include "hwio.h"
 #include "fwio.h"
 
+#include "netif.h"
+
 // r/w functions
 #define CHECK_ADDR_LEN  1
 
@@ -394,13 +396,9 @@ static int sdio_probe(struct sdio_func *func, const struct sdio_device_id *id) {
 		goto out;
 	}
 
-	priv = kmalloc(sizeof(*priv), GFP_KERNEL);
-	if (priv == NULL) {
-		ret = -ENOMEM;
+	ret = netif_init(&func->dev, &priv);
+	if (ret)
 		goto err0;
-	}
-
-	memset(priv, 0, sizeof(*priv));
 
 	priv->dev = &func->dev;
 	priv->sdio.irq = irq;
@@ -471,6 +469,8 @@ static int sdio_probe(struct sdio_func *func, const struct sdio_device_id *id) {
 		if (ret)
 			break;
 	}
+
+	netif_register(priv);
 
 	/* Register wireless net device. */
 	//err = xradio_register_common(dev);

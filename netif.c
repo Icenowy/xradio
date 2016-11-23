@@ -6,12 +6,12 @@
 #include "sta.h"
 #include "txrx.h"
 #include "bh.h"
-#include "xradio.h"
 #include "fwio.h"
 #include "hwio.h"
 #include "ap.h"
 #include "pm.h"
 
+#if 0
 /* TODO: use rates and channels from the device */
 #define RATETAB_ENT(_rate, _rateid, _flags)		\
 	{						\
@@ -21,28 +21,28 @@
 	}
 
 static struct ieee80211_rate xradio_rates[] = {
-RATETAB_ENT(10, 0, 0),
-RATETAB_ENT(20, 1, 0),
-RATETAB_ENT(55, 2, 0),
-RATETAB_ENT(110, 3, 0),
-RATETAB_ENT(60, 6, 0),
-RATETAB_ENT(90, 7, 0),
-RATETAB_ENT(120, 8, 0),
-RATETAB_ENT(180, 9, 0),
-RATETAB_ENT(240, 10, 0),
-RATETAB_ENT(360, 11, 0),
-RATETAB_ENT(480, 12, 0),
-RATETAB_ENT(540, 13, 0), };
+	RATETAB_ENT(10, 0, 0),
+	RATETAB_ENT(20, 1, 0),
+	RATETAB_ENT(55, 2, 0),
+	RATETAB_ENT(110, 3, 0),
+	RATETAB_ENT(60, 6, 0),
+	RATETAB_ENT(90, 7, 0),
+	RATETAB_ENT(120, 8, 0),
+	RATETAB_ENT(180, 9, 0),
+	RATETAB_ENT(240, 10, 0),
+	RATETAB_ENT(360, 11, 0),
+	RATETAB_ENT(480, 12, 0),
+	RATETAB_ENT(540, 13, 0),};
 
 static struct ieee80211_rate xradio_mcs_rates[] = {
-RATETAB_ENT(65, 14, IEEE80211_TX_RC_MCS),
-RATETAB_ENT(130, 15, IEEE80211_TX_RC_MCS),
-RATETAB_ENT(195, 16, IEEE80211_TX_RC_MCS),
-RATETAB_ENT(260, 17, IEEE80211_TX_RC_MCS),
-RATETAB_ENT(390, 18, IEEE80211_TX_RC_MCS),
-RATETAB_ENT(520, 19, IEEE80211_TX_RC_MCS),
-RATETAB_ENT(585, 20, IEEE80211_TX_RC_MCS),
-RATETAB_ENT(650, 21, IEEE80211_TX_RC_MCS), };
+	RATETAB_ENT(65, 14, IEEE80211_TX_RC_MCS),
+	RATETAB_ENT(130, 15, IEEE80211_TX_RC_MCS),
+	RATETAB_ENT(195, 16, IEEE80211_TX_RC_MCS),
+	RATETAB_ENT(260, 17, IEEE80211_TX_RC_MCS),
+	RATETAB_ENT(390, 18, IEEE80211_TX_RC_MCS),
+	RATETAB_ENT(520, 19, IEEE80211_TX_RC_MCS),
+	RATETAB_ENT(585, 20, IEEE80211_TX_RC_MCS),
+	RATETAB_ENT(650, 21, IEEE80211_TX_RC_MCS),};
 
 #define xradio_g_rates      (xradio_rates + 0)
 #define xradio_a_rates      (xradio_rates + 4)
@@ -71,20 +71,20 @@ RATETAB_ENT(650, 21, IEEE80211_TX_RC_MCS), };
 }
 
 static struct ieee80211_channel xradio_2ghz_chantable[] = {
-CHAN2G(1, 2412, 0),
-CHAN2G(2, 2417, 0),
-CHAN2G(3, 2422, 0),
-CHAN2G(4, 2427, 0),
-CHAN2G(5, 2432, 0),
-CHAN2G(6, 2437, 0),
-CHAN2G(7, 2442, 0),
-CHAN2G(8, 2447, 0),
-CHAN2G(9, 2452, 0),
-CHAN2G(10, 2457, 0),
-CHAN2G(11, 2462, 0),
-CHAN2G(12, 2467, 0),
-CHAN2G(13, 2472, 0),
-CHAN2G(14, 2484, 0), };
+	CHAN2G(1, 2412, 0),
+	CHAN2G(2, 2417, 0),
+	CHAN2G(3, 2422, 0),
+	CHAN2G(4, 2427, 0),
+	CHAN2G(5, 2432, 0),
+	CHAN2G(6, 2437, 0),
+	CHAN2G(7, 2442, 0),
+	CHAN2G(8, 2447, 0),
+	CHAN2G(9, 2452, 0),
+	CHAN2G(10, 2457, 0),
+	CHAN2G(11, 2462, 0),
+	CHAN2G(12, 2467, 0),
+	CHAN2G(13, 2472, 0),
+	CHAN2G(14, 2484, 0),};
 
 #ifdef CONFIG_XRADIO_5GHZ_SUPPORT
 static struct ieee80211_channel xradio_5ghz_chantable[] = {
@@ -110,16 +110,16 @@ static struct ieee80211_channel xradio_5ghz_chantable[] = {
 };
 #endif /* CONFIG_XRADIO_5GHZ_SUPPORT */
 
-static struct ieee80211_supported_band xradio_band_2ghz = { .channels =
-		xradio_2ghz_chantable, .n_channels = ARRAY_SIZE(xradio_2ghz_chantable),
-		.bitrates = xradio_g_rates, .n_bitrates = xradio_g_rates_size, .ht_cap =
-				{ .cap = IEEE80211_HT_CAP_GRN_FLD
-						| (1 << IEEE80211_HT_CAP_RX_STBC_SHIFT), .ht_supported =
-						1, .ampdu_factor = IEEE80211_HT_MAX_AMPDU_32K,
-						.ampdu_density = IEEE80211_HT_MPDU_DENSITY_NONE, .mcs =
-								{ .rx_mask[0] = 0xFF, .rx_highest =
-										__cpu_to_le16(0x41), .tx_params =
-										IEEE80211_HT_MCS_TX_DEFINED, }, }, };
+static struct ieee80211_supported_band xradio_band_2ghz = {.channels =
+	xradio_2ghz_chantable, .n_channels = ARRAY_SIZE(xradio_2ghz_chantable),
+	.bitrates = xradio_g_rates, .n_bitrates = xradio_g_rates_size, .ht_cap =
+	{	.cap = IEEE80211_HT_CAP_GRN_FLD
+		| (1 << IEEE80211_HT_CAP_RX_STBC_SHIFT), .ht_supported =
+		1, .ampdu_factor = IEEE80211_HT_MAX_AMPDU_32K,
+		.ampdu_density = IEEE80211_HT_MPDU_DENSITY_NONE, .mcs =
+		{	.rx_mask[0] = 0xFF, .rx_highest =
+			__cpu_to_le16(0x41), .tx_params =
+			IEEE80211_HT_MCS_TX_DEFINED,},},};
 
 #ifdef CONFIG_XRADIO_5GHZ_SUPPORT
 static struct ieee80211_supported_band xradio_band_5ghz = {
@@ -142,44 +142,11 @@ static struct ieee80211_supported_band xradio_band_5ghz = {
 };
 #endif /* CONFIG_XRADIO_5GHZ_SUPPORT */
 
-static const unsigned long xradio_ttl[] = { 1 * HZ, /* VO */
-2 * HZ, /* VI */
-5 * HZ, /* BE */
-10 * HZ /* BK */
+static const unsigned long xradio_ttl[] = {1 * HZ, /* VO */
+	2 * HZ, /* VI */
+	5 * HZ, /* BE */
+	10 * HZ /* BK */
 };
-
-static const struct ieee80211_ops xradio_ops = { .start = xradio_start, .stop =
-		xradio_stop, .add_interface = xradio_add_interface, .remove_interface =
-		xradio_remove_interface, .change_interface = xradio_change_interface,
-		.tx = xradio_tx, .hw_scan = xradio_hw_scan,
-#ifdef ROAM_OFFLOAD
-		.sched_scan_start = xradio_hw_sched_scan_start,
-		.sched_scan_stop = xradio_hw_sched_scan_stop,
-#endif /*ROAM_OFFLOAD*/
-		.set_tim = xradio_set_tim, .sta_notify = xradio_sta_notify, .sta_add =
-				xradio_sta_add, .sta_remove = xradio_sta_remove, .set_key =
-				xradio_set_key, .set_rts_threshold = xradio_set_rts_threshold,
-		.config = xradio_config, .bss_info_changed = xradio_bss_info_changed,
-		.prepare_multicast = xradio_prepare_multicast, .configure_filter =
-				xradio_configure_filter, .conf_tx = xradio_conf_tx, .get_stats =
-				xradio_get_stats, .ampdu_action = xradio_ampdu_action, .flush =
-				xradio_flush,
-#ifdef CONFIG_PM
-		.suspend = xradio_wow_suspend,
-		.resume = xradio_wow_resume,
-#endif /* CONFIG_PM */
-		/* Intentionally not offloaded:					*/
-		/*.channel_switch	 = xradio_channel_switch,		*/
-		.remain_on_channel = xradio_remain_on_channel,
-		.cancel_remain_on_channel = xradio_cancel_remain_on_channel,
-#ifdef IPV6_FILTERING
-		/*in linux3.4 mac,it does't have the api*/
-		//.set_data_filter   = xradio_set_data_filter,
-#endif /*IPV6_FILTERING*/
-#ifdef CONFIG_XRADIO_TESTMODE
-		.testmode_cmd = xradio_testmode_cmd,
-#endif /* CONFIG_XRADIO_TESTMODE */
-	};
 
 static void xradio_set_ifce_comb(struct xradio_common *hw_priv,
 		struct ieee80211_hw *hw) {
@@ -210,7 +177,7 @@ static void xradio_set_ifce_comb(struct xradio_common *hw_priv,
 	hw_priv->if_limits3[0].types = BIT(NL80211_IFTYPE_STATION);
 	hw_priv->if_limits3[1].max = 1;
 	hw_priv->if_limits3[1].types = BIT(NL80211_IFTYPE_P2P_CLIENT)
-			| BIT(NL80211_IFTYPE_P2P_GO);
+	| BIT(NL80211_IFTYPE_P2P_GO);
 
 	/* TODO:COMBO: mac80211 doesn't yet support more than 1
 	 * different channel */
@@ -248,20 +215,12 @@ static void xradio_set_ifce_comb(struct xradio_common *hw_priv,
 
 struct ieee80211_hw *xradio_init_common(size_t hw_priv_data_len) {
 	int i;
-	struct ieee80211_hw *hw;
 	struct xradio_common *hw_priv;
-	struct ieee80211_supported_band *sband;
 	int band;
 
 	xradio_dbg(XRADIO_DBG_TRC, "%s\n", __FUNCTION__);
 
 	/* Alloc ieee_802.11 hw and xradio_common struct. */
-	hw = ieee80211_alloc_hw(hw_priv_data_len, &xradio_ops);
-	if (!hw)
-		return NULL;
-	hw_priv = hw->priv;
-	xradio_dbg(XRADIO_DBG_ALWY, "Allocated hw_priv @ %p\n", hw_priv);
-	memset(hw_priv, 0, sizeof(*hw_priv));
 
 	/* Get MAC address. */
 	xradio_get_mac_addrs((u8 *) &hw_priv->addresses[0]);
@@ -301,12 +260,6 @@ struct ieee80211_hw *xradio_init_common(size_t hw_priv_data_len) {
 	hw->sta_data_size = sizeof(struct xradio_sta_priv);
 	hw->vif_data_size = sizeof(struct xradio_vif);
 
-	ieee80211_hw_set(hw, SIGNAL_DBM);
-	ieee80211_hw_set(hw, SUPPORTS_PS);
-	ieee80211_hw_set(hw, SUPPORTS_DYNAMIC_PS);
-	ieee80211_hw_set(hw, REPORTS_TX_ACK_STATUS);
-	ieee80211_hw_set(hw, CONNECTION_MONITOR);
-
 	/*	hw->flags = IEEE80211_HW_SIGNAL_DBM            |
 	 IEEE80211_HW_SUPPORTS_PS           |
 	 IEEE80211_HW_SUPPORTS_DYNAMIC_PS   |
@@ -322,11 +275,6 @@ struct ieee80211_hw *xradio_init_common(size_t hw_priv_data_len) {
 	//  IEEE80211_HW_SUPPORTS_CQM_TX_FAIL     |
 #endif /* CONFIG_XRADIO_USE_EXTENSIONS */
 	//IEEE80211_HW_BEACON_FILTER;
-
-	hw->wiphy->interface_modes = BIT(NL80211_IFTYPE_STATION)
-			| BIT(NL80211_IFTYPE_ADHOC) | BIT(NL80211_IFTYPE_AP)
-			| BIT(NL80211_IFTYPE_MESH_POINT) | BIT(NL80211_IFTYPE_P2P_CLIENT)
-			| BIT(NL80211_IFTYPE_P2P_GO);
 
 	/* Support only for limited wowlan functionalities */
 	/* TODO by Icenowy: RESTORE THIS */
@@ -358,7 +306,7 @@ struct ieee80211_hw *xradio_init_common(size_t hw_priv_data_len) {
 	for (band = 0; band < NUM_NL80211_BANDS; band++) {
 		sband = hw->wiphy->bands[band];
 		if (!sband)
-			continue;
+		continue;
 		for (i = 0; i < sband->n_channels; i++) {
 			sband->channels[i].flags = 0;
 			sband->channels[i].max_antenna_gain = 0;
@@ -369,7 +317,7 @@ struct ieee80211_hw *xradio_init_common(size_t hw_priv_data_len) {
 	for (band = 0; band < NUM_NL80211_BANDS; band++) {
 		sband = hw->wiphy->bands[band];
 		if (!sband)
-			continue;
+		continue;
 		if (!hw_priv->channel) {
 			hw_priv->channel = &sband->channels[2];
 		}
@@ -409,18 +357,18 @@ struct ieee80211_hw *xradio_init_common(size_t hw_priv_data_len) {
 	hw_priv->ba_timer.function = xradio_ba_timer;
 
 	if (unlikely(
-			xradio_queue_stats_init(&hw_priv->tx_queue_stats, WLAN_LINK_ID_MAX,
-					xradio_skb_dtor, hw_priv))) {
+					xradio_queue_stats_init(&hw_priv->tx_queue_stats, WLAN_LINK_ID_MAX,
+							xradio_skb_dtor, hw_priv))) {
 		ieee80211_free_hw(hw);
 		return NULL;
 	}
 	for (i = 0; i < AC_QUEUE_NUM; ++i) {
 		if (unlikely(
-				xradio_queue_init(&hw_priv->tx_queue[i],
-						&hw_priv->tx_queue_stats, i, XRWL_MAX_QUEUE_SZ,
-						xradio_ttl[i]))) {
+						xradio_queue_init(&hw_priv->tx_queue[i],
+								&hw_priv->tx_queue_stats, i, XRWL_MAX_QUEUE_SZ,
+								xradio_ttl[i]))) {
 			for (; i > 0; i--)
-				xradio_queue_deinit(&hw_priv->tx_queue[i - 1]);
+			xradio_queue_deinit(&hw_priv->tx_queue[i - 1]);
 			xradio_queue_stats_deinit(&hw_priv->tx_queue_stats);
 			ieee80211_free_hw(hw);
 			return NULL;
@@ -429,14 +377,10 @@ struct ieee80211_hw *xradio_init_common(size_t hw_priv_data_len) {
 
 	init_waitqueue_head(&hw_priv->channel_switch_done);
 
-
-
 	init_waitqueue_head(&hw_priv->offchannel_wq);
-
 
 	hw_priv->driver_ready = 0;
 	hw_priv->offchannel_done = 0;
-
 
 	tx_policy_init(hw_priv);
 	xradio_init_resv_skb(hw_priv);
@@ -444,13 +388,13 @@ struct ieee80211_hw *xradio_init_common(size_t hw_priv_data_len) {
 	spin_lock_bh(&hw_priv->tx_policy_cache.lock);
 	hw_priv->long_frame_max_tx_count = hw->conf.long_frame_max_tx_count;
 	hw_priv->short_frame_max_tx_count =
-			(hw->conf.short_frame_max_tx_count < 0x0F) ?
-					hw->conf.short_frame_max_tx_count : 0x0F;
+	(hw->conf.short_frame_max_tx_count < 0x0F) ?
+	hw->conf.short_frame_max_tx_count : 0x0F;
 	hw_priv->hw->max_rate_tries = hw->conf.short_frame_max_tx_count;
 	spin_unlock_bh(&hw_priv->tx_policy_cache.lock);
 
 	for (i = 0; i < XRWL_MAX_VIFS; i++)
-		hw_priv->hw_bufs_used_vif[i] = 0;
+	hw_priv->hw_bufs_used_vif[i] = 0;
 
 #ifdef MCAST_FWDING
 	for (i = 0; i < WSM_MAX_BUF; i++)
@@ -496,25 +440,6 @@ struct ieee80211_hw *xradio_init_common(size_t hw_priv_data_len) {
 	}
 }
 
-int xradio_register_common(struct ieee80211_hw *dev) {
-	int err = 0;
-	struct xradio_common *hw_priv = dev->priv;
-	xradio_dbg(XRADIO_DBG_TRC, "%s\n", __FUNCTION__);
-
-	SET_IEEE80211_DEV(dev, hw_priv->pdev);
-	err = ieee80211_register_hw(dev);
-	if (err) {
-		xradio_dbg(XRADIO_DBG_ERROR, "Cannot register device (%d).\n", err);
-		return err;
-	} xradio_dbg(XRADIO_DBG_MSG, "is registered as '%s'\n",
-			wiphy_name(dev->wiphy));
-
-	xradio_debug_init_common(hw_priv);
-	hw_priv->driver_ready = 1;
-	wake_up(&hw_priv->wsm_startup_done);
-	return 0;
-}
-
 void xradio_unregister_common(struct ieee80211_hw *dev) {
 	struct xradio_common *hw_priv = dev->priv;
 	xradio_dbg(XRADIO_DBG_TRC, "%s\n", __FUNCTION__);
@@ -553,7 +478,7 @@ void xradio_free_common(struct ieee80211_hw *dev) {
 	}
 
 	for (i = 0; i < 4; ++i)
-		xradio_queue_deinit(&hw_priv->tx_queue[i]);
+	xradio_queue_deinit(&hw_priv->tx_queue[i]);
 	xradio_queue_stats_deinit(&hw_priv->tx_queue_stats);
 
 	for (i = 0; i < XRWL_MAX_VIFS; i++) {
@@ -581,4 +506,83 @@ static void xradio_get_mac_addrs(u8 *macaddr) {
 	macaddr[1] = 0x44;
 	macaddr[2] = 0x6D;
 	get_random_bytes(macaddr + 3, 3);
+}
+
+static const struct ieee80211_ops xradio_ops = {.start = xradio_start, .stop =
+	xradio_stop, .add_interface = xradio_add_interface, .remove_interface =
+	xradio_remove_interface, .change_interface = xradio_change_interface,
+	.tx = xradio_tx, .hw_scan = xradio_hw_scan,
+#ifdef ROAM_OFFLOAD
+	.sched_scan_start = xradio_hw_sched_scan_start,
+	.sched_scan_stop = xradio_hw_sched_scan_stop,
+#endif /*ROAM_OFFLOAD*/
+	.set_tim = xradio_set_tim, .sta_notify = xradio_sta_notify, .sta_add =
+	xradio_sta_add, .sta_remove = xradio_sta_remove, .set_key =
+	xradio_set_key, .set_rts_threshold = xradio_set_rts_threshold,
+	.config = xradio_config, .bss_info_changed = xradio_bss_info_changed,
+	.prepare_multicast = xradio_prepare_multicast, .configure_filter =
+	xradio_configure_filter, .conf_tx = xradio_conf_tx, .get_stats =
+	xradio_get_stats, .ampdu_action = xradio_ampdu_action, .flush =
+	xradio_flush,
+#ifdef CONFIG_PM
+	.suspend = xradio_wow_suspend,
+	.resume = xradio_wow_resume,
+#endif /* CONFIG_PM */
+	/* Intentionally not offloaded:					*/
+	/*.channel_switch	 = xradio_channel_switch,		*/
+	.remain_on_channel = xradio_remain_on_channel,
+	.cancel_remain_on_channel = xradio_cancel_remain_on_channel,
+#ifdef IPV6_FILTERING
+	/*in linux3.4 mac,it does't have the api*/
+	//.set_data_filter   = xradio_set_data_filter,
+#endif /*IPV6_FILTERING*/
+#ifdef CONFIG_XRADIO_TESTMODE
+	.testmode_cmd = xradio_testmode_cmd,
+#endif /* CONFIG_XRADIO_TESTMODE */
+};
+#endif
+
+static const struct ieee80211_ops xradio_ops = {
+
+};
+
+int netif_init(struct device* dev, struct xr819** priv) {
+	struct ieee80211_hw *hw;
+	struct ieee80211_supported_band *sband;
+
+	hw = ieee80211_alloc_hw(sizeof(**priv), &xradio_ops);
+	if (!hw) {
+		dev_err(dev, "failed to allocate netif\n");
+		return -ENOMEM;
+	}
+	memset(hw->priv, 0, sizeof(**priv));
+
+	//ieee80211_hw_set(hw, SIGNAL_DBM);
+	//ieee80211_hw_set(hw, SUPPORTS_PS);
+	//ieee80211_hw_set(hw, SUPPORTS_DYNAMIC_PS);
+	//ieee80211_hw_set(hw, REPORTS_TX_ACK_STATUS);
+	//ieee80211_hw_set(hw, CONNECTION_MONITOR);
+
+	hw->wiphy->interface_modes = BIT(NL80211_IFTYPE_STATION);
+
+	//| BIT(NL80211_IFTYPE_ADHOC) | BIT(NL80211_IFTYPE_AP)
+	//| BIT(NL80211_IFTYPE_MESH_POINT) | BIT(NL80211_IFTYPE_P2P_CLIENT)
+	//| BIT(NL80211_IFTYPE_P2P_GO);
+
+	*priv = hw->priv;
+	(*priv)->netif = hw;
+	return 0;
+}
+
+int netif_register(struct xr819* priv) {
+	int err = 0;
+	SET_IEEE80211_DEV(priv->netif, priv->dev);
+	err = ieee80211_register_hw(priv->netif);
+	if (err) {
+		dev_err(priv->dev, "Cannot register network inter: %d.\n", err);
+		return err;
+	}
+	dev_dbg(priv->dev, "network interface registered as '%s'\n",
+			wiphy_name(priv->netif->wiphy));
+	return 0;
 }

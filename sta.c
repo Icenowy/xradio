@@ -9,6 +9,8 @@
  * published by the Free Software Foundation.
  */
 
+#include <net/mac80211.h>
+
 #include <linux/vmalloc.h>
 #include <linux/sched.h>
 #include <linux/firmware.h>
@@ -17,7 +19,6 @@
 #include <linux/icmpv6.h>
 #include <net/ndisc.h>
 
-#include "xradio.h"
 #include "sta.h"
 #include "ap.h"
 #include "fwio.h"
@@ -133,7 +134,7 @@ static inline void __xradio_bf_configure(struct xradio_vif *priv)
 
 int xradio_start(struct ieee80211_hw *dev)
 {
-	struct xradio_common *hw_priv = dev->priv;
+	struct xr819 *hw_priv = dev->priv;
 	int ret = 0;
 	sta_printk(XRADIO_DBG_TRC,"%s\n", __func__);
 
@@ -168,7 +169,7 @@ out:
 
 void xradio_stop(struct ieee80211_hw *dev)
 {
-	struct xradio_common *hw_priv = dev->priv;
+	struct xr819 *hw_priv = dev->priv;
 	struct xradio_vif *priv = NULL;
 	LIST_HEAD(list);
 	int i;
@@ -230,7 +231,7 @@ int xradio_add_interface(struct ieee80211_hw *dev,
 			 struct ieee80211_vif *vif)
 {
 	int ret;
-	struct xradio_common *hw_priv = dev->priv;
+	struct xr819 *hw_priv = dev->priv;
 	struct xradio_vif *priv;
 	struct xradio_vif **drv_priv = (void *)vif->drv_priv;
 #ifndef P2P_MULTIVIF
@@ -318,7 +319,7 @@ int xradio_add_interface(struct ieee80211_hw *dev,
 void xradio_remove_interface(struct ieee80211_hw *dev,
 			     struct ieee80211_vif *vif)
 {
-	struct xradio_common *hw_priv = dev->priv;
+	struct xr819 *hw_priv = dev->priv;
 	struct xradio_vif *priv = xrwl_get_vif_from_ieee80211(vif);
 	struct wsm_reset reset = {
 		.reset_statistics = true,
@@ -458,7 +459,7 @@ int xradio_change_interface(struct ieee80211_hw *dev,
 int xradio_config(struct ieee80211_hw *dev, u32 changed)
 {
 	int ret = 0;
-	struct xradio_common *hw_priv = dev->priv;
+	struct xr819 *hw_priv = dev->priv;
 	struct ieee80211_conf *conf = &dev->conf;
 #ifdef CONFIG_XRADIO_TESTMODE
 	int max_power_level = 0;
@@ -533,7 +534,7 @@ void xradio_update_filtering(struct xradio_vif *priv)
 {
 	int ret;
 	bool bssid_filtering = !priv->rx_filter.bssid;
-	struct xradio_common *hw_priv = xrwl_vifpriv_to_hwpriv(priv);
+	struct xr819 *hw_priv = xrwl_vifpriv_to_hwpriv(priv);
 	static struct wsm_beacon_filter_control bf_disabled = {
 		.enabled = 0,
 		.bcn_count = 1,
@@ -662,7 +663,7 @@ void xradio_set_beacon_wakeup_period_work(struct work_struct *work)
 u64 xradio_prepare_multicast(struct ieee80211_hw *hw,
 							struct netdev_hw_addr_list *mc_list)
 {
-	struct xradio_common *hw_priv = hw->priv;
+	struct xr819 *hw_priv = hw->priv;
 	struct xradio_vif *priv = NULL;
 	static u8 broadcast_ipv6[ETH_ALEN] = {
 		0x33, 0x33, 0x00, 0x00, 0x00, 0x01
@@ -710,7 +711,7 @@ void xradio_configure_filter(struct ieee80211_hw *hw,
                              unsigned int *total_flags,
                              u64 multicast)
 {
-	struct xradio_common *hw_priv = hw->priv;
+	struct xr819 *hw_priv = hw->priv;
 	struct xradio_vif *priv = NULL;
 	int i = 0;
 	sta_printk(XRADIO_DBG_TRC,"%s\n", __func__);
@@ -780,7 +781,7 @@ void xradio_configure_filter(struct ieee80211_hw *hw,
 int xradio_conf_tx(struct ieee80211_hw *dev, struct ieee80211_vif *vif,
                    u16 queue, const struct ieee80211_tx_queue_params *params)
 {
-	struct xradio_common *hw_priv = dev->priv;
+	struct xr819 *hw_priv = dev->priv;
 	struct xradio_vif *priv = xrwl_get_vif_from_ieee80211(vif);
 	int ret = 0;
 	/* To prevent re-applying PM request OID again and again*/
@@ -845,7 +846,7 @@ out:
 int xradio_get_stats(struct ieee80211_hw *dev,
 		     struct ieee80211_low_level_stats *stats)
 {
-	struct xradio_common *hw_priv = dev->priv;
+	struct xr819 *hw_priv = dev->priv;
 
 	memcpy(stats, &hw_priv->stats, sizeof(*stats));
 	return 0;
@@ -856,7 +857,7 @@ int xradio_get_tx_stats(struct ieee80211_hw *dev,
 			struct ieee80211_tx_queue_stats *stats)
 {
 	int i;
-	struct xradio_common *priv = dev->priv;
+	struct xr819 *priv = dev->priv;
 
 	for (i = 0; i < dev->queues; ++i)
 		xradio_queue_get_stats(&priv->tx_queue[i], &stats[i]);
@@ -902,7 +903,7 @@ int xradio_set_key(struct ieee80211_hw *dev, enum set_key_cmd cmd,
                    struct ieee80211_key_conf *key)
 {
 	int ret = -EOPNOTSUPP;
-	struct xradio_common *hw_priv = dev->priv;
+	struct xr819 *hw_priv = dev->priv;
 	struct xradio_vif *priv = xrwl_get_vif_from_ieee80211(vif);
 	sta_printk(XRADIO_DBG_TRC,"%s\n", __func__);
 
@@ -1063,7 +1064,7 @@ finally:
 void xradio_wep_key_work(struct work_struct *work)
 {
 	struct xradio_vif *priv = container_of(work, struct xradio_vif , wep_key_work);
-	struct xradio_common *hw_priv = xrwl_vifpriv_to_hwpriv(priv);
+	struct xr819 *hw_priv = xrwl_vifpriv_to_hwpriv(priv);
 	u8 queueId = xradio_queue_get_queue_id(hw_priv->pending_frame_id);
 	struct xradio_queue *queue = &hw_priv->tx_queue[queueId];
 	__le32 wep_default_key_id = __cpu_to_le32(priv->wep_default_key_id);
@@ -1089,7 +1090,7 @@ void xradio_wep_key_work(struct work_struct *work)
 
 int xradio_set_rts_threshold(struct ieee80211_hw *hw, u32 value)
 {
-	struct xradio_common *hw_priv = hw->priv;
+	struct xr819 *hw_priv = hw->priv;
 	int ret = 0;
 	__le32 val32;
 	struct xradio_vif *priv = NULL;
@@ -1119,7 +1120,7 @@ int xradio_set_rts_threshold(struct ieee80211_hw *hw, u32 value)
 }
 
 /* TODO: COMBO: Flush only a particular interface specific parts */
-int __xradio_flush(struct xradio_common *hw_priv, bool drop, int if_id)
+int __xradio_flush(struct xr819 *hw_priv, bool drop, int if_id)
 {
 	int i, ret;
 	struct xradio_vif *priv =
@@ -1168,7 +1169,7 @@ int __xradio_flush(struct xradio_common *hw_priv, bool drop, int if_id)
 void xradio_flush(struct ieee80211_hw *hw, struct ieee80211_vif *vif, u32 queues, bool drop)
 {
 	//struct xradio_vif *priv = NULL;
-	struct xradio_common *hw_priv = hw->priv;
+	struct xr819 *hw_priv = hw->priv;
 	int i = 0;
 	struct xradio_vif *priv = xrwl_get_vif_from_ieee80211(vif);
 
@@ -1202,7 +1203,7 @@ int xradio_remain_on_channel(struct ieee80211_hw *hw,
 			     int duration, enum ieee80211_roc_type type)
 {
 	int ret = 0;
-	struct xradio_common *hw_priv = hw->priv;
+	struct xr819 *hw_priv = hw->priv;
 	struct xradio_vif *priv = NULL;
 	int i = 0;
 	int if_id;
@@ -1264,7 +1265,7 @@ int xradio_remain_on_channel(struct ieee80211_hw *hw,
 
 int xradio_cancel_remain_on_channel(struct ieee80211_hw *hw)
 {
-	struct xradio_common *hw_priv = hw->priv;
+	struct xr819 *hw_priv = hw->priv;
 	sta_printk(XRADIO_DBG_TRC,"%s\n", __func__);
 
 	sta_printk(XRADIO_DBG_NIY, "Cancel remain on channel\n");
@@ -1287,12 +1288,12 @@ int xradio_cancel_remain_on_channel(struct ieee80211_hw *hw)
 /* ******************************************************************** */
 /* WSM callbacks							*/
 
-void xradio_channel_switch_cb(struct xradio_common *hw_priv)
+void xradio_channel_switch_cb(struct xr819 *hw_priv)
 {
 	wsm_unlock_tx(hw_priv);
 }
 
-void xradio_free_event_queue(struct xradio_common *hw_priv)
+void xradio_free_event_queue(struct xr819 *hw_priv)
 {
 	LIST_HEAD(list);
 	sta_printk(XRADIO_DBG_TRC,"%s\n", __func__);
@@ -1306,8 +1307,8 @@ void xradio_free_event_queue(struct xradio_common *hw_priv)
 
 void xradio_event_handler(struct work_struct *work)
 {
-	struct xradio_common *hw_priv =
-		container_of(work, struct xradio_common, event_handler);
+	struct xr819 *hw_priv =
+		container_of(work, struct xr819, event_handler);
 	struct xradio_vif *priv;
 	struct xradio_wsm_event *event;
 	LIST_HEAD(list);
@@ -1454,7 +1455,7 @@ void xradio_bss_loss_work(struct work_struct *work)
 {
 	struct xradio_vif *priv =
 		container_of(work, struct xradio_vif, bss_loss_work.work);
-	struct xradio_common *hw_priv = xrwl_vifpriv_to_hwpriv(priv);
+	struct xr819 *hw_priv = xrwl_vifpriv_to_hwpriv(priv);
 	int timeout; /* in beacons */
 	sta_printk(XRADIO_DBG_TRC,"%s\n", __func__);
 
@@ -1534,7 +1535,7 @@ void xradio_tx_failure_work(struct work_struct *work)
  * @band: Either 2GHz or 5GHz
  *
  */
-void xradio_device_power_calc(struct xradio_common *hw_priv,
+void xradio_device_power_calc(struct xr819 *hw_priv,
 		s16 max_output_power, s16 fe_cor, u32 band)
 {
 	s16 power_calc;
@@ -1562,7 +1563,7 @@ void xradio_device_power_calc(struct xradio_common *hw_priv,
 #define SDD_FE_COR_2G4_ELT_ID   0x30
 #define SDD_FE_COR_5G_ELT_ID    0x31
 #define MIN(x, y, z) (x < y ? (x < z ? x : z) : (y < z ? y : z))
-static int xradio_test_pwrlevel(struct xradio_common *hw_priv)
+static int xradio_test_pwrlevel(struct xr819 *hw_priv)
 {
 	int ret = -1;
 	int parsedLength = 0;
@@ -1616,7 +1617,7 @@ static int xradio_test_pwrlevel(struct xradio_common *hw_priv)
 #endif
 
 /* Internal API								*/
-int xradio_setup_mac(struct xradio_common *hw_priv)
+int xradio_setup_mac(struct xr819 *hw_priv)
 {
 	int ret = 0, if_id;
 	sta_printk(XRADIO_DBG_TRC,"%s\n", __func__);
@@ -1664,7 +1665,7 @@ void xradio_pending_offchanneltx_work(struct work_struct *work)
 {
 	struct xradio_vif *priv =
 	container_of(work, struct xradio_vif, pending_offchanneltx_work.work);
-	struct xradio_common *hw_priv = xrwl_vifpriv_to_hwpriv(priv);
+	struct xr819 *hw_priv = xrwl_vifpriv_to_hwpriv(priv);
 	sta_printk(XRADIO_DBG_TRC,"%s\n", __func__);
 
 	mutex_lock(&hw_priv->conf_mutex);
@@ -1684,7 +1685,7 @@ void xradio_offchannel_work(struct work_struct *work)
 {
 	struct xradio_vif *priv =
 		container_of(work, struct xradio_vif, offchannel_work);
-	struct xradio_common *hw_priv = xrwl_vifpriv_to_hwpriv(priv);
+	struct xr819 *hw_priv = xrwl_vifpriv_to_hwpriv(priv);
 	u8 queueId = xradio_queue_get_queue_id(hw_priv->pending_frame_id);
 	struct xradio_queue *queue = &hw_priv->tx_queue[queueId];
 	sta_printk(XRADIO_DBG_TRC,"%s\n", __func__);
@@ -1751,7 +1752,7 @@ void xradio_join_work(struct work_struct *work)
 {
 	struct xradio_vif *priv =
 		container_of(work, struct xradio_vif, join_work);
-	struct xradio_common *hw_priv = xrwl_vifpriv_to_hwpriv(priv);
+	struct xr819 *hw_priv = xrwl_vifpriv_to_hwpriv(priv);
 	u8 queueId = xradio_queue_get_queue_id(hw_priv->pending_frame_id);
 	struct xradio_queue *queue = &hw_priv->tx_queue[queueId];
 	const struct xradio_txpriv *txpriv = NULL;
@@ -1970,7 +1971,7 @@ void xradio_unjoin_work(struct work_struct *work)
 {
 	struct xradio_vif *priv =
 		container_of(work, struct xradio_vif, unjoin_work);
-	struct xradio_common *hw_priv = xrwl_vifpriv_to_hwpriv(priv);
+	struct xr819 *hw_priv = xrwl_vifpriv_to_hwpriv(priv);
 	
 	struct wsm_reset reset = {
 		.reset_statistics = true,
@@ -2073,7 +2074,7 @@ int xradio_enable_listening(struct xradio_vif *priv,
 {
 	/* TODO:COMBO: Channel is common to HW currently in mac80211.
 	Change the code below once channel is made per VIF */
-	struct xradio_common *hw_priv = xrwl_vifpriv_to_hwpriv(priv);
+	struct xr819 *hw_priv = xrwl_vifpriv_to_hwpriv(priv);
 	struct wsm_start start = {
 #ifdef P2P_MULTIVIF
 		.mode = WSM_START_MODE_P2P_DEV | (priv->if_id ? (1 << 4) : 0),
@@ -2131,7 +2132,7 @@ int xradio_disable_listening(struct xradio_vif *priv)
 int xradio_set_uapsd_param(struct xradio_vif *priv,
 				const struct wsm_edca_params *arg)
 {
-	struct xradio_common *hw_priv = xrwl_vifpriv_to_hwpriv(priv);
+	struct xr819 *hw_priv = xrwl_vifpriv_to_hwpriv(priv);
 	int ret;
 	u16 uapsdFlags = 0;
 	sta_printk(XRADIO_DBG_TRC,"%s\n", __func__);
@@ -2167,8 +2168,8 @@ int xradio_set_uapsd_param(struct xradio_vif *priv,
 
 void xradio_ba_work(struct work_struct *work)
 {
-	struct xradio_common *hw_priv =
-		container_of(work, struct xradio_common, ba_work);
+	struct xr819 *hw_priv =
+		container_of(work, struct xr819, ba_work);
 	u8 tx_ba_tid_mask;
 	sta_printk(XRADIO_DBG_TRC,"%s\n", __func__);
 
@@ -2195,7 +2196,7 @@ void xradio_ba_work(struct work_struct *work)
 void xradio_ba_timer(unsigned long arg)
 {
 	bool ba_ena;
-	struct xradio_common *hw_priv = (struct xradio_common *)arg;
+	struct xr819 *hw_priv = (struct xr819 *)arg;
 	sta_printk(XRADIO_DBG_TRC,"%s\n", __func__);
 
 	spin_lock_bh(&hw_priv->ba_lock);
@@ -2243,7 +2244,7 @@ skip_statistic_update:
 
 int xradio_vif_setup(struct xradio_vif *priv)
 {
-	struct xradio_common *hw_priv = priv->hw_priv;
+	struct xr819 *hw_priv = priv->hw_priv;
 	int ret = 0;
 	sta_printk(XRADIO_DBG_TRC,"%s\n", __func__);
 
@@ -2390,8 +2391,8 @@ int xradio_setup_mac_pvif(struct xradio_vif *priv)
 
 void xradio_rem_chan_timeout(struct work_struct *work)
 {
-	struct xradio_common *hw_priv =
-		container_of(work, struct xradio_common, rem_chan_timeout.work);
+	struct xr819 *hw_priv =
+		container_of(work, struct xr819, rem_chan_timeout.work);
 	int ret, if_id;
 	struct xradio_vif *priv;
 	sta_printk(XRADIO_DBG_TRC,"%s\n", __func__);
@@ -2458,7 +2459,7 @@ const u8 *xradio_get_ie(u8 *start, size_t len, u8 ie)
  *
  * Returns: 0 on success or non zero value on failure
  */
-int xradio_set_macaddrfilter(struct xradio_common *hw_priv, struct xradio_vif *priv, u8 *data)
+int xradio_set_macaddrfilter(struct xr819 *hw_priv, struct xradio_vif *priv, u8 *data)
 {
 	struct wsm_mac_addr_filter *mac_addr_filter =  NULL;
 	struct wsm_mac_addr_info *addr_info = NULL;
@@ -2512,7 +2513,7 @@ exit_p:
  *
  * Returns: 0 on success or non zero value on failure
  */
-static int xradio_set_multicastfilter(struct xradio_common *hw_priv, struct xradio_vif *priv, u8 *data)
+static int xradio_set_multicastfilter(struct xr819 *hw_priv, struct xradio_vif *priv, u8 *data)
 {
 	u8 i = 0;
 	int ret = 0;
@@ -2551,7 +2552,7 @@ static int xradio_set_multicastfilter(struct xradio_common *hw_priv, struct xrad
 static int xradio_set_ipv6addrfilter(struct ieee80211_hw *hw,
 				     u8 *data, int if_id)
 {
-	struct xradio_common *hw_priv = (struct xradio_common *) hw->priv;
+	struct xr819 *hw_priv = (struct xr819 *) hw->priv;
 	struct wsm_ipv6_filter  *ipv6_filter =  NULL;
 	struct ipv6_addr_info *ipv6_info = NULL;
 	u8 action_mode = 0, no_of_ip_addr = 0, i = 0, ret = 0;
@@ -2648,7 +2649,7 @@ exit_p:
 int xradio_set_arpreply(struct ieee80211_hw *hw, struct ieee80211_vif *vif)
 {
 	struct xradio_vif *priv = xrwl_get_vif_from_ieee80211(vif);
-	struct xradio_common *hw_priv = (struct xradio_common *)hw->priv;
+	struct xr819 *hw_priv = (struct xr819 *)hw->priv;
 	u32 framehdrlen, encrypthdr, encrypttailsize, framebdylen = 0;
 	bool encrypt = false;
 	int ret = 0;
@@ -2810,7 +2811,7 @@ int xradio_testmode_event(struct wiphy *wiphy, const u32 msg_id,
 int xradio_set_na(struct ieee80211_hw *hw, struct ieee80211_vif *vif)
 {
 	struct xradio_vif *priv = xrwl_get_vif_from_ieee80211(vif);
-	struct xradio_common *hw_priv = (struct xradio_common *)hw->priv;
+	struct xr819 *hw_priv = (struct xr819 *)hw->priv;
 	u32 framehdrlen, encrypthdr, encrypttailsize, framebdylen = 0;
 	bool encrypt = false;
 	int ret = 0;
@@ -2968,7 +2969,7 @@ static int xradio_set_snap_frame(struct ieee80211_hw *hw,
 {
 	struct xr_msg_set_snap_frame *snap_frame =
 		(struct xr_msg_set_snap_frame *) data;
-	struct xradio_common *priv = (struct xradio_common *) hw->priv;
+	struct xr819 *priv = (struct xr819 *) hw->priv;
 	u8 frame_len = snap_frame->len;
 	u8 *frame = &snap_frame->frame[0];
 	sta_printk(XRADIO_DBG_TRC,"%s\n", __func__);
@@ -3013,7 +3014,7 @@ static int xradio_set_txqueue_params(struct ieee80211_hw *hw,
 {
 	struct xr_msg_set_txqueue_params *txqueue_params =
 		(struct xr_msg_set_txqueue_params *) data;
-	struct xradio_common *hw_priv = (struct xradio_common *) hw->priv;
+	struct xr819 *hw_priv = (struct xr819 *) hw->priv;
 	struct xradio_vif *priv;
 	/* Interface ID is hard coded here, as interface is not
          * passed in testmode command.
@@ -3149,7 +3150,7 @@ static int xradio_test(struct ieee80211_hw *hw,
  */
 int xradio_get_tx_power_level(struct ieee80211_hw *hw)
 {
-	struct xradio_common *hw_priv = hw->priv;
+	struct xr819 *hw_priv = hw->priv;
 	int get_power = 0;
 	sta_printk(XRADIO_DBG_TRC,"%s\n", __func__);
 
@@ -3169,7 +3170,7 @@ int xradio_get_tx_power_level(struct ieee80211_hw *hw)
  */
 int xradio_get_tx_power_range(struct ieee80211_hw *hw)
 {
-	struct xradio_common *hw_priv = hw->priv;
+	struct xr819 *hw_priv = hw->priv;
 	struct wsm_tx_power_range txPowerRange[2];
 	sta_printk(XRADIO_DBG_TRC,"%s\n", __func__);
 
@@ -3192,7 +3193,7 @@ static int xradio_set_advance_scan_elems(struct ieee80211_hw *hw,
 {
 	struct advance_scan_elems *scan_elems =
 		(struct advance_scan_elems *) data;
-	struct xradio_common *hw_priv = (struct xradio_common *) hw->priv;
+	struct xr819 *hw_priv = (struct xr819 *) hw->priv;
 	size_t elems_len = sizeof(struct advance_scan_elems);
 	sta_printk(XRADIO_DBG_TRC,"%s\n", __func__);
 
@@ -3229,7 +3230,7 @@ static int xradio_set_power_save(struct ieee80211_hw *hw,
 {
 	struct power_save_elems *ps_elems =
 		(struct power_save_elems *) data;
-	struct xradio_common *hw_priv = (struct xradio_common *) hw->priv;
+	struct xr819 *hw_priv = (struct xr819 *) hw->priv;
 	size_t elems_len = sizeof(struct power_save_elems);
 	struct xradio_vif *priv;
 	int if_id = 0;
@@ -3291,7 +3292,7 @@ int xradio_start_stop_tsm(struct ieee80211_hw *hw, void *data)
 {
 	struct xr_msg_start_stop_tsm *start_stop_tsm =
 		(struct xr_msg_start_stop_tsm *) data;
-	struct xradio_common *hw_priv = hw->priv;
+	struct xr819 *hw_priv = hw->priv;
 	sta_printk(XRADIO_DBG_TRC,"%s\n", __func__);
 
 	hw_priv->start_stop_tsm.start = start_stop_tsm->start;
@@ -3321,7 +3322,7 @@ int xradio_start_stop_tsm(struct ieee80211_hw *hw, void *data)
  */
 int xradio_get_tsm_params(struct ieee80211_hw *hw)
 {
-	struct xradio_common *hw_priv = hw->priv;
+	struct xr819 *hw_priv = hw->priv;
 	struct xr_tsm_stats tsm_stats;
 	u32 pkt_count;
 	sta_printk(XRADIO_DBG_TRC,"%s\n", __func__);
@@ -3363,7 +3364,7 @@ int xradio_get_tsm_params(struct ieee80211_hw *hw)
  */
 int xradio_get_roam_delay(struct ieee80211_hw *hw)
 {
-	struct xradio_common *hw_priv = hw->priv;
+	struct xr819 *hw_priv = hw->priv;
 	u16 roam_delay = hw_priv->tsm_info.roam_delay / 1000;
 	sta_printk(XRADIO_DBG_MSG, "%s: Roam delay : %u",
 		__func__, roam_delay);
