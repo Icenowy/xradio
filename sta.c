@@ -173,7 +173,6 @@ void xradio_stop(struct ieee80211_hw *dev)
 	LIST_HEAD(list);
 	int i;
 
-
 	wsm_lock_tx(hw_priv);
 	while (down_trylock(&hw_priv->scan.lock)) {
 		/* Scan is in progress. Force it to stop. */
@@ -205,7 +204,7 @@ void xradio_stop(struct ieee80211_hw *dev)
 
 	/* HACK! */
 	if (atomic_xchg(&hw_priv->tx_lock, 1) != 1)
-		sta_printk(XRADIO_DBG_WARN, "TX is force-unlocked due to stop request.\n");
+		wiphy_debug(dev->wiphy, "TX is force-unlocked due to stop request.\n");
 
 	xradio_for_each_vif(hw_priv, priv, i) {
 		if (!priv)
@@ -442,8 +441,8 @@ int xradio_change_interface(struct ieee80211_hw *dev,
 				bool p2p)
 {
 	int ret = 0;
-	sta_printk(XRADIO_DBG_WARN, "%s: new type=%d(%d), p2p=%d(%d)\n",
-	           __func__, new_type, vif->type, p2p, vif->p2p);
+	wiphy_debug(dev->wiphy, "new type=%d(%d), p2p=%d(%d)\n",
+			new_type, vif->type, p2p, vif->p2p);
 	if (new_type != vif->type || vif->p2p != p2p) {
 		xradio_remove_interface(dev, vif);
 		vif->type = new_type;
@@ -506,7 +505,7 @@ int xradio_config(struct ieee80211_hw *dev, u32 changed)
 			hw_priv->output_power = min_power_level;
 #endif /* CONFIG_XRADIO_TESTMODE */
 
-		sta_printk(XRADIO_DBG_NIY, "Config Tx power=%d, but real=%d\n",
+		wiphy_debug(dev->wiphy, "Config Tx power=%d, but real=%d\n",
 		           conf->power_level, hw_priv->output_power);
 		SYS_WARN(wsm_set_output_power(hw_priv, hw_priv->output_power * 10, if_id));
 	}
@@ -515,7 +514,7 @@ int xradio_config(struct ieee80211_hw *dev, u32 changed)
 	    (hw_priv->channel != conf->chandef.chan)) {
 		/* Switch Channel commented for CC Mode */
 		struct ieee80211_channel *ch = conf->chandef.chan;
-		sta_printk(XRADIO_DBG_WARN, "Freq %d (wsm ch: %d).\n",
+		wiphy_debug(dev->wiphy, "Freq %d (wsm ch: %d).\n",
 		           ch->center_freq, ch->hw_value);
 		/* Earlier there was a call to __xradio_flush().
 		   Removed as deemed unnecessary */

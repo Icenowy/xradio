@@ -233,7 +233,7 @@ void xradio_pm_stay_awake(struct xradio_pm_state *pm,
 }
 void xradio_pm_lock_awake(struct xradio_pm_state *pm)
 {
-	pm_printk(XRADIO_DBG_NIY, "%s\n", __func__);
+
 	spin_lock_bh(&pm->lock);
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 10, 0))
 	pm->expires_save = pm->wakelock.ws.timer.expires;
@@ -245,7 +245,7 @@ void xradio_pm_lock_awake(struct xradio_pm_state *pm)
 }
 void xradio_pm_unlock_awake(struct xradio_pm_state *pm)
 {
-	pm_printk(XRADIO_DBG_NIY, "%s\n", __func__);
+
 	spin_lock_bh(&pm->lock);
 	pm->expires_save -= jiffies;
 	if (pm->expires_save)
@@ -279,7 +279,6 @@ int xradio_pm_init(struct xradio_pm_state *pm,
 
 void xradio_pm_deinit(struct xradio_pm_state *pm)
 {
-	pm_printk(XRADIO_DBG_TRC,"%s\n", __FUNCTION__);
 	del_timer_sync(&pm->stay_awake);
 	xradio_pm_deinit_common(pm);
 }
@@ -288,7 +287,6 @@ void xradio_pm_stay_awake(struct xradio_pm_state *pm,
 			  unsigned long tmo)
 {
 	long cur_tmo;
-	pm_printk(XRADIO_DBG_MSG, "%s\n", __func__);
 
 	spin_lock_bh(&pm->lock);
 	cur_tmo = pm->stay_awake.expires - jiffies;
@@ -298,7 +296,7 @@ void xradio_pm_stay_awake(struct xradio_pm_state *pm,
 }
 void xradio_pm_lock_awake(struct xradio_pm_state *pm)
 {
-	pm_printk(XRADIO_DBG_NIY, "%s\n", __func__);
+
 	spin_lock_bh(&pm->lock);
 	pm->expires_save = pm->stay_awake.expires;
 	mod_timer(&pm->stay_awake, jiffies + LONG_MAX);
@@ -306,7 +304,7 @@ void xradio_pm_lock_awake(struct xradio_pm_state *pm)
 }
 void xradio_pm_unlock_awake(struct xradio_pm_state *pm)
 {
-	pm_printk(XRADIO_DBG_NIY, "%s\n", __func__);
+
 	spin_lock_bh(&pm->lock);
 	if (time_before(jiffies, pm->expires_save))
 		mod_timer(&pm->stay_awake, pm->expires_save);
@@ -347,7 +345,7 @@ static int xradio_resume_work(struct xradio_common *hw_priv,
 static int xradio_suspend_late(struct device *dev)
 {
 	struct xradio_common *hw_priv = dev->platform_data;
-	pm_printk(XRADIO_DBG_NIY, "%s\n", __func__);
+
 #ifdef CONFIG_XRADIO_SUSPEND_POWER_OFF
 	if (XRADIO_POWEROFF_SUSP == atomic_read(&hw_priv->suspend_state)) {
 		return 0; /* we don't rx data when power down wifi.*/
@@ -378,7 +376,7 @@ int xradio_wow_suspend(struct ieee80211_hw *hw, struct cfg80211_wowlan *wowlan)
 	struct xradio_common *hw_priv = hw->priv;
 	struct xradio_vif *priv;
 	int i, ret = 0;
-	pm_printk(XRADIO_DBG_NIY, "%s\n", __func__);
+
 
 	if(hw_priv->bh_error) return -EBUSY;
 	WARN_ON(!atomic_read(&hw_priv->num_vifs));
@@ -532,7 +530,7 @@ static int __xradio_wow_suspend(struct xradio_vif *priv,
 		.flags    = 0x1,
 	};
 #endif
-	pm_printk(XRADIO_DBG_NIY, "%s\n", __func__);
+
 
 	/* Do not suspend when join work is scheduled */
 	if (work_pending(&priv->join_work)) {
@@ -657,7 +655,7 @@ int xradio_wow_resume(struct ieee80211_hw *hw)
 	struct xradio_vif *priv;
 	int i, ret = 0;
 
-	pm_printk(XRADIO_DBG_NIY, "%s\n", __func__);
+
 	WARN_ON(!atomic_read(&hw_priv->num_vifs));
 	if(hw_priv->bh_error) return 0;
 
@@ -709,7 +707,7 @@ static int __xradio_wow_resume(struct xradio_vif *priv)
 		.flags = 0x0,
 	};
 #endif
-	pm_printk(XRADIO_DBG_NIY, "%s\n", __func__);
+
 
 	/* Restore suspend state */
 	state = pm_state_vif->suspend_state;
@@ -786,7 +784,7 @@ static int __xradio_wow_resume(struct xradio_vif *priv)
 #ifdef CONFIG_XRADIO_SUSPEND_POWER_OFF
 static int xradio_poweroff_suspend(struct xradio_common *hw_priv)
 {
-	pm_printk(XRADIO_DBG_NIY, "%s\n", __func__);
+
 	//flush all work.
 	cancel_work_sync(&hw_priv->query_work);
 	flush_workqueue(hw_priv->workqueue);
@@ -808,7 +806,7 @@ static int xradio_poweroff_suspend(struct xradio_common *hw_priv)
 
 static int xradio_poweroff_resume(struct xradio_common *hw_priv)
 {
-	pm_printk(XRADIO_DBG_NIY, "%s\n", __func__);
+
 	/* Revert locks */
 	wsm_unlock_tx(hw_priv);
 	up(&hw_priv->scan.lock);

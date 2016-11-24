@@ -21,7 +21,7 @@ static void xradio_scan_restart_delayed(struct xradio_vif *priv);
 static int xradio_advance_scan_start(struct xradio_common *hw_priv)
 {
 	int tmo = 0;
-	scan_printk(XRADIO_DBG_TRC,"%s\n", __func__);
+
 
 	tmo += hw_priv->advanceScanElems.duration;
 	xradio_pm_stay_awake(&hw_priv->pm_state, tmo * HZ / 1000);
@@ -39,7 +39,7 @@ static void xradio_remove_wps_p2p_ie(struct wsm_template_frame *frame)
 	u32 ie_len;
 	u32 p2p_ie_len = 0;
 	u32 wps_ie_len = 0;
-	scan_printk(XRADIO_DBG_TRC,"%s\n", __func__);
+
 
 	ies = &frame->skb->data[sizeof(struct ieee80211_hdr_3addr)];
 	ies_len = frame->skb->len - sizeof(struct ieee80211_hdr_3addr);
@@ -74,7 +74,7 @@ static int xradio_disable_filtering(struct xradio_vif *priv)
 	struct wsm_rx_filter rx_filter;
 	struct wsm_beacon_filter_control bf_control;
 	struct xradio_common *hw_priv = xrwl_vifpriv_to_hwpriv(priv);
-	scan_printk(XRADIO_DBG_TRC,"%s\n", __func__);
+
 
 	/* RX Filter Disable */
 	rx_filter.promiscuous = 0;
@@ -105,7 +105,7 @@ static int xradio_scan_start(struct xradio_vif *priv, struct wsm_scan *scan)
 	int tmo = 5000;
 #endif
 	struct xradio_common *hw_priv = xrwl_vifpriv_to_hwpriv(priv);
-	scan_printk(XRADIO_DBG_TRC,"%s\n", __func__);
+
 
 	for (i = 0; i < scan->numOfChannels; ++i)
 		tmo += scan->ch[i].maxChannelTime + 10;
@@ -134,7 +134,7 @@ static int xradio_sched_scan_start(struct xradio_vif *priv, struct wsm_scan *sca
 {
 	int ret;
 	struct xradio_common *hw_priv = xrwl_vifpriv_to_hwpriv(priv);
-	scan_printk(XRADIO_DBG_TRC,"%s\n", __func__);
+
 
 	ret = wsm_scan(hw_priv, scan, priv->if_id);
 	if (unlikely(ret)) {
@@ -160,7 +160,7 @@ int xradio_hw_scan(struct ieee80211_hw *hw,
 	int ret = 0;
 	u16 advance_scan_req_channel;
 #endif
-	scan_printk(XRADIO_DBG_TRC,"%s\n", __func__);
+
 
 	/* Scan when P2P_GO corrupt firmware MiniAP mode */
 	if (priv->join_status == XRADIO_JOIN_STATUS_AP) {
@@ -354,8 +354,8 @@ int xradio_hw_sched_scan_start(struct ieee80211_hw *hw,
 		.frame_type = WSM_FRAME_TYPE_PROBE_REQUEST,
 	};
 	int i;
-	scan_printk(XRADIO_DBG_TRC,"%s\n", __func__);
 	
+
 	scan_printk(XRADIO_DBG_WARN, "Scheduled scan request-->.\n");
 	if (!priv->vif)
 		return -EINVAL;
@@ -463,7 +463,7 @@ void xradio_scan_work(struct work_struct *work)
 	u16 advance_scan_req_channel = hw_priv->scan.begin[0]->hw_value;
 #endif
 	struct cfg80211_scan_info scan_info;
-	scan_printk(XRADIO_DBG_TRC,"%s\n", __func__);
+
 
 	priv = __xrwl_hwpriv_to_vifpriv(hw_priv, hw_priv->scan.if_id);
 
@@ -750,7 +750,7 @@ void xradio_sched_scan_work(struct work_struct *work)
 	struct wsm_ssid scan_ssid;
 	int i;
 	struct xradio_vif *priv = NULL;
-	scan_printk(XRADIO_DBG_TRC,"%s\n", __func__);
+
 
 	priv = xrwl_hwpriv_to_vifpriv(hw_priv, hw_priv->scan.if_id);
 	if (unlikely(!priv)) {
@@ -827,7 +827,7 @@ fail:
 void xradio_hw_sched_scan_stop(struct xradio_common *hw_priv)
 {
 	struct xradio_vif *priv = NULL;
-	scan_printk(XRADIO_DBG_TRC,"%s\n", __func__);
+
 	priv = xrwl_hwpriv_to_vifpriv(hw_priv,hw_priv->scan.if_id);
 	if (unlikely(!priv))
 		return;
@@ -843,7 +843,7 @@ void xradio_hw_sched_scan_stop(struct xradio_common *hw_priv)
 static void xradio_scan_restart_delayed(struct xradio_vif *priv)
 {
 	struct xradio_common *hw_priv = xrwl_vifpriv_to_hwpriv(priv);
-	scan_printk(XRADIO_DBG_TRC,"%s\n", __func__);
+
 
 	if (priv->delayed_link_loss) {
 		int tmo = hw_priv->scan.direct_probe ? 0 : priv->cqm_beacon_loss_count;
@@ -878,7 +878,7 @@ static void xradio_scan_complete(struct xradio_common *hw_priv, int if_id)
 {
 	struct xradio_vif *priv;
 	atomic_xchg(&hw_priv->recent_scan, 0);
-	scan_printk(XRADIO_DBG_TRC,"%s\n", __func__);
+
 
 	if (hw_priv->scan.direct_probe) {
 		mutex_lock(&hw_priv->conf_mutex);
@@ -903,7 +903,7 @@ void xradio_scan_complete_cb(struct xradio_common *hw_priv,
 {
 	struct xradio_vif *priv = xrwl_hwpriv_to_vifpriv(hw_priv,
 					hw_priv->scan.if_id);
-	scan_printk(XRADIO_DBG_TRC,"%s\n", __func__);
+
 
 	if (unlikely(!priv))
 		return;
@@ -944,7 +944,7 @@ void xradio_scan_timeout(struct work_struct *work)
 {
 	struct xradio_common *hw_priv =
 		container_of(work, struct xradio_common, scan.timeout.work);
-	scan_printk(XRADIO_DBG_TRC,"%s\n", __func__);
+
 
 	if (likely(atomic_xchg(&hw_priv->scan.in_progress, 0))) {
 		if (hw_priv->scan.status > 0)
@@ -973,7 +973,7 @@ void xradio_advance_scan_timeout(struct work_struct *work)
 
 	struct xradio_vif *priv = xrwl_hwpriv_to_vifpriv(hw_priv,
 					hw_priv->scan.if_id);
-	scan_printk(XRADIO_DBG_TRC,"%s\n", __func__);
+
 
 	if (WARN_ON(!priv))
 		return;
