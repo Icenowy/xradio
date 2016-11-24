@@ -19,6 +19,7 @@
 #include "ap.h"
 #include "sta.h"
 #include "sbus.h"
+#include "sdio.h"
 
 #define B_RATE_INDEX   0     //11b rate for important short frames in 2.4G.
 #define AG_RATE_INDEX  6     //11a/g rate for important short frames in 5G.
@@ -1166,7 +1167,7 @@ xradio_tx_h_skb_pad(struct xradio_common *priv,
 		    struct sk_buff *skb)
 {
 	size_t len = __le16_to_cpu(wsm->hdr.len);
-	size_t padded_len = priv->sbus_ops->align_size(priv->sbus_priv, len);
+	size_t padded_len = sdio_align_len(priv->sbus_priv, len);
 
 
 	if (SYS_WARN(skb_padto(skb, padded_len) != 0)) {

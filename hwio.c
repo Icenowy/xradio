@@ -14,6 +14,7 @@
 #include "xradio.h"
 #include "hwio.h"
 #include "sbus.h"
+#include "sdio.h"
 
 #define CHECK_ADDR_LEN  1
 
@@ -44,8 +45,7 @@ static int __xradio_read(struct xradio_common *hw_priv, u16 addr,
 	/* Convert to SDIO Register Address */
 	addr_sdio = SPI_REG_ADDR_TO_SDIO(addr);
 	sdio_reg_addr_17bit = SDIO_ADDR17BIT(buf_id, 0, 0, addr_sdio);
-	SYS_BUG(!hw_priv->sbus_ops);
-	return hw_priv->sbus_ops->sbus_data_read(hw_priv->sbus_priv, 
+	return sdio_data_read(hw_priv->sbus_priv,
 	                                         sdio_reg_addr_17bit,
 	                                         buf, buf_len);
 }
@@ -68,8 +68,7 @@ static int __xradio_write(struct xradio_common *hw_priv, u16 addr,
 	addr_sdio = SPI_REG_ADDR_TO_SDIO(addr);
 	sdio_reg_addr_17bit = SDIO_ADDR17BIT(buf_id, 0, 0, addr_sdio);
 
-	SYS_BUG(!hw_priv->sbus_ops);
-	return hw_priv->sbus_ops->sbus_data_write(hw_priv->sbus_priv,
+	return sdio_data_write(hw_priv->sbus_priv,
 	                                          sdio_reg_addr_17bit,
 	                                          buf, buf_len);
 }
@@ -90,10 +89,9 @@ int xradio_reg_read(struct xradio_common *hw_priv, u16 addr,
                     void *buf, size_t buf_len)
 {
 	int ret;
-	SYS_BUG(!hw_priv->sbus_ops);
-	hw_priv->sbus_ops->lock(hw_priv->sbus_priv);
+	sdio_lock(hw_priv->sbus_priv);
 	ret = __xradio_read(hw_priv, addr, buf, buf_len, 0);
-	hw_priv->sbus_ops->unlock(hw_priv->sbus_priv);
+	sdio_unlock(hw_priv->sbus_priv);
 	return ret;
 }
 
@@ -101,18 +99,16 @@ int xradio_reg_write(struct xradio_common *hw_priv, u16 addr,
                      const void *buf, size_t buf_len)
 {
 	int ret;
-	SYS_BUG(!hw_priv->sbus_ops);
-	hw_priv->sbus_ops->lock(hw_priv->sbus_priv);
+	sdio_lock(hw_priv->sbus_priv);
 	ret = __xradio_write(hw_priv, addr, buf, buf_len, 0);
-	hw_priv->sbus_ops->unlock(hw_priv->sbus_priv);
+	sdio_unlock(hw_priv->sbus_priv);
 	return ret;
 }
 
 int xradio_data_read(struct xradio_common *hw_priv, void *buf, size_t buf_len)
 {
 	int ret, retry = 1;
-	SYS_BUG(!hw_priv->sbus_ops);
-	hw_priv->sbus_ops->lock(hw_priv->sbus_priv);
+	sdio_lock(hw_priv->sbus_priv);
 	{
 		int buf_id_rx = hw_priv->buf_id_rx;
 		while (retry <= MAX_RETRY) {
@@ -129,7 +125,7 @@ int xradio_data_read(struct xradio_common *hw_priv, void *buf, size_t buf_len)
 			}
 		}
 	}
-	hw_priv->sbus_ops->unlock(hw_priv->sbus_priv);
+	sdio_unlock(hw_priv->sbus_priv);
 	return ret;
 }
 
@@ -137,8 +133,7 @@ int xradio_data_write(struct xradio_common *hw_priv, const void *buf,
                       size_t buf_len)
 {
 	int ret, retry = 1;
-	SYS_BUG(!hw_priv->sbus_ops);
-	hw_priv->sbus_ops->lock(hw_priv->sbus_priv);
+	sdio_lock(hw_priv->sbus_priv);
 	{
 		int buf_id_tx = hw_priv->buf_id_tx;
 		while (retry <= MAX_RETRY) {
@@ -155,7 +150,7 @@ int xradio_data_write(struct xradio_common *hw_priv, const void *buf,
 			}
 		}
 	}
-	hw_priv->sbus_ops->unlock(hw_priv->sbus_priv);
+	sdio_unlock(hw_priv->sbus_priv);
 	return ret;
 }
 
@@ -172,7 +167,7 @@ int xradio_indirect_read(struct xradio_common *hw_priv, u32 addr, void *buf,
 		goto out;
 	}
 
-	hw_priv->sbus_ops->lock(hw_priv->sbus_priv);
+	sdio_lock(hw_priv->sbus_priv);
 	/* Write address */
 	ret = __xradio_write_reg32(hw_priv, HIF_SRAM_BASE_ADDR_REG_ID, addr);
 	if (ret < 0) {
@@ -219,7 +214,7 @@ int xradio_indirect_read(struct xradio_common *hw_priv, u32 addr, void *buf,
 	}
 
 out:
-	hw_priv->sbus_ops->unlock(hw_priv->sbus_priv);
+	sdio_unlock(hw_priv->sbus_priv);
 	return ret;
 }
 
@@ -233,7 +228,7 @@ int xradio_apb_write(struct xradio_common *hw_priv, u32 addr, const void *buf,
 		return -EINVAL;
 	}
 
-	hw_priv->sbus_ops->lock(hw_priv->sbus_priv);
+	sdio_lock(hw_priv->sbus_priv);
 
 	/* Write address */
 	ret = __xradio_write_reg32(hw_priv, HIF_SRAM_BASE_ADDR_REG_ID, addr);
@@ -250,7 +245,7 @@ int xradio_apb_write(struct xradio_common *hw_priv, u32 addr, const void *buf,
 	}
 
 out:
-	hw_priv->sbus_ops->unlock(hw_priv->sbus_priv);
+	sdio_unlock(hw_priv->sbus_priv);
 	return ret;
 }
 
@@ -264,7 +259,7 @@ int xradio_ahb_write(struct xradio_common *hw_priv, u32 addr, const void *buf,
 		return -EINVAL;
 	}
 
-	hw_priv->sbus_ops->lock(hw_priv->sbus_priv);
+	sdio_lock(hw_priv->sbus_priv);
 	
 	/* Write address */
 	ret = __xradio_write_reg32(hw_priv, HIF_SRAM_BASE_ADDR_REG_ID, addr);
@@ -281,6 +276,6 @@ int xradio_ahb_write(struct xradio_common *hw_priv, u32 addr, const void *buf,
 	}
 
 out:
-	hw_priv->sbus_ops->unlock(hw_priv->sbus_priv);
+	sdio_unlock(hw_priv->sbus_priv);
 	return ret;
 }

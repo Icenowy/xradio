@@ -33,6 +33,7 @@
 #include "scan.h"
 #include "pm.h"
 #include "xr_version.h"
+#include "sdio.h"
 
 MODULE_AUTHOR("XRadioTech");
 MODULE_DESCRIPTION("XRadioTech WLAN driver core");
@@ -904,8 +905,7 @@ int xradio_core_reinit(struct xradio_common *hw_priv)
 	/*reinit sdio sbus. */
 	sbus_sdio_deinit();
 	msleep(100);
-	hw_priv->pdev = sbus_sdio_init((struct sbus_ops **)&hw_priv->sbus_ops,
-	                               &hw_priv->sbus_priv);
+	hw_priv->pdev = sbus_sdio_init(&hw_priv->sbus_priv);
 	if (!hw_priv->pdev) {
 		xradio_dbg(XRADIO_DBG_ERROR,"%s:sbus_sdio_init failed\n", __func__);
 		ret = -ETIMEDOUT;
@@ -933,10 +933,10 @@ int xradio_core_reinit(struct xradio_common *hw_priv)
 	}
 
 	/* Set sdio blocksize. */
-	hw_priv->sbus_ops->lock(hw_priv->sbus_priv);
-	SYS_WARN(hw_priv->sbus_ops->set_block_size(hw_priv->sbus_priv,
+	sdio_lock(hw_priv->sbus_priv);
+	SYS_WARN(sdio_set_blk_size(hw_priv->sbus_priv,
 		 SDIO_BLOCK_SIZE));
-	hw_priv->sbus_ops->unlock(hw_priv->sbus_priv);
+	sdio_unlock(hw_priv->sbus_priv);
 	if (wait_event_interruptible_timeout(hw_priv->wsm_startup_done,
 				hw_priv->wsm_caps.firmwareReady, 3*HZ) <= 0) {
 
@@ -1034,8 +1034,7 @@ int xradio_core_init(void)
 	hw_priv = dev->priv;
 
 	//init sdio sbus
-	hw_priv->pdev = sbus_sdio_init((struct sbus_ops **)&hw_priv->sbus_ops, 
-	                               &hw_priv->sbus_priv);
+	hw_priv->pdev = sbus_sdio_init(&hw_priv->sbus_priv);
 	if (!hw_priv->pdev) {
 		err = -ETIMEDOUT;
 		xradio_dbg(XRADIO_DBG_ERROR,"sbus_sdio_init failed\n");
@@ -1075,10 +1074,10 @@ int xradio_core_init(void)
 	}
 
 	/* Set sdio blocksize. */
-	hw_priv->sbus_ops->lock(hw_priv->sbus_priv);
-	SYS_WARN(hw_priv->sbus_ops->set_block_size(hw_priv->sbus_priv,
+	sdio_lock(hw_priv->sbus_priv);
+	SYS_WARN(sdio_set_blk_size(hw_priv->sbus_priv,
 			SDIO_BLOCK_SIZE));
-	hw_priv->sbus_ops->unlock(hw_priv->sbus_priv);
+	sdio_unlock(hw_priv->sbus_priv);
 
 	if (wait_event_interruptible_timeout(hw_priv->wsm_startup_done,
 				hw_priv->wsm_caps.firmwareReady, 3*HZ) <= 0) {

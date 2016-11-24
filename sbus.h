@@ -35,25 +35,8 @@ struct sbus_priv {
 	int                   load_state;
 };
 
-struct sbus_ops {
-	int (*sbus_data_read)(struct sbus_priv *self, unsigned int addr,
-					void *dst, int count);
-	int (*sbus_data_write)(struct sbus_priv *self, unsigned int addr,
-					const void *src, int count);
-	void (*lock)(struct sbus_priv *self);
-	void (*unlock)(struct sbus_priv *self);
-	size_t (*align_size)(struct sbus_priv *self, size_t size);
-	int (*set_block_size)(struct sbus_priv *self, size_t size);
-	int (*irq_subscribe)(struct sbus_priv *self, 
-	      sbus_irq_handler handler, void *priv);
-	int (*irq_unsubscribe)(struct sbus_priv *self);
-	int (*power_mgmt)(struct sbus_priv *self, bool suspend);
-	int (*reset)(struct sbus_priv *self);
-};
-
 //sbus init functions
-struct device * sbus_sdio_init(struct sbus_ops  **sdio_ops, 
-                               struct sbus_priv **sdio_priv);
+struct device * sbus_sdio_init(struct sbus_priv **sdio_priv);
 void  sbus_sdio_deinit(void);
 
 #endif /* __SBUS_H */

@@ -110,7 +110,6 @@
 extern char *drv_version;
 #define DRV_VERSION    drv_version
 
-/* extern */ struct sbus_ops;
 /* extern */ struct task_struct;
 /* extern */ struct xradio_debug_priv;
 /* extern */ struct xradio_debug_common;
@@ -223,7 +222,6 @@ struct xradio_common {
 
 	struct mutex			conf_mutex;
 
-	const struct sbus_ops		*sbus_ops;
 	struct sbus_priv		*sbus_priv;
 	int 			driver_ready;
 

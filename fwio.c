@@ -19,6 +19,7 @@
 #include "hwio.h"
 #include "sbus.h"
 #include "bh.h"
+#include "sdio.h"
 
 /* Macroses are local. */
 #define APB_WRITE(reg, val) \
@@ -552,7 +553,7 @@ int xradio_load_firmware(struct xradio_common *hw_priv)
 	}
 
 	/* Register Interrupt Handler */
-	ret = hw_priv->sbus_ops->irq_subscribe(hw_priv->sbus_priv, 
+	ret = sdio_irq_subscribe(hw_priv->sbus_priv,
 	                                      (sbus_irq_handler)xradio_irq_handler, 
 	                                       hw_priv);
 	if (ret < 0) {
@@ -618,7 +619,7 @@ int xradio_load_firmware(struct xradio_common *hw_priv)
 	return 0;
 
 unsubscribe:
-	hw_priv->sbus_ops->irq_unsubscribe(hw_priv->sbus_priv);
+	sdio_irq_unsubscribe(hw_priv->sbus_priv);
 out:
 	if (hw_priv->sdd) {
 #ifdef USE_VFS_FIRMWARE
@@ -633,7 +634,7 @@ out:
 
 int xradio_dev_deinit(struct xradio_common *hw_priv)
 {
-	hw_priv->sbus_ops->irq_unsubscribe(hw_priv->sbus_priv);
+	sdio_irq_unsubscribe(hw_priv->sbus_priv);
 	if (hw_priv->sdd) {
 	#ifdef USE_VFS_FIRMWARE
 		xr_fileclose(hw_priv->sdd);

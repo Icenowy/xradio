@@ -28,6 +28,7 @@
 #include "platform.h"
 #include "xradio.h"
 #include "sbus.h"
+#include "sdio.h"
 
 /* sdio vendor id and device id*/
 #define SDIO_VENDOR_ID_XRADIO 0x0020
@@ -39,7 +40,7 @@ static const struct sdio_device_id xradio_sdio_ids[] = {
 };
 
 /* sbus_ops implemetation */
-static int sdio_data_read(struct sbus_priv *self, unsigned int addr,
+int sdio_data_read(struct sbus_priv *self, unsigned int addr,
                           void *dst, int count)
 {
 	int ret = sdio_memcpy_fromio(self->func, dst, addr, count);
@@ -48,7 +49,7 @@ static int sdio_data_read(struct sbus_priv *self, unsigned int addr,
 	return ret;
 }
 
-static int sdio_data_write(struct sbus_priv *self, unsigned int addr,
+int sdio_data_write(struct sbus_priv *self, unsigned int addr,
                            const void *src, int count)
 {
 	int ret = sdio_memcpy_toio(self->func, addr, (void *)src, count);
@@ -57,22 +58,22 @@ static int sdio_data_write(struct sbus_priv *self, unsigned int addr,
 	return ret;
 }
 
-static void sdio_lock(struct sbus_priv *self)
+void sdio_lock(struct sbus_priv *self)
 {
 	sdio_claim_host(self->func);
 }
 
-static void sdio_unlock(struct sbus_priv *self)
+void sdio_unlock(struct sbus_priv *self)
 {
 	sdio_release_host(self->func);
 }
 
-static size_t sdio_align_len(struct sbus_priv *self, size_t size)
+size_t sdio_align_len(struct sbus_priv *self, size_t size)
 {
 	return sdio_align_size(self->func, size);
 }
 
-static int sdio_set_blk_size(struct sbus_priv *self, size_t size)
+int sdio_set_blk_size(struct sbus_priv *self, size_t size)
 {
 	return sdio_set_block_size(self->func, size);
 }
@@ -95,7 +96,7 @@ static irqreturn_t sdio_irq_handler(int irq, void *dev_id)
 	return IRQ_HANDLED;
 }
 
-static int sdio_irq_subscribe(struct sbus_priv *self,
+int sdio_irq_subscribe(struct sbus_priv *self,
 				     sbus_irq_handler handler,
 				     void *priv)
 {
@@ -132,7 +133,7 @@ static int sdio_irq_subscribe(struct sbus_priv *self,
 	return ret;
 }
 
-static int sdio_irq_unsubscribe(struct sbus_priv *self)
+int sdio_irq_unsubscribe(struct sbus_priv *self)
 {
 	int ret = 0;
 	unsigned long flags;
@@ -154,7 +155,7 @@ static int sdio_irq_unsubscribe(struct sbus_priv *self)
 	return ret;
 }
 
-static int sdio_pm(struct sbus_priv *self, bool  suspend)
+int sdio_pm(struct sbus_priv *self, bool  suspend)
 {
 	int ret = 0;
 	if (suspend) {
@@ -173,18 +174,6 @@ static int sdio_reset(struct sbus_priv *self)
 	return 0;
 }
 
-static struct sbus_ops sdio_sbus_ops = {
-	.sbus_data_read     = sdio_data_read,
-	.sbus_data_write    = sdio_data_write,
-	.lock               = sdio_lock,
-	.unlock             = sdio_unlock,
-	.align_size         = sdio_align_len,
-	.set_block_size     = sdio_set_blk_size,
-	.irq_subscribe      = sdio_irq_subscribe,
-	.irq_unsubscribe    = sdio_irq_unsubscribe,
-	.power_mgmt         = sdio_pm,
-	.reset              = sdio_reset,
-};
 static struct sbus_priv sdio_self;
 
 //for sdio debug  2015-5-26 11:01:21
@@ -327,8 +316,7 @@ static struct sdio_driver sdio_driver = {
 
 
 /* Init Module function -> Called by insmod */
-struct device * sbus_sdio_init(struct sbus_ops  **sdio_ops, 
-                               struct sbus_priv **sdio_priv)
+struct device * sbus_sdio_init(struct sbus_priv **sdio_priv)
 {
 	int ret = 0;
 	struct device * sdio_dev = NULL;
@@ -364,7 +352,6 @@ struct device * sbus_sdio_init(struct sbus_ops  **sdio_ops,
 
 	//register sbus.
 	sdio_dev   = &(sdio_self.func->dev);
-	*sdio_ops  = &sdio_sbus_ops;
 	*sdio_priv = &sdio_self;
 
 	return sdio_dev;

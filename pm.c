@@ -17,6 +17,7 @@
 #include "bh.h"
 #include "sbus.h"
 #include "platform.h"
+#include "sdio.h"
 
 #define XRADIO_BEACON_SKIPPING_MULTIPLIER 3
 
@@ -491,7 +492,7 @@ int xradio_wow_suspend(struct ieee80211_hw *hw, struct cfg80211_wowlan *wowlan)
 	}
 
 	/* Enable IRQ wake */
-	ret = hw_priv->sbus_ops->power_mgmt(hw_priv->sbus_priv, true);
+	ret = sdio_pm(hw_priv->sbus_priv, true);
 	if (ret) {
 		pm_printk(XRADIO_DBG_WARN, "Don't suspend sbus pm failed\n");
 		xradio_wow_resume(hw);
@@ -666,7 +667,7 @@ int xradio_wow_resume(struct ieee80211_hw *hw)
 #endif
 
 	/* Disable IRQ wake */
-	hw_priv->sbus_ops->power_mgmt(hw_priv->sbus_priv, false);
+	sdio_pm(hw_priv->sbus_priv, false);
 
 	up(&hw_priv->scan.lock);
 
