@@ -62,5 +62,7 @@ ccflags-y += -DXRADIO_USE_LONG_KEEP_ALIVE_PERIOD
 # Use semaphore to sync bh txrx.
 #ccflags-y += -DBH_USE_SEMAPHORE
 
+ccflags-y += -DDEBUG
+
 obj-$(CONFIG_XRADIO) += xradio_wlan.o
 

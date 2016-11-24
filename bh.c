@@ -570,7 +570,6 @@ static int xradio_bh_tx(struct xr819* hw_priv) {
 			- hw_priv->bh.hw_bufs_used;
 
 	if (availablebuffers) {
-		dev_dbg(hw_priv->dev, "checking for outgoing data\n");
 
 		/* Wake up the devices */
 		//if (hw_priv->bh.device_can_sleep) {

@@ -145,6 +145,8 @@ int wsm_write_mib(struct xr819 *hw_priv, u16 mibId, void *_buf, size_t buf_size,
 	struct wsm_mib mib_buf =
 			{ .mibId = mibId, .buf = _buf, .buf_size = buf_size, };
 
+	dev_dbg(hw_priv->dev, "writing mib %d\n", (int) mibId);
+
 	wsm_cmd_lock(hw_priv);
 	WSM_PUT16(buf, mibId);
 	WSM_PUT16(buf, buf_size);

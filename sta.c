@@ -56,8 +56,44 @@ int xradio_config(struct ieee80211_hw *dev, u32 changed) {
 	struct ieee80211_conf *conf = &dev->conf;
 	wiphy_debug(dev->wiphy, "config\n");
 	if (changed & IEEE80211_CONF_CHANGE_CHANNEL) {
-		xradio_channel_switch(dev, conf->chandef.chan);
+		//xradio_channel_switch(dev, conf->chandef.chan);
 	}
+	return ret;
+}
+
+/* TODO:COMBO:UAPSD will be supported only on one interface */
+static int xradio_set_uapsd_param(struct xr819* hw_priv,
+		const struct wsm_edca_params *arg) {
+
+	struct wsm_uapsd_info uapsd_info;
+	int ret;
+	u16 uapsdFlags = 0;
+
+	/* Here's the mapping AC [queue, bit]
+	 VO [0,3], VI [1, 2], BE [2, 1], BK [3, 0]*/
+
+	if (arg->params[0].uapsdEnable)
+		uapsdFlags |= 1 << 3;
+
+	if (arg->params[1].uapsdEnable)
+		uapsdFlags |= 1 << 2;
+
+	if (arg->params[2].uapsdEnable)
+		uapsdFlags |= 1 << 1;
+
+	if (arg->params[3].uapsdEnable)
+		uapsdFlags |= 1;
+
+	/* Currently pseudo U-APSD operation is not supported, so setting
+	 * MinAutoTriggerInterval, MaxAutoTriggerInterval and
+	 * AutoTriggerStep to 0 */
+
+	uapsd_info.uapsdFlags = cpu_to_le16(uapsdFlags);
+	uapsd_info.minAutoTriggerInterval = 0;
+	uapsd_info.maxAutoTriggerInterval = 0;
+	uapsd_info.autoTriggerStep = 0;
+
+	ret = wsm_set_uapsd_info(hw_priv, &uapsd_info, 0);
 	return ret;
 }
 
@@ -89,11 +125,13 @@ int xradio_conf_tx(struct ieee80211_hw *dev, struct ieee80211_vif *vif,
 	}
 
 	//if (priv->mode == NL80211_IFTYPE_STATION) {
-		//ret = xradio_set_uapsd_param(priv, &priv->edca);
-		//if (!ret && priv->setbssparams_done
-		//		&& (priv->join_status == XRADIO_JOIN_STATUS_STA)
-		//		&& (old_uapsdFlags != priv->uapsd_info.uapsdFlags))
-		//xradio_set_pm(priv, &priv->powersave_mode);
+
+	ret = xradio_set_uapsd_param(hw_priv, &edca);
+
+	//if (!ret && priv->setbssparams_done
+	//		&& (priv->join_status == XRADIO_JOIN_STATUS_STA)
+	//		&& (old_uapsdFlags != priv->uapsd_info.uapsdFlags))
+	//xradio_set_pm(priv, &priv->powersave_mode);
 	//}
 
 	out: return 0;

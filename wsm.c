@@ -586,11 +586,7 @@ int wsm_remove_key(struct xr819 *hw_priv,
 
 /* ******************************************************************** */
 
-
-
 /* ******************************************************************** */
-
-
 
 /* ******************************************************************** */
 
@@ -1614,8 +1610,6 @@ void wsm_unlock_tx(struct xr819 *hw_priv)
 /* ******************************************************************** */
 /* WSM RX								*/
 
-
-
 static int wsm_debug_indication(struct xr819 *hw_priv,
 		struct wsm_buf *buf)
 {
@@ -1962,7 +1956,7 @@ int wsm_handle_rx(struct xr819 *hw_priv, int id, struct wsm_hdr *wsm,
 	wsm_buf.data = (u8 *) &wsm[1];
 	wsm_buf.end = &wsm_buf.begin[__le32_to_cpu(wsm->len)];
 
-	dev_err(hw_priv->dev, "<<< 0x%.4X (%d)\n", id, wsm_buf.end - wsm_buf.begin);
+	dev_dbg(hw_priv->dev, "<<< 0x%.4X (%d)\n", id, wsm_buf.end - wsm_buf.begin);
 
 #if 0
 	if (id == 0x404) {
@@ -2636,7 +2630,6 @@ void wsm_buf_deinit(struct wsm_buf *buf)
 	buf->begin = buf->data = buf->end = NULL;
 }
 #endif
-
 
 #if 0
 static struct xradio_vif
