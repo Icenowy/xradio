@@ -5,8 +5,10 @@
 static int wsm_generic_confirm(struct xr819 *hw_priv, void *arg,
 		struct wsm_buf *buf) {
 	u32 status = WSM_GET32(buf);
-	if (status != WSM_STATUS_SUCCESS)
+	if (status != WSM_STATUS_SUCCESS) {
+		dev_err(hw_priv->dev, "negative command confirmation\n");
 		return -EINVAL;
+	}
 	return 0;
 	underflow: return -EINVAL;
 }
@@ -54,12 +56,11 @@ int wsm_write_mib_confirm(struct xr819 *hw_priv, struct wsm_mib *arg,
 
 int wsm_configuration_confirm(struct xr819 *hw_priv,
 		struct wsm_configuration *arg, struct wsm_buf *buf) {
-	int i;
-	int status;
+	int ret, i;
 
-	status = WSM_GET32(buf);
-	if (status != WSM_STATUS_SUCCESS)
-		return -EINVAL;
+	ret = wsm_generic_confirm(hw_priv, arg, buf);
+	if (ret)
+		return ret;
 
 	WSM_GET(buf, arg->dot11StationId, ETH_ALEN);
 	arg->dot11FrequencyBandsSupported = WSM_GET8(buf);
@@ -70,7 +71,7 @@ int wsm_configuration_confirm(struct xr819 *hw_priv,
 		arg->txPowerRange[i].max_power_level = WSM_GET32(buf);
 		arg->txPowerRange[i].stepping = WSM_GET32(buf);
 	}
-	return 0;
+	return ret;
 
 	underflow: return -EINVAL;
 }
