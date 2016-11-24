@@ -82,7 +82,7 @@ static irqreturn_t sdio_irq_handler(int irq, void *dev_id)
 	//struct sbus_priv *self = sdio_get_drvdata(func);
 	struct sbus_priv *self = (struct sbus_priv*)dev_id;
 	unsigned long flags;
-	sbus_printk(XRADIO_DBG_TRC, "%s\n", __FUNCTION__);
+
 
 	SYS_BUG(!self);
 	spin_lock_irqsave(&self->lock, flags);
@@ -105,7 +105,7 @@ static int sdio_irq_subscribe(struct sbus_priv *self,
 
 	if (!handler)
 		return -EINVAL;
-	sbus_printk(XRADIO_DBG_TRC, "%s\n", __FUNCTION__);
+
 
 	spin_lock_irqsave(&self->lock, flags);
 	self->irq_priv = priv;
@@ -137,7 +137,7 @@ static int sdio_irq_unsubscribe(struct sbus_priv *self)
 	int ret = 0;
 	unsigned long flags;
 
-	sbus_printk(XRADIO_DBG_TRC, "%s\n", __FUNCTION__);
+
 
 	if (!self->irq_handler) {
 		sbus_printk(XRADIO_DBG_ERROR, "%s:irq_handler is NULL!\n", __FUNCTION__);
@@ -205,7 +205,7 @@ static int sdio_set_clk(struct sdio_func *func, u32 clk)
 		}
 	}
 	return 0;
-	sbus_printk(XRADIO_DBG_TRC, "%s\n", __FUNCTION__);
+
 }
 #endif
 
@@ -332,8 +332,8 @@ struct device * sbus_sdio_init(struct sbus_ops  **sdio_ops,
 {
 	int ret = 0;
 	struct device * sdio_dev = NULL;
-	sbus_printk(XRADIO_DBG_TRC, "%s\n", __FUNCTION__);
 	
+
 	//initialize sbus_priv.
 	if (sdio_self.load_state == SDIO_UNLOAD) {
 		spin_lock_init(&sdio_self.lock);
@@ -373,7 +373,7 @@ struct device * sbus_sdio_init(struct sbus_ops  **sdio_ops,
 /* SDIO Driver Unloading */
 void sbus_sdio_deinit()
 {
-	sbus_printk(XRADIO_DBG_TRC, "%s\n", __FUNCTION__);
+
 	if (sdio_self.load_state != SDIO_UNLOAD) {
 		sdio_unregister_driver(&sdio_driver);
 		memset(&sdio_self, 0, sizeof(sdio_self));

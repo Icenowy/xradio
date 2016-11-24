@@ -277,7 +277,7 @@ void wsm_upper_restart(struct xradio_common *hw_priv)
 {
 	int i = 0;
 	struct xradio_vif *priv = NULL;
-	wsm_printk(XRADIO_DBG_ERROR, "%s\n", __func__);
+
 #ifdef CONFIG_PM
 	xradio_pm_stay_awake(&hw_priv->pm_state, 3*HZ);
 #endif
@@ -329,7 +329,7 @@ void wsm_query_work(struct work_struct *work)
 	struct xradio_common *hw_priv =
 		container_of(work, struct xradio_common, query_work);
 	u8 ret[100] = {0};
-	wsm_printk(XRADIO_DBG_ERROR, "%s\n", __func__); 
+
 
 	*(u32*)&ret[0] = hw_priv->query_packetID;
 	wsm_read_mib(hw_priv, WSM_MIB_ID_REQ_PKT_STATUS, (void*)&ret[0], sizeof(ret), 4);

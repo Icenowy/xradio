@@ -44,7 +44,7 @@ int xradio_register_bh(struct xradio_common *hw_priv)
 {
 	int err = 0;
 	struct sched_param param = { .sched_priority = 1 };
-	bh_printk(XRADIO_DBG_TRC,"%s\n", __FUNCTION__);
+
 
 	SYS_BUG(hw_priv->bh_thread);
 	atomic_set(&hw_priv->bh_rx, 0);
@@ -78,7 +78,7 @@ int xradio_register_bh(struct xradio_common *hw_priv)
 void xradio_unregister_bh(struct xradio_common *hw_priv)
 {
 	struct task_struct *thread = hw_priv->bh_thread;
-	bh_printk(XRADIO_DBG_TRC,"%s\n", __FUNCTION__);
+
 
 	if (SYS_WARN(!thread))
 		return;
@@ -94,7 +94,7 @@ void xradio_unregister_bh(struct xradio_common *hw_priv)
 void xradio_irq_handler(struct xradio_common *hw_priv)
 {
 
-	bh_printk(XRADIO_DBG_TRC,"%s\n", __FUNCTION__);
+
 	DBG_BH_IRQ_ADD;
 	if (/* SYS_WARN */(hw_priv->bh_error))
 		return;
@@ -113,7 +113,7 @@ void xradio_irq_handler(struct xradio_common *hw_priv)
 
 void xradio_bh_wakeup(struct xradio_common *hw_priv)
 {
-	bh_printk(XRADIO_DBG_MSG,"%s\n", __FUNCTION__);
+
 	if (SYS_WARN(hw_priv->bh_error))
 		return;
 #ifdef BH_USE_SEMAPHORE
@@ -136,7 +136,7 @@ int xradio_bh_suspend(struct xradio_common *hw_priv)
 	struct xradio_vif *priv = NULL;
 #endif
 
-	bh_printk(XRADIO_DBG_MSG,"%s\n", __FUNCTION__);
+
 	if (hw_priv->bh_error) {
 		return -EINVAL;
 	}
@@ -174,7 +174,7 @@ int xradio_bh_resume(struct xradio_common *hw_priv)
 	struct xradio_vif *priv =NULL;
 #endif
 
-	bh_printk(XRADIO_DBG_MSG,"%s\n", __FUNCTION__);
+
 	if (hw_priv->bh_error) {
 		return -EINVAL;
 	}
@@ -221,7 +221,7 @@ int wsm_release_tx_buffer(struct xradio_common *hw_priv, int count)
 {
 	int ret = 0;
 	int hw_bufs_used = hw_priv->hw_bufs_used;
-	bh_printk(XRADIO_DBG_MSG,"%s\n", __FUNCTION__);
+
 
 	hw_priv->hw_bufs_used -= count;
 	if (SYS_WARN(hw_priv->hw_bufs_used < 0)) {
@@ -242,7 +242,7 @@ int wsm_release_tx_buffer(struct xradio_common *hw_priv, int count)
 int wsm_release_vif_tx_buffer(struct xradio_common *hw_priv, int if_id, int count)
 {
 	int ret = 0;
-	bh_printk(XRADIO_DBG_MSG,"%s\n", __FUNCTION__);
+
 
 	hw_priv->hw_bufs_used_vif[if_id] -= count;
 	if (!hw_priv->hw_bufs_used_vif[if_id])
@@ -261,7 +261,7 @@ int wsm_release_buffer_to_fw(struct xradio_vif *priv, int count)
 	size_t buf_len;
 	struct wsm_hdr *wsm;
 	struct xradio_common *hw_priv = priv->hw_priv;
-	bh_printk(XRADIO_DBG_MSG,"%s\n", __FUNCTION__);
+
 
 	if (priv->join_status != XRADIO_JOIN_STATUS_AP) {
 		return 0;
@@ -310,7 +310,7 @@ int xradio_init_resv_skb(struct xradio_common *hw_priv)
 {
 	int len = (SDIO_BLOCK_SIZE<<2) + WSM_TX_EXTRA_HEADROOM + \
 	           8 + 12;	/* TKIP IV + ICV and MIC */
-	bh_printk(XRADIO_DBG_TRC,"%s\n", __FUNCTION__);
+
 
 	hw_priv->skb_reserved = xr_alloc_skb(len);
 	if (hw_priv->skb_reserved) {
@@ -324,7 +324,7 @@ int xradio_init_resv_skb(struct xradio_common *hw_priv)
 
 void xradio_deinit_resv_skb(struct xradio_common *hw_priv)
 {
-	bh_printk(XRADIO_DBG_TRC,"%s\n", __FUNCTION__);
+
 	if (hw_priv->skb_reserved) {
 		dev_kfree_skb(hw_priv->skb_reserved);
 		hw_priv->skb_reserved = NULL;
@@ -371,7 +371,7 @@ static struct sk_buff *xradio_get_skb(struct xradio_common *hw_priv, size_t len)
 {
 	struct sk_buff *skb = NULL;
 	size_t alloc_len = (len > SDIO_BLOCK_SIZE) ? len : SDIO_BLOCK_SIZE;
-	bh_printk(XRADIO_DBG_TRC,"%s\n", __FUNCTION__);
+
 
 	/* TKIP IV + TKIP ICV and MIC - Piggyback.*/
 	alloc_len += WSM_TX_EXTRA_HEADROOM + 8 + 12- 2;
@@ -403,7 +403,7 @@ static struct sk_buff *xradio_get_skb(struct xradio_common *hw_priv, size_t len)
 
 static void xradio_put_skb(struct xradio_common *hw_priv, struct sk_buff *skb)
 {
-	bh_printk(XRADIO_DBG_TRC,"%s\n", __FUNCTION__);
+
 	if (hw_priv->skb_cache)
 		dev_kfree_skb(skb);
 	else
@@ -431,7 +431,7 @@ static int xradio_device_wakeup(struct xradio_common *hw_priv)
 	u16 ctrl_reg;
 	int ret, i=0;
 
-	bh_printk(XRADIO_DBG_MSG, "%s\n", __FUNCTION__);
+
 
 	/* To force the device to be always-on, the host sets WLAN_UP to 1 */
 	ret = xradio_reg_write_16(hw_priv, HIF_CONTROL_REG_ID, HIF_CTRL_WUP_BIT);
@@ -487,7 +487,7 @@ static int xradio_bh(void *arg)
 	u32 dummy;
 	int vif_selected;
 
-	bh_printk(XRADIO_DBG_MSG, "%s\n", __FUNCTION__);
+
 
 	for (;;) {
 		/* Check if devices can sleep, and set time to wait for interrupt. */
