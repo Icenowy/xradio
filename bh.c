@@ -721,8 +721,8 @@ rx:
 			}
 
 			/* dump rx data. */
-#if defined(CONFIG_XRADIO_DEBUG)
-			if (unlikely(hw_priv->wsm_enable_wsm_dumps)) {
+//#if defined(CONFIG_XRADIO_DEBUG)
+//			if (unlikely(hw_priv->wsm_enable_wsm_dumps)) {
 				u16 msgid, ifid;
 				u16 *p = (u16 *)data;
 				msgid = (*(p + 1)) & 0xC3F;
@@ -732,8 +732,8 @@ rx:
 				          msgid, ifid, *p);
 				print_hex_dump_bytes("<-- ", DUMP_PREFIX_NONE,
 				                     data, min(wsm_len, hw_priv->wsm_dump_max_size));
-			}
-#endif /* CONFIG_XRADIO_DEBUG */
+//			}
+//#endif /* CONFIG_XRADIO_DEBUG */
 
 			/* extract wsm id and seq. */
 			wsm_id  = __le32_to_cpu(wsm->id) & 0xFFF;
@@ -876,8 +876,8 @@ tx:
 				}
 				DBG_BH_TX_TOTAL_ADD;
 
-#if defined(CONFIG_XRADIO_DEBUG)
-				if (unlikely(hw_priv->wsm_enable_wsm_dumps)) {
+//#if defined(CONFIG_XRADIO_DEBUG)
+//				if (unlikely(hw_priv->wsm_enable_wsm_dumps)) {
 					u16 msgid, ifid;
 					u16 *p = (u16 *)data;
 					msgid = (*(p + 1)) & 0x3F;
@@ -893,8 +893,8 @@ tx:
 					print_hex_dump_bytes("--> ", DUMP_PREFIX_NONE, data,
 					                     min(__le32_to_cpu(wsm->len),
 					                     hw_priv->wsm_dump_max_size));
-				}
-#endif /* CONFIG_XRADIO_DEBUG */
+//				}
+//#endif /* CONFIG_XRADIO_DEBUG */
 
 				/* Process after data have sent. */
 				if (vif_selected != -1) {
