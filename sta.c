@@ -56,7 +56,7 @@ int xradio_config(struct ieee80211_hw *dev, u32 changed) {
 	struct ieee80211_conf *conf = &dev->conf;
 	wiphy_debug(dev->wiphy, "config\n");
 	if (changed & IEEE80211_CONF_CHANGE_CHANNEL) {
-		//xradio_channel_switch(dev, conf->chandef.chan);
+		xradio_channel_switch(dev, conf->chandef.chan);
 	}
 	return ret;
 }
