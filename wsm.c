@@ -586,80 +586,11 @@ int wsm_remove_key(struct xr819 *hw_priv,
 
 /* ******************************************************************** */
 
-int wsm_set_tx_queue_params(struct xr819 *hw_priv,
-		const struct wsm_set_tx_queue_params *arg,
-		u8 id, int if_id)
-{
-	int ret;
-	struct wsm_buf *buf = &hw_priv->wsm.wsm_cmd_buf;
-	u8 queue_id_to_wmm_aci[] = {3, 2, 0, 1};
 
-	wsm_cmd_lock(hw_priv);
-
-	WSM_PUT8(buf, queue_id_to_wmm_aci[id]);
-	WSM_PUT8(buf, 0);
-	WSM_PUT8(buf, arg->ackPolicy);
-	WSM_PUT8(buf, 0);
-	WSM_PUT32(buf, arg->maxTransmitLifetime);
-	WSM_PUT16(buf, arg->allowedMediumTime);
-	WSM_PUT16(buf, 0);
-
-	ret = wsm_cmd_send(hw_priv, buf, NULL, 0x0012, WSM_CMD_TIMEOUT, if_id);
-
-	wsm_cmd_unlock(hw_priv);
-	return ret;
-
-	nomem:
-	wsm_cmd_unlock(hw_priv);
-	return -ENOMEM;
-}
 
 /* ******************************************************************** */
 
-int wsm_set_edca_params(struct xr819 *hw_priv,
-		const struct wsm_edca_params *arg,
-		int if_id)
-{
-	int ret;
-	struct wsm_buf *buf = &hw_priv->wsm.wsm_cmd_buf;
 
-	wsm_cmd_lock(hw_priv);
-
-	/* Implemented according to specification. */
-
-	WSM_PUT16(buf, arg->params[3].cwMin);
-	WSM_PUT16(buf, arg->params[2].cwMin);
-	WSM_PUT16(buf, arg->params[1].cwMin);
-	WSM_PUT16(buf, arg->params[0].cwMin);
-
-	WSM_PUT16(buf, arg->params[3].cwMax);
-	WSM_PUT16(buf, arg->params[2].cwMax);
-	WSM_PUT16(buf, arg->params[1].cwMax);
-	WSM_PUT16(buf, arg->params[0].cwMax);
-
-	WSM_PUT8(buf, arg->params[3].aifns);
-	WSM_PUT8(buf, arg->params[2].aifns);
-	WSM_PUT8(buf, arg->params[1].aifns);
-	WSM_PUT8(buf, arg->params[0].aifns);
-
-	WSM_PUT16(buf, arg->params[3].txOpLimit);
-	WSM_PUT16(buf, arg->params[2].txOpLimit);
-	WSM_PUT16(buf, arg->params[1].txOpLimit);
-	WSM_PUT16(buf, arg->params[0].txOpLimit);
-
-	WSM_PUT32(buf, arg->params[3].maxReceiveLifetime);
-	WSM_PUT32(buf, arg->params[2].maxReceiveLifetime);
-	WSM_PUT32(buf, arg->params[1].maxReceiveLifetime);
-	WSM_PUT32(buf, arg->params[0].maxReceiveLifetime);
-
-	ret = wsm_cmd_send(hw_priv, buf, NULL, 0x0013, WSM_CMD_TIMEOUT, if_id);
-	wsm_cmd_unlock(hw_priv);
-	return ret;
-
-	nomem:
-	wsm_cmd_unlock(hw_priv);
-	return -ENOMEM;
-}
 
 /* ******************************************************************** */
 

@@ -99,4 +99,10 @@ struct wsm_configuration {
 int wsm_configuration(struct xr819* priv, struct wsm_configuration *arg,
 		int if_id);
 
+int wsm_set_tx_queue_params(struct xr819* priv,
+		const struct wsm_set_tx_queue_params *arg, u8 id, int if_id);
+
+int wsm_set_edca_params(struct xr819* priv, const struct wsm_edca_params *arg,
+		int if_id);
+
 #endif

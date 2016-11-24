@@ -7,6 +7,7 @@
 #include "txrx.h"
 #include "sta.h"
 #include "ap.h"
+#include "queue.h"
 
 #include "bandsandrates.h"
 
@@ -17,6 +18,7 @@ static const struct ieee80211_ops xradio_ops = {
 		.start = xradio_start, //
 		.stop = xradio_stop, //
 		.config = xradio_config, //
+		.conf_tx = xradio_conf_tx, //
 		.add_interface = xradio_add_interface, //
 		.remove_interface = xradio_remove_interface, //
 		.configure_filter = xradio_configure_filter,
@@ -67,6 +69,9 @@ int netif_init(struct device* dev, struct xr819** priv) {
 
 	// channel bands
 	hw->wiphy->bands[NL80211_BAND_2GHZ] = &xradio_band_2ghz;
+
+	// hardware queues
+	hw->queues = AC_QUEUE_NUM;
 
 	// scanning parameters
 	hw->wiphy->max_scan_ssids = WSM_SCAN_MAX_NUM_OF_SSIDS;

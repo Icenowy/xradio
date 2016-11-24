@@ -388,8 +388,6 @@
 
 #define WSM_EVENT_INACTIVITY		(9)
 
-
-
 /* Frame template types */
 #define WSM_FRAME_TYPE_PROBE_REQUEST	(0)
 #define WSM_FRAME_TYPE_BEACON		(1)
@@ -490,8 +488,6 @@ struct wsm_hdr {
 
 /* ******************************************************************** */
 /* WSM commands								*/
-
-
 
 /* 3.3 */
 struct wsm_reset {
@@ -866,9 +862,6 @@ do {									    \
 	p->maxTransmitLifetime = (max_life_time);			\
 } while (0)
 
-int wsm_set_tx_queue_params(struct xr819* priv,
-	const struct wsm_set_tx_queue_params *arg, u8 id, int if_id);
-
 #define TXOP_UNIT 32
 #define WSM_EDCA_SET(edca, queue, aifs, cw_min, cw_max, txop, life_time,\
 		uapsd)	\
@@ -882,8 +875,7 @@ int wsm_set_tx_queue_params(struct xr819* priv,
 		p->uapsdEnable = (uapsd);			\
 	} while (0)
 
-int wsm_set_edca_params(struct xr819* priv, const struct wsm_edca_params *arg,
-	int if_id);
+
 
 int wsm_set_uapsd_param(struct xr819* priv, const struct wsm_edca_params *arg);
 
@@ -1191,7 +1183,8 @@ LMAC_MEAS_LINK_MEASUREMENT_RESULTS LinkMeasurementResults;
 } LMAC_MEAS_REPORT;
 
 // Note: eMeasurementTypes MUST match the #define WSM_MEASURE_TYPE_XXX from wsm_api.h
-typedef enum {ChannelLoadMeasurement = 0,
+typedef enum {
+ChannelLoadMeasurement = 0,
 NoiseHistrogramMeasurement,
 BeaconReport,
 STAstatisticsReport,
@@ -1765,7 +1758,6 @@ void wsm_unlock_tx(struct xr819* priv);
 
 /* ******************************************************************** */
 /* WSM / BH API								*/
-
 
 int wsm_handle_rx(struct xr819* priv, int id, struct wsm_hdr *wsm,
 	struct sk_buff **skb_p);

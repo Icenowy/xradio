@@ -61,6 +61,44 @@ int xradio_config(struct ieee80211_hw *dev, u32 changed) {
 	return ret;
 }
 
+int xradio_conf_tx(struct ieee80211_hw *dev, struct ieee80211_vif *vif,
+		u16 queue, const struct ieee80211_tx_queue_params *params) {
+	wiphy_debug(dev->wiphy, "conf tx\n");
+
+	int ret;
+	struct xr819* hw_priv = dev->priv;
+	struct wsm_edca_params edca;
+	struct wsm_tx_queue_params tx_queue_params;
+
+	WSM_TX_QUEUE_SET(&tx_queue_params, queue, 0, 0, 0);
+	ret = wsm_set_tx_queue_params(hw_priv, &tx_queue_params.params[queue],
+			queue, 0);
+	if (ret) {
+		wiphy_debug(dev->wiphy, "wsm_set_tx_queue_params failed!\n");
+		ret = -EINVAL;
+		goto out;
+	}
+
+	WSM_EDCA_SET(&edca, queue, params->aifs, params->cw_min, params->cw_max,
+			params->txop, 0xc8, params->uapsd);
+	ret = wsm_set_edca_params(hw_priv, &edca, 0);
+	if (ret) {
+		wiphy_debug(dev->wiphy, "wsm_set_edca_params failed!\n");
+		ret = -EINVAL;
+		goto out;
+	}
+
+	//if (priv->mode == NL80211_IFTYPE_STATION) {
+		//ret = xradio_set_uapsd_param(priv, &priv->edca);
+		//if (!ret && priv->setbssparams_done
+		//		&& (priv->join_status == XRADIO_JOIN_STATUS_STA)
+		//		&& (old_uapsdFlags != priv->uapsd_info.uapsdFlags))
+		//xradio_set_pm(priv, &priv->powersave_mode);
+	//}
+
+	out: return 0;
+}
+
 int xradio_add_interface(struct ieee80211_hw *dev, struct ieee80211_vif *vif) {
 	wiphy_debug(dev->wiphy, "add interface\n");
 	struct xr819 *hw_priv = dev->priv;

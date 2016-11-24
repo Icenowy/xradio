@@ -17,6 +17,8 @@
 int xradio_start(struct ieee80211_hw *dev);
 void xradio_stop(struct ieee80211_hw *dev);
 int xradio_config(struct ieee80211_hw *dev, u32 changed);
+int xradio_conf_tx(struct ieee80211_hw *dev, struct ieee80211_vif *vif,
+		u16 queue, const struct ieee80211_tx_queue_params *params);
 int xradio_add_interface(struct ieee80211_hw *dev, struct ieee80211_vif *vif);
 void xradio_remove_interface(struct ieee80211_hw *dev,
 		struct ieee80211_vif *vif);
