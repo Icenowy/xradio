@@ -23,16 +23,16 @@
 #include "debug.h"
 
 /*added by yangfh, for host debuglevel*/
-u8 dbg_common  = XRADIO_DBG_ALWY|XRADIO_DBG_ERROR|XRADIO_DBG_WARN;
-u8 dbg_sbus    = XRADIO_DBG_ALWY|XRADIO_DBG_ERROR|XRADIO_DBG_WARN;
-u8 dbg_bh      = XRADIO_DBG_ALWY|XRADIO_DBG_ERROR|XRADIO_DBG_WARN;
-u8 dbg_txrx    = XRADIO_DBG_ALWY|XRADIO_DBG_ERROR;
-u8 dbg_wsm     = XRADIO_DBG_ALWY|XRADIO_DBG_ERROR|XRADIO_DBG_WARN;
-u8 dbg_sta     = XRADIO_DBG_ALWY|XRADIO_DBG_ERROR|XRADIO_DBG_WARN;
-u8 dbg_scan    = XRADIO_DBG_ALWY|XRADIO_DBG_ERROR|XRADIO_DBG_WARN;
-u8 dbg_ap      = XRADIO_DBG_ALWY|XRADIO_DBG_ERROR|XRADIO_DBG_WARN;
-u8 dbg_pm      = XRADIO_DBG_ALWY|XRADIO_DBG_ERROR|XRADIO_DBG_WARN;
-u8 dbg_itp     = XRADIO_DBG_ALWY|XRADIO_DBG_ERROR|XRADIO_DBG_WARN;
+u8 dbg_common  = 0xff;
+u8 dbg_sbus    = 0xff;
+u8 dbg_bh      = 0xff;
+u8 dbg_txrx    = 0xff;
+u8 dbg_wsm     = 0xff;
+u8 dbg_sta     = 0xff;
+u8 dbg_scan    = 0xff;
+u8 dbg_ap      = 0xff;
+u8 dbg_pm      = 0xff;
+u8 dbg_itp     = 0xff;
 u8 dbg_logfile = XRADIO_DBG_ERROR;
 
 #ifdef CONFIG_XRADIO_DEBUGFS
