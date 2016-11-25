@@ -71,3 +71,18 @@ you can specify a MAC address to use. If you don't set one you will get a random
 on each boot. Instead of creating a new device tree file for every system you should
 probably overwrite the address given after loading the device tree in u-boot.
 Using a unique OTP id from the SoC or similar would be a good idea.
+
+# What works, what doesn't
+
+Working:
+
+Standard client station mode seems to work fine.
+Master (AP) mode seems to work with hostapd up to the point that the AP
+is visible. Not tested any further.
+
+Not working:
+
+Dual role station and master mode. Adding both interface types works
+but the AP is not visible when hostapd is running.
+
+
