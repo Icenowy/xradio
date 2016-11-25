@@ -20,6 +20,8 @@
 #include <linux/sched.h>
 #include <net/mac80211.h>
 #include <net/cfg80211.h>
+#include <linux/of_net.h>
+#include <linux/etherdevice.h>
 
 #include "platform.h"
 #include "xradio.h"
@@ -41,19 +43,6 @@ MODULE_LICENSE("GPL");
 MODULE_ALIAS("xradio_core");
 
 char *drv_version   = XRADIO_VERSION;
-
-#define XRADIO_MAC_CHARLEN 18
-#ifdef XRADIO_MACPARAM_HEX
-/* insmod xradio_wlan.ko macaddr=0xDC,0x44,0x6D,0x00,0x00,0x00 */
-static u8 xradio_macaddr_param[ETH_ALEN] = { 0x0 };
-module_param_array_named(macaddr, xradio_macaddr_param, byte, NULL, S_IRUGO);
-#else
-/* insmod xradio_wlan.ko macaddr=xx:xx:xx:xx:xx:xx */
-static char *xradio_macaddr_param = NULL;
-module_param_named(macaddr, xradio_macaddr_param, charp, S_IRUGO);
-#endif
-
-MODULE_PARM_DESC(macaddr, "First MAC address");
 
 #ifdef HW_RESTART
 void xradio_restart_work(struct work_struct *work);
@@ -371,86 +360,9 @@ void xradio_version_show(void)
 #endif
 }
 
-/* return 0: failed*/
-static inline int xradio_macaddr_val2char(char *c_mac, const u8* v_mac)
-{
-	SYS_BUG(!v_mac || !c_mac);
-	return sprintf(c_mac, "%02x:%02x:%02x:%02x:%02x:%02x\n",
-	               v_mac[0], v_mac[1], v_mac[2], 
-	               v_mac[3], v_mac[4], v_mac[5]);
-}
-
-#ifndef XRADIO_MACPARAM_HEX
-static int xradio_macaddr_char2val(u8* v_mac, const char *c_mac)
-{
-	int i = 0;
-	const char *tmp_char = c_mac;
-	SYS_BUG(!v_mac || !c_mac);
-
-	for (i = 0; i < ETH_ALEN; i++) {
-		if (*tmp_char != 0) {
-			v_mac[i] = simple_strtoul(tmp_char, (char **)&tmp_char, 16);
-		} else {
-			xradio_dbg(XRADIO_DBG_ERROR, "%s, Len Error\n", __func__);
-			return -1;
-		}
-		if (i < ETH_ALEN -1 && *tmp_char != ':') {
-			xradio_dbg(XRADIO_DBG_ERROR, "%s, Format or Len Error\n", __func__);
-			return -1;
-		}
-		tmp_char++;
-	}
-	return 0;
-}
-#endif
-
-#ifdef XRADIO_MACADDR_FROM_CHIPID
-extern void wifi_hwaddr_from_chipid(u8 *addr);
-#endif
-
-#define MACADDR_VAILID(a) ( \
-(a[0] != 0 || a[1] != 0 ||  \
- a[2] != 0 || a[3] != 0 ||  \
- a[4] != 0 || a[5] != 0) && \
- !(a[0] & 0x3))
-
-static void xradio_get_mac_addrs(u8 *macaddr)
-{
-	int ret = 0;
-	SYS_BUG(!macaddr);
-	/* Check mac addrs param, if exsist, use it first.*/
-#ifdef XRADIO_MACPARAM_HEX
-	memcpy(macaddr, xradio_macaddr_param, ETH_ALEN);
-#else
-	if (xradio_macaddr_param) {
-		ret = xradio_macaddr_char2val(macaddr, xradio_macaddr_param);
-	}
-#endif
-
-#ifdef XRADIO_MACADDR_FROM_CHIPID
-	if (ret < 0 || !MACADDR_VAILID(macaddr)) {
-		wifi_hwaddr_from_chipid(macaddr);
-	}
-#endif
-	/* Use random value to set mac addr for the first time, 
-	 * and save it in  wifi config file. TODO: read from product ID*/
-	if (ret < 0 || !MACADDR_VAILID(macaddr)) {
-		/* The vendor prefix of Allwinner */
-		macaddr[0] = 0xDC;
-		macaddr[1] = 0x44;
-		macaddr[2] = 0x6D;
-		get_random_bytes(macaddr+3, 3);
-		xradio_dbg(XRADIO_DBG_NIY, "Use random Mac addr!\n");
-	}
-	xradio_dbg(XRADIO_DBG_NIY, "MACADDR=%02x:%02x:%02x:%02x:%02x:%02x\n",
-	           macaddr[0], macaddr[1], macaddr[2], 
-	           macaddr[3], macaddr[4], macaddr[5]);
-}
-
 static void xradio_set_ifce_comb(struct xradio_common *hw_priv,
 				 struct ieee80211_hw *hw)
 {
-	xradio_dbg(XRADIO_DBG_TRC,"%s\n", __FUNCTION__);
 #ifdef P2P_MULTIVIF
 	hw_priv->if_limits1[0].max = 2;
 #else
@@ -530,15 +442,6 @@ struct ieee80211_hw *xradio_init_common(size_t hw_priv_data_len)
 	hw_priv = hw->priv;
 	xradio_dbg(XRADIO_DBG_ALWY, "Allocated hw_priv @ %p\n", hw_priv);
 	memset(hw_priv, 0, sizeof(*hw_priv));
-
-	/* Get MAC address. */
-	xradio_get_mac_addrs((u8 *)&hw_priv->addresses[0]);
-	memcpy(hw_priv->addresses[1].addr, hw_priv->addresses[0].addr, ETH_ALEN);
-	hw_priv->addresses[1].addr[5] += 0x01;
-#ifdef P2P_MULTIVIF
-	memcpy(hw_priv->addresses[2].addr, hw_priv->addresses[1].addr, ETH_ALEN);
-	hw_priv->addresses[2].addr[4] ^= 0x80;
-#endif
 
 	/* Initialize members of hw_priv. */
 	hw_priv->hw = hw;
@@ -1023,6 +926,9 @@ int xradio_core_init(void)
 		.power_mode = wsm_power_mode_quiescent,
 		.disableMoreFlagUsage = true,
 	};
+	unsigned char randomaddr[ETH_ALEN];
+	const unsigned char *addr = NULL;
+
 	xradio_version_show();
 
 	//init xradio_common
@@ -1040,6 +946,23 @@ int xradio_core_init(void)
 		xradio_dbg(XRADIO_DBG_ERROR,"sbus_sdio_init failed\n");
 		goto err1;
 	}
+
+	// fill in mac addresses
+	if (hw_priv->pdev->of_node) {
+		addr = of_get_mac_address(hw_priv->pdev->of_node);
+	}
+	if (!addr) {
+		dev_warn(hw_priv->pdev, "no mac address provided, using random\n");
+		eth_random_addr(randomaddr);
+		addr = randomaddr;
+	}
+	memcpy(hw_priv->addresses[0].addr, addr, ETH_ALEN);
+	memcpy(hw_priv->addresses[1].addr, addr, ETH_ALEN);
+	hw_priv->addresses[1].addr[5] += 0x01;
+#ifdef P2P_MULTIVIF
+	memcpy(hw_priv->addresses[2].addr, addr, ETH_ALEN);
+	hw_priv->addresses[2].addr[4] ^= 0x80;
+#endif
 
 	/* WSM callbacks. */
 	hw_priv->wsm_cbc.scan_complete = xradio_scan_complete_cb;

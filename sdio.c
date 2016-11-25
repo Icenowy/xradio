@@ -222,6 +222,7 @@ static int xradio_probe_of(struct device *dev)
 	}
 
 	devm_request_irq(dev, irq, sdio_irq_handler, 0, "xradio", &sdio_self);
+
 	return 0;
 }
 
