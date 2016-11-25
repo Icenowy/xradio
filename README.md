@@ -7,6 +7,7 @@ You need to specify one or two regulators for the xr819's 1.8v and 3.3v supplies
 The orange pi zero only has control over the 1.8v regulator and a 3.3v fixed regulator is provided elsewhere
 so we one need one there:
 
+```
 vdd_wifi: vdd_wifi {
 	compatible = "regulator-fixed";
 	regulator-name = "wifi";
@@ -16,9 +17,11 @@ vdd_wifi: vdd_wifi {
 	startup-delay-us = <70000>;
 	enable-active-high;
 };
+```
 
 Next you need a pwrseq node that controls the reset pin of the xr819.
 
+```
 pwrseq_wifi: pwrseq_wifi@0 {
 	compatible = "mmc-pwrseq-simple";
 	pinctrl-names = "default";
@@ -26,9 +29,11 @@ pwrseq_wifi: pwrseq_wifi@0 {
 	reset-gpios = <&r_pio 0 7 GPIO_ACTIVE_LOW>;
 	post-power-on-delay-ms = <50>;
 };
+```
 
 Next you need to add some things to the mmc node that the xr819 is connected to.
 
+```
 &mmc1 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&mmc1_pins_a>;
@@ -50,6 +55,8 @@ Next you need to add some things to the mmc node that the xr819 is connected to.
                 local-mac-address = [dc 44 6d c0 ff ee];
         };
 };
+```
+
 
 vqmmc-supply and vmmc-supply should reference the regulators that control the xr819 supplies.
 The device tree for the SoC the orange pi zero is based on supplies a fixed 3.3v regulator
