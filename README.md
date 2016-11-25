@@ -1,6 +1,15 @@
 # xradio
 Port Allwinner xradio driver to mainline Linux.
 
+#Building
+
+Something like this:
+
+```
+make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- -C <PATH TO YOUR LINUX SRC> M=$PWD modules
+make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- -C <PATH TO YOUR LINUX SRC> M=$PWD INSTALL_MOD_PATH=<PATH TO INSTALL MODULE> modules_install
+```
+
 #How to use this
 
 You need to specify one or two regulators for the xr819's 1.8v and 3.3v supplies in your device tree.
