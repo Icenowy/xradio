@@ -2074,14 +2074,12 @@ int wsm_handle_exception(struct xradio_common *hw_priv, u8 *data, size_t len)
 	struct xradio_vif *priv = NULL;
 #endif
 
-#ifdef CONFIG_XRADIO_DEBUG
 	static const char * const reason_str[] = {
 		"undefined instruction",
 		"prefetch abort",
 		"data abort",
 		"unknown error",
 	};
-#endif
 
 #if defined(CONFIG_XRADIO_USE_EXTENSIONS)
 	/* Send the event upwards on the FW exception */
@@ -2105,30 +2103,30 @@ int wsm_handle_exception(struct xradio_common *hw_priv, u8 *data, size_t len)
 	WSM_GET(&buf, fname, sizeof(fname));
 
 	if (reason < 4) {
-		wsm_printk(XRADIO_DBG_ERROR, "Firmware exception: %s.\n",
+		dev_err(hw_priv->pdev, "Firmware exception: %s.\n",
 		           reason_str[reason]);
 	} else {
-		wsm_printk(XRADIO_DBG_ERROR, "Firmware assert at %.*s, line %d, reason=0x%x\n",
+		dev_err(hw_priv->pdev, "Firmware assert at %.*s, line %d, reason=0x%x\n",
 			       sizeof(fname), fname, reg[1], reg[2]);
 	}
 
 	for (i = 0; i < 12; i += 4) {
-		wsm_printk(XRADIO_DBG_ERROR, "Firmware:" \
+		dev_err(hw_priv->pdev, "Firmware:" \
 		           "R%d: 0x%.8X, R%d: 0x%.8X, R%d: 0x%.8X, R%d: 0x%.8X,\n",
 		           i + 0, reg[i + 0], i + 1, reg[i + 1],
 		           i + 2, reg[i + 2], i + 3, reg[i + 3]);
 	}
-	wsm_printk(XRADIO_DBG_ERROR, "Firmware:" \
+	dev_err(hw_priv->pdev, "Firmware:" \
 	           "R12: 0x%.8X, SP: 0x%.8X, LR: 0x%.8X, PC: 0x%.8X,\n",
 	           reg[i + 0], reg[i + 1], reg[i + 2], reg[i + 3]);
 	i += 4;
-	wsm_printk(XRADIO_DBG_ERROR, "Firmware:CPSR: 0x%.8X, SPSR: 0x%.8X\n", 
+	dev_err(hw_priv->pdev, "Firmware:CPSR: 0x%.8X, SPSR: 0x%.8X\n",
 	           reg[i + 0], reg[i + 1]);
 	
 	return 0;
 
 underflow:
-	wiphy_err(hw_priv->hw->wiphy, "Firmware exception.\n");
+	dev_err(hw_priv->pdev, "Firmware exception.\n");
 	print_hex_dump_bytes("Exception: ", DUMP_PREFIX_NONE, data, len);
 	return -EINVAL;
 }
