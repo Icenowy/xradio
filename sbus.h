@@ -29,7 +29,6 @@ typedef void (*sbus_irq_handler)(void *priv);
 struct sbus_priv {
 	struct sdio_func     *func;
 	spinlock_t            lock;
-	sbus_irq_handler      irq_handler;
 	void                 *irq_priv;
 	wait_queue_head_t     init_wq;
 	int                   load_state;

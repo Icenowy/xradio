@@ -78,21 +78,14 @@ int sdio_set_blk_size(struct sbus_priv *self, size_t size)
 	return sdio_set_block_size(self->func, size);
 }
 
+extern void xradio_irq_handler(struct xradio_common*);
+
 static irqreturn_t sdio_irq_handler(int irq, void *dev_id)
 {
-	//struct sbus_priv *self = sdio_get_drvdata(func);
-	struct sbus_priv *self = (struct sbus_priv*)dev_id;
+	struct sbus_priv *self = (struct sbus_priv*) dev_id;
 	unsigned long flags;
-
-
-	SYS_BUG(!self);
-	spin_lock_irqsave(&self->lock, flags);
-	if (self->irq_handler)
-		self->irq_handler(self->irq_priv);
-	else
-		printk("bleh\n");
-	spin_unlock_irqrestore(&self->lock, flags);
-
+	if (self->irq_priv != NULL)
+		xradio_irq_handler(self->irq_priv);
 	return IRQ_HANDLED;
 }
 
@@ -103,16 +96,7 @@ int sdio_irq_subscribe(struct sbus_priv *self,
 	int ret = 0;
 	unsigned long flags;
 	
-
-	if (!handler)
-		return -EINVAL;
-
-
-	spin_lock_irqsave(&self->lock, flags);
 	self->irq_priv = priv;
-	self->irq_handler = handler;
-	spin_unlock_irqrestore(&self->lock, flags);
-
 	sdio_claim_host(self->func);
 
 	               /* Hack to access Fuction-0 */
@@ -136,22 +120,6 @@ int sdio_irq_subscribe(struct sbus_priv *self,
 int sdio_irq_unsubscribe(struct sbus_priv *self)
 {
 	int ret = 0;
-	unsigned long flags;
-
-
-
-	if (!self->irq_handler) {
-		sbus_printk(XRADIO_DBG_ERROR, "%s:irq_handler is NULL!\n", __FUNCTION__);
-		return 0;
-	}
-
-
-
-	spin_lock_irqsave(&self->lock, flags);
-	self->irq_priv = NULL;
-	self->irq_handler = NULL;
-	spin_unlock_irqrestore(&self->lock, flags);
-
 	return ret;
 }
 
