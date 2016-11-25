@@ -86,3 +86,13 @@ Dual role station and master mode. Adding both interface types works
 but the AP is not visible when hostapd is running.
 
 
+
+#Issues
+
+The firmware running on the xr819 is very crash happy and the driver is a bit
+stupid. For example the driver can get confused about how many packets of data
+the xr819 has for it to read and can try to read too many. The firmware on the
+xr819 responds by triggering an assert and shutting down. The driver gets
+a packet that tells it that the firmware is dead and shuts down the thread used
+to push and pull data but the rest of the driver and the os has no idea and
+if the os tries to interact with the driver everything starts to lock up.
