@@ -52,12 +52,6 @@ ccflags-y += -DTES_P2P_000B_DISABLE_EAPOL_FILTER
 ccflags-y += -DXRADIO_USE_LONG_DTIM_PERIOD
 ccflags-y += -DXRADIO_USE_LONG_KEEP_ALIVE_PERIOD
 
-# Mac addr config, disable hex for default.
-#ccflags-y += -DXRADIO_MACPARAM_HEX
-
-# Mac addr generate from chipid.
-#ccflags-y += -DXRADIO_MACADDR_FROM_CHIPID
-
 # Use semaphore to sync bh txrx.
 #ccflags-y += -DBH_USE_SEMAPHORE
 

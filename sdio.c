@@ -130,8 +130,7 @@ int sdio_pm(struct sbus_priv *self, bool  suspend)
 		/* Notify SDIO that XRADIO will remain powered during suspend */
 		ret = sdio_set_host_pm_flags(self->func, MMC_PM_KEEP_POWER);
 		if (ret)
-			sbus_printk(XRADIO_DBG_ERROR,
-				    "Error setting SDIO pm flags: %i\n", ret);
+			dev_dbg(&self->func->dev, "Error setting SDIO pm flags: %i\n", ret);
 	}
 
 	return ret;
@@ -155,10 +154,10 @@ static int sdio_set_clk(struct sdio_func *func, u32 clk)
 			func->card->host->ios.clock = (clk < 50000000) ? clk : 50000000;
 			func->card->host->ops->set_ios(func->card->host, &func->card->host->ios);
 			sdio_release_host(func);
-			sbus_printk(XRADIO_DBG_ALWY, "%s:change mmc clk=%d\n", __func__, 
+			dev_dbg(&func->dev, "change mmc clk=%d\n",
 			            func->card->host->ios.clock);
 		} else {
-			sbus_printk(XRADIO_DBG_ALWY, "%s:fail change mmc clk=%d\n", __func__, clk);
+			dev_dbg(&func->dev, "fail change mmc clk=%d\n", clk);
 		}
 	}
 	return 0;
@@ -198,12 +197,12 @@ static int xradio_probe_of(struct device *dev)
 static int sdio_probe(struct sdio_func *func,
                       const struct sdio_device_id *id)
 {
-	sbus_printk(XRADIO_DBG_ALWY, "XRadio Device:sdio clk=%d\n",
+	dev_dbg(&func->dev, "XRadio Device:sdio clk=%d\n",
 	            func->card->host->ios.clock);
-	sbus_printk(XRADIO_DBG_NIY, "sdio func->class=%x\n", func->class);
-	sbus_printk(XRADIO_DBG_NIY, "sdio_vendor: 0x%04x\n", func->vendor);
-	sbus_printk(XRADIO_DBG_NIY, "sdio_device: 0x%04x\n", func->device);
-	sbus_printk(XRADIO_DBG_NIY, "Function#: 0x%04x\n",   func->num);
+	dev_dbg(&func->dev, "sdio func->class=%x\n", func->class);
+	dev_dbg(&func->dev, "sdio_vendor: 0x%04x\n", func->vendor);
+	dev_dbg(&func->dev, "sdio_device: 0x%04x\n", func->device);
+	dev_dbg(&func->dev, "Function#: 0x%04x\n",   func->num);
 
 #if (defined(CONFIG_XRADIO_DEBUGFS))
 	if (dbg_sdio_clk)
@@ -299,7 +298,7 @@ struct device * sbus_sdio_init(struct sbus_priv **sdio_priv)
 		//setup sdio driver.
 		ret = sdio_register_driver(&sdio_driver);
 		if (ret) {
-			sbus_printk(XRADIO_DBG_ERROR,"sdio_register_driver failed!\n");
+			printk("sdio_register_driver failed: %d\n", ret);
 			return NULL;
 		}
 
@@ -314,7 +313,7 @@ struct device * sbus_sdio_init(struct sbus_priv **sdio_priv)
 
 			xradio_wlan_power(0); //power down.
 			xradio_sdio_detect(0);
-			sbus_printk(XRADIO_DBG_ERROR,"sdio probe timeout!\n");
+			printk("sdio probe timeout!\n");
 			return NULL;
 		}
 	}

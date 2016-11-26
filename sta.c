@@ -139,7 +139,7 @@ int xradio_start(struct ieee80211_hw *dev)
 
 	if (wait_event_interruptible_timeout(hw_priv->wsm_startup_done,
 				hw_priv->driver_ready, 3*HZ) <= 0) {
-		sta_printk(XRADIO_DBG_ERROR,"%s driver is not ready!\n", __func__);
+		wiphy_err(dev->wiphy, "driver is not ready!\n");
 		return -ETIMEDOUT;
 	}
 
@@ -156,8 +156,7 @@ int xradio_start(struct ieee80211_hw *dev)
 
 	ret = xradio_setup_mac(hw_priv);
 	if (SYS_WARN(ret)) {
-		sta_printk(XRADIO_DBG_ERROR,"%s, xradio_setup_mac failed(%d)\n", 
-		           __func__, ret);
+		wiphy_err(dev->wiphy, "xradio_setup_mac failed(%d)\n", ret);
 		goto out;
 	}
 
@@ -328,13 +327,13 @@ void xradio_remove_interface(struct ieee80211_hw *dev,
 		.power_mode = wsm_power_mode_quiescent,
 		.disableMoreFlagUsage = true,
 	};
-	sta_printk(XRADIO_DBG_WARN, "!!! %s: vif_id=%d\n", __func__, priv->if_id);
+	wiphy_warn(dev->wiphy, "!!! vif_id=%d\n", priv->if_id);
 	atomic_set(&priv->enabled, 0);
 	down(&hw_priv->scan.lock);
 	if(priv->join_status == XRADIO_JOIN_STATUS_STA){
 		if (atomic_xchg(&priv->delayed_unjoin, 0)) {
 			wsm_unlock_tx(hw_priv);
-			sta_printk(XRADIO_DBG_ERROR, "%s:delayed_unjoin exist!\n", __func__);
+			wiphy_err(dev->wiphy, "delayed_unjoin exist!\n");
 		}
 		cancel_work_sync(&priv->unjoin_work);
 		wsm_lock_tx(hw_priv);
@@ -475,7 +474,7 @@ int xradio_config(struct ieee80211_hw *dev, u32 changed)
 		 * to determine for example whether to calculate
 		 * timestamps for packets or not, do not use instead
 		 * of filter flags! */
-		sta_printk(XRADIO_DBG_NIY, "ignore IEEE80211_CONF_CHANGE_MONITOR (%d)"
+		wiphy_debug(dev->wiphy, "ignore IEEE80211_CONF_CHANGE_MONITOR (%d)"
 		           "IEEE80211_CONF_CHANGE_IDLE (%d)\n",
 		           (changed & IEEE80211_CONF_CHANGE_MONITOR) ? 1 : 0,
 		           (changed & IEEE80211_CONF_CHANGE_IDLE) ? 1 : 0);
@@ -613,8 +612,7 @@ void xradio_update_filtering(struct xradio_vif *priv)
 	}
 #endif
 	if (ret)
-		sta_printk(XRADIO_DBG_ERROR, "%s: Update filtering failed: %d.\n",
-		           __func__, ret);
+		wiphy_debug(priv->hw_priv->hw->wiphy, "Update filtering failed: %d.\n", ret);
 	return;
 }
 
@@ -917,8 +915,7 @@ int xradio_set_key(struct ieee80211_hw *dev, enum set_key_cmd cmd,
 		struct wsm_add_key *wsm_key = &hw_priv->keys[idx];
 
 		if (idx < 0) {
-			sta_printk(XRADIO_DBG_ERROR,"%s:xradio_alloc_key failed!\n",
-			           __func__);
+			wiphy_err(dev->wiphy, "xradio_alloc_key failed!\n");
 			ret = -EINVAL;
 			goto finally;
 		}
@@ -935,8 +932,7 @@ int xradio_set_key(struct ieee80211_hw *dev, enum set_key_cmd cmd,
 		case WLAN_CIPHER_SUITE_WEP104:
 			if (key->keylen > 16) {
 				xradio_free_key(hw_priv, idx);
-				sta_printk(XRADIO_DBG_ERROR,"%s: keylen too long=%d!\n",
-			               __func__, key->keylen);
+				wiphy_err(dev->wiphy, "keylen too long=%d!\n", key->keylen);
 				ret = -EINVAL;
 				goto finally;
 			}

@@ -1052,7 +1052,6 @@ EXPORT_SYMBOL_GPL(xradio_core_init);
 
 void xradio_core_deinit(void)
 {
-	xradio_dbg(XRADIO_DBG_TRC,"%s\n", __FUNCTION__);
 	if (g_hw_priv) {
 #ifdef HW_RESTART
 		cancel_work_sync(&g_hw_priv->hw_restart_work);
@@ -1072,7 +1071,6 @@ EXPORT_SYMBOL_GPL(xradio_core_deinit);
 static int __init xradio_core_entry(void)
 {
 	int ret = 0;
-	xradio_dbg(XRADIO_DBG_TRC,"%s\n", __FUNCTION__);
 	ret = xradio_plat_init();
 	if (ret) {
 		xradio_dbg(XRADIO_DBG_ERROR,"xradio_plat_init failed(%d)!\n", ret);
@@ -1088,7 +1086,6 @@ static void __exit xradio_core_exit(void)
 	xradio_core_deinit();
 	xradio_host_dbg_deinit();
 	xradio_plat_deinit();
-	xradio_dbg(XRADIO_DBG_TRC,"%s\n", __FUNCTION__);
 }
 
 module_init(xradio_core_entry);
