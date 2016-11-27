@@ -1633,11 +1633,7 @@ int xradio_setup_mac(struct xradio_common *hw_priv)
 		xradio_test_pwrlevel(hw_priv);
 #endif
 		/* wsm_configuration only once, so release it */
-#ifdef USE_VFS_FIRMWARE
-		xr_fileclose(hw_priv->sdd);
-#else
 		release_firmware(hw_priv->sdd);
-#endif
 		hw_priv->sdd = NULL;
 	}
 

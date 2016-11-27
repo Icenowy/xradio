@@ -240,11 +240,7 @@ struct xradio_common {
 	/* calibration, output power limit and rssi<->dBm conversation data */
 
 	/* BBP/MAC state */
-#ifdef USE_VFS_FIRMWARE
-	const struct xr_file		*sdd;
-#else
 	const struct firmware		*sdd;
-#endif
 	struct ieee80211_rate		*rates;
 	struct ieee80211_rate		*mcs_rates;
 	u8 mac_addr[ETH_ALEN];

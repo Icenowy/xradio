@@ -104,21 +104,12 @@ static int xradio_parse_sdd(struct xradio_common *hw_priv, u32 *dpll)
 		return ret;
 	}
 
-#ifdef USE_VFS_FIRMWARE
-	hw_priv->sdd = xr_request_file(sdd_path);
-	if (unlikely(!hw_priv->sdd)) {
-		xradio_dbg(XRADIO_DBG_ERROR, "%s: can't load sdd file %s.\n",
-		           __func__, sdd_path);
-		return ret;
-	}
-#else
 	ret = request_firmware(&hw_priv->sdd, sdd_path, hw_priv->pdev);
 	if (unlikely(ret)) {
 		dev_dbg(hw_priv->pdev, "can't load sdd file %s.\n",
 				sdd_path);
 		return ret;
 	}
-#endif
 
 	//parse SDD config.
 	hw_priv->is_BT_Present = false;
@@ -201,11 +192,7 @@ static int xradio_firmware(struct xradio_common *hw_priv)
 	u32 put = 0, get = 0;
 	u8 *buf = NULL;
 	const char *fw_path;
-#ifdef USE_VFS_FIRMWARE
-	const struct xr_file  *firmware = NULL;
-#else
 	const struct firmware *firmware = NULL;
-#endif
 
 	switch (hw_priv->hw_revision) {
 	case XR819_HW_REV0:
@@ -233,15 +220,6 @@ static int xradio_firmware(struct xradio_common *hw_priv)
 	REG_WRITE(HIF_CONFIG_REG_ID, val32);
 
 	/* Load a firmware file */
-#ifdef USE_VFS_FIRMWARE
-	firmware = xr_fileopen(fw_path, O_RDONLY, 0);
-	if (!firmware) {
-		xradio_dbg(XRADIO_DBG_ERROR, "%s: can't load firmware file %s.\n",
-		           __func__, fw_path);
-		ret = -1;
-		goto error;
-	}
-#else
 	ret = request_firmware(&firmware, fw_path, hw_priv->pdev);
 	if (ret) {
 		dev_dbg(hw_priv->pdev, "can't load firmware file %s.\n",
@@ -249,7 +227,6 @@ static int xradio_firmware(struct xradio_common *hw_priv)
 		goto error;
 	}
 	SYS_BUG(!firmware->data);
-#endif
 
 	buf = xr_kmalloc(DOWNLOAD_BLOCK_SIZE, true);
 	if (!buf) {
@@ -308,15 +285,8 @@ static int xradio_firmware(struct xradio_common *hw_priv)
 
 		/* calculate the block size */
 		tx_size = block_size = min((size_t)(firmware->size - put), (size_t)DOWNLOAD_BLOCK_SIZE);
-#ifdef USE_VFS_FIRMWARE
-		ret = xr_fileread(firmware, buf, block_size);
-		if (ret < block_size) {
-			xradio_dbg(XRADIO_DBG_ERROR, "%s: xr_fileread error %d.\n", __func__, ret);
-			goto error;
-		}
-#else
 		memcpy(buf, &firmware->data[put], block_size);
-#endif
+
 		if (block_size < DOWNLOAD_BLOCK_SIZE) {
 			memset(&buf[block_size], 0, DOWNLOAD_BLOCK_SIZE - block_size);
 			tx_size = DOWNLOAD_BLOCK_SIZE;
@@ -356,11 +326,7 @@ error:
 	if(buf)
 		kfree(buf);
 	if (firmware) {
-#ifdef USE_VFS_FIRMWARE
-		xr_fileclose(firmware);
-#else
 		release_firmware(firmware);
-#endif
 	}
 	return ret;
 }
@@ -372,20 +338,8 @@ static int xradio_bootloader(struct xradio_common *hw_priv)
 	const char *bl_path = XR819_BOOTLOADER;
 	u32  addr = AHB_MEMORY_ADDRESS;
 	u32 *data = NULL;
-#ifdef USE_VFS_FIRMWARE
-	const struct xr_file  *bootloader = NULL;
-#else
 	const struct firmware *bootloader = NULL;
-#endif
 
-#ifdef USE_VFS_FIRMWARE
-	bootloader = xr_request_file(bl_path);
-	if (!bootloader) {
-		xradio_dbg(XRADIO_DBG_ERROR, "%s: can't load bootloader file %s.\n",
-		           __func__, bl_path);
-		goto error;
-	}
-#else
 	/* Load a bootloader file */
 	ret = request_firmware(&bootloader, bl_path, hw_priv->pdev);
 	if (ret) {
@@ -393,7 +347,6 @@ static int xradio_bootloader(struct xradio_common *hw_priv)
 				bl_path);
 		goto error;
 	}
-#endif
 
 	xradio_dbg(XRADIO_DBG_NIY, "%s: bootloader size = %d, loopcount = %d\n",
 	          __func__,bootloader->size, (bootloader->size)/4);
@@ -411,11 +364,7 @@ static int xradio_bootloader(struct xradio_common *hw_priv)
 
 error:
 	if(bootloader) {
-#ifdef USE_VFS_FIRMWARE
-		xr_fileclose(bootloader);
-#else
 		release_firmware(bootloader);
-#endif
 	}
 	return ret;  
 }
@@ -610,11 +559,7 @@ unsubscribe:
 	sdio_irq_unsubscribe(hw_priv->sbus_priv);
 out:
 	if (hw_priv->sdd) {
-#ifdef USE_VFS_FIRMWARE
-		xr_fileclose(hw_priv->sdd);
-#else
 		release_firmware(hw_priv->sdd);
-#endif
 		hw_priv->sdd = NULL;
 	}
 	return ret;
@@ -624,11 +569,7 @@ int xradio_dev_deinit(struct xradio_common *hw_priv)
 {
 	sdio_irq_unsubscribe(hw_priv->sbus_priv);
 	if (hw_priv->sdd) {
-	#ifdef USE_VFS_FIRMWARE
-		xr_fileclose(hw_priv->sdd);
-	#else
 		release_firmware(hw_priv->sdd);
-	#endif
 		hw_priv->sdd = NULL;
 	}
 	return 0;

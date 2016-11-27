@@ -3,7 +3,6 @@ CONFIG_XRADIO_SDIO := y
 CONFIG_XRADIO_USE_EXTENSIONS := y
 
 xradio_wlan-y := \
-	common.o \
 	fwio.o \
 	txrx.o \
 	main.o \
