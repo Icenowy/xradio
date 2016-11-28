@@ -227,7 +227,7 @@ static int xradio_firmware(struct xradio_common *hw_priv)
 	}
 	SYS_BUG(!firmware->data);
 
-	buf = xr_kmalloc(DOWNLOAD_BLOCK_SIZE, true);
+	buf = kmalloc(DOWNLOAD_BLOCK_SIZE, GFP_KERNEL);
 	if (!buf) {
 		dev_dbg(hw_priv->pdev, "can't allocate firmware buffer.\n");
 		ret = -ENOMEM;

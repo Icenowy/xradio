@@ -45,7 +45,6 @@ int xradio_register_bh(struct xradio_common *hw_priv)
 	int err = 0;
 	struct sched_param param = { .sched_priority = 1 };
 
-
 	SYS_BUG(hw_priv->bh_thread);
 	atomic_set(&hw_priv->bh_rx, 0);
 	atomic_set(&hw_priv->bh_tx, 0);
@@ -79,7 +78,6 @@ void xradio_unregister_bh(struct xradio_common *hw_priv)
 {
 	struct task_struct *thread = hw_priv->bh_thread;
 
-
 	if (SYS_WARN(!thread))
 		return;
 
@@ -93,9 +91,6 @@ void xradio_unregister_bh(struct xradio_common *hw_priv)
 
 void xradio_irq_handler(struct xradio_common *hw_priv)
 {
-
-
-	DBG_BH_IRQ_ADD;
 	if (/* SYS_WARN */(hw_priv->bh_error))
 		return;
 #ifdef BH_USE_SEMAPHORE
@@ -113,7 +108,6 @@ void xradio_irq_handler(struct xradio_common *hw_priv)
 
 void xradio_bh_wakeup(struct xradio_common *hw_priv)
 {
-
 	if (SYS_WARN(hw_priv->bh_error))
 		return;
 #ifdef BH_USE_SEMAPHORE
@@ -130,12 +124,10 @@ void xradio_bh_wakeup(struct xradio_common *hw_priv)
 
 int xradio_bh_suspend(struct xradio_common *hw_priv)
 {
-
 #ifdef MCAST_FWDING
 	int i =0;
 	struct xradio_vif *priv = NULL;
 #endif
-
 
 	if (hw_priv->bh_error) {
 		return -EINVAL;
@@ -167,7 +159,6 @@ int xradio_bh_suspend(struct xradio_common *hw_priv)
 
 int xradio_bh_resume(struct xradio_common *hw_priv)
 {
-
 #ifdef MCAST_FWDING
 	int ret;
 	int i =0; 
@@ -222,7 +213,6 @@ int wsm_release_tx_buffer(struct xradio_common *hw_priv, int count)
 	int ret = 0;
 	int hw_bufs_used = hw_priv->hw_bufs_used;
 
-
 	hw_priv->hw_bufs_used -= count;
 	if (SYS_WARN(hw_priv->hw_bufs_used < 0)) {
 		/* Tx data patch stops when all but one hw buffers are used.
@@ -243,7 +233,6 @@ int wsm_release_vif_tx_buffer(struct xradio_common *hw_priv, int if_id, int coun
 {
 	int ret = 0;
 
-
 	hw_priv->hw_bufs_used_vif[if_id] -= count;
 	if (!hw_priv->hw_bufs_used_vif[if_id])
 		wake_up(&hw_priv->bh_evt_wq);
@@ -261,7 +250,6 @@ int wsm_release_buffer_to_fw(struct xradio_vif *priv, int count)
 	size_t buf_len;
 	struct wsm_hdr *wsm;
 	struct xradio_common *hw_priv = priv->hw_priv;
-
 
 	if (priv->join_status != XRADIO_JOIN_STATUS_AP) {
 		return 0;
@@ -311,8 +299,7 @@ int xradio_init_resv_skb(struct xradio_common *hw_priv)
 	int len = (SDIO_BLOCK_SIZE<<2) + WSM_TX_EXTRA_HEADROOM + \
 	           8 + 12;	/* TKIP IV + ICV and MIC */
 
-
-	hw_priv->skb_reserved = xr_alloc_skb(len);
+	hw_priv->skb_reserved = dev_alloc_skb(len);
 	if (hw_priv->skb_reserved) {
 		hw_priv->skb_resv_len = len;
 	} else {
@@ -324,7 +311,6 @@ int xradio_init_resv_skb(struct xradio_common *hw_priv)
 
 void xradio_deinit_resv_skb(struct xradio_common *hw_priv)
 {
-
 	if (hw_priv->skb_reserved) {
 		dev_kfree_skb(hw_priv->skb_reserved);
 		hw_priv->skb_reserved = NULL;
@@ -336,7 +322,7 @@ int xradio_realloc_resv_skb(struct xradio_common *hw_priv,
 							struct sk_buff *skb)
 {
 	if (!hw_priv->skb_reserved && hw_priv->skb_resv_len) {
-		hw_priv->skb_reserved = xr_alloc_skb(hw_priv->skb_resv_len);
+		hw_priv->skb_reserved = dev_alloc_skb(hw_priv->skb_resv_len);
 		if (!hw_priv->skb_reserved) {
 			hw_priv->skb_reserved = skb;
 			bh_printk(XRADIO_DBG_WARN, "%s xr_alloc_skb failed(%d)\n",
@@ -372,11 +358,10 @@ static struct sk_buff *xradio_get_skb(struct xradio_common *hw_priv, size_t len)
 	struct sk_buff *skb = NULL;
 	size_t alloc_len = (len > SDIO_BLOCK_SIZE) ? len : SDIO_BLOCK_SIZE;
 
-
 	/* TKIP IV + TKIP ICV and MIC - Piggyback.*/
 	alloc_len += WSM_TX_EXTRA_HEADROOM + 8 + 12- 2;
 	if (len > SDIO_BLOCK_SIZE || !hw_priv->skb_cache) {
-		skb = xr_alloc_skb(alloc_len);
+		skb = dev_alloc_skb(alloc_len);
 		/* In AP mode RXed SKB can be looped back as a broadcast.
 		 * Here we reserve enough space for headers. */
 		if (skb) {
@@ -403,7 +388,6 @@ static struct sk_buff *xradio_get_skb(struct xradio_common *hw_priv, size_t len)
 
 static void xradio_put_skb(struct xradio_common *hw_priv, struct sk_buff *skb)
 {
-
 	if (hw_priv->skb_cache)
 		dev_kfree_skb(skb);
 	else
@@ -430,8 +414,6 @@ static int xradio_device_wakeup(struct xradio_common *hw_priv)
 {
 	u16 ctrl_reg;
 	int ret, i=0;
-
-
 
 	/* To force the device to be always-on, the host sets WLAN_UP to 1 */
 	ret = xradio_reg_write_16(hw_priv, HIF_CONTROL_REG_ID, HIF_CTRL_WUP_BIT);
@@ -486,8 +468,6 @@ static int xradio_bh(void *arg)
 	long status;
 	u32 dummy;
 	int vif_selected;
-
-
 
 	for (;;) {
 		/* Check if devices can sleep, and set time to wait for interrupt. */

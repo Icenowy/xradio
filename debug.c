@@ -2518,7 +2518,7 @@ int xradio_debug_init_priv(struct xradio_common *hw_priv,
 	if (SYS_WARN(!hw_priv->debug))
 		return ret;
 
-	d = xr_kzalloc(sizeof(struct xradio_debug_priv), false);
+	d = kzalloc(sizeof(struct xradio_debug_priv), GFP_KERNEL);
 	priv->debug = d;
 	if (SYS_WARN(!d))
 		return ret;
@@ -2677,7 +2677,7 @@ int xradio_debug_init_common(struct xradio_common *hw_priv)
 
 #define ERR_LINE  do { line = __LINE__; goto err;} while(0)
 
-	d = xr_kzalloc(sizeof(struct xradio_debug_common), false);
+	d = kzalloc(sizeof(struct xradio_debug_common), GFP_KERNEL);
 	hw_priv->debug = d;
 	if (!d) {
 		xradio_dbg(XRADIO_DBG_ERROR,"%s, xr_kzalloc failed!\n", __FUNCTION__);

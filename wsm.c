@@ -1320,7 +1320,7 @@ void wms_send_deauth_to_self(struct xradio_common *hw_priv, struct xradio_vif *p
 		wsm_printk(XRADIO_DBG_WARN, "AP mode, send_deauth_to_self\n");
 		for (i = 0; i<MAX_STA_IN_AP_MODE; i++) {
 			if (priv->link_id_db[i].status == XRADIO_LINK_HARD) {
-				skb = xr_alloc_skb(sizeof(struct ieee80211_mgmt) + 64);
+				skb = dev_alloc_skb(sizeof(struct ieee80211_mgmt) + 64);
 				if (!skb)
 					return;
 				skb_reserve(skb, 64);
@@ -1342,7 +1342,7 @@ void wms_send_deauth_to_self(struct xradio_common *hw_priv, struct xradio_vif *p
 		}
 	} else if (priv->join_status == XRADIO_JOIN_STATUS_STA) {
 		wsm_printk(XRADIO_DBG_WARN, "STA mode, send_deauth_to_self\n");
-		skb = xr_alloc_skb(sizeof(struct ieee80211_mgmt) + 64);
+		skb = dev_alloc_skb(sizeof(struct ieee80211_mgmt) + 64);
 		if (!skb)
 			return;
 		skb_reserve(skb, 64);
@@ -1372,7 +1372,7 @@ void wms_send_disassoc_to_self(struct xradio_common *hw_priv, struct xradio_vif 
 		wsm_printk(XRADIO_DBG_WARN, "AP mode, wms_send_disassoc_to_self\n");
 		for (i = 0; i<MAX_STA_IN_AP_MODE; i++) {
 			if (priv->link_id_db[i].status == XRADIO_LINK_HARD) {
-				skb = xr_alloc_skb(sizeof(struct ieee80211_mgmt) + 64);
+				skb = dev_alloc_skb(sizeof(struct ieee80211_mgmt) + 64);
 				if (!skb)
 					return;
 				skb_reserve(skb, 64);
@@ -1394,7 +1394,7 @@ void wms_send_disassoc_to_self(struct xradio_common *hw_priv, struct xradio_vif 
 		}
 	} else if (priv->join_status == XRADIO_JOIN_STATUS_STA) {
 		wsm_printk(XRADIO_DBG_WARN, "STA mode, wms_send_disassoc_to_self\n");
-		skb = xr_alloc_skb(sizeof(struct ieee80211_mgmt) + 64);
+		skb = dev_alloc_skb(sizeof(struct ieee80211_mgmt) + 64);
 		if (!skb)
 			return;
 		skb_reserve(skb, 64);
@@ -1532,7 +1532,7 @@ static int wsm_event_indication(struct xradio_common *hw_priv,
 	}
 	spin_unlock(&priv->vif_lock);
 
-	event = xr_kzalloc(sizeof(struct xradio_wsm_event), false);
+	event = kzalloc(sizeof(struct xradio_wsm_event), GFP_KERNEL);
 	if (event == NULL) {
 		wsm_printk(XRADIO_DBG_ERROR, "%s:xr_kzalloc failed!", __func__);
 		return -EINVAL;
@@ -3195,7 +3195,7 @@ void wsm_buf_init(struct wsm_buf *buf)
 {
 	int size = (SDIO_BLOCK_SIZE<<1); //for sdd file big than SDIO_BLOCK_SIZE
 	SYS_BUG(buf->begin);
-	buf->begin = xr_kmalloc(size, true);
+	buf->begin = kmalloc(size, GFP_KERNEL);
 	buf->end = buf->begin ? &buf->begin[size] : buf->begin;
 	wsm_buf_reset(buf);
 }
@@ -3227,7 +3227,7 @@ static int wsm_buf_reserve(struct wsm_buf *buf, size_t extra_size)
 		size += SDIO_BLOCK_SIZE;
 	}
 
-	buf->begin = xr_krealloc(buf->begin, size, true);
+	buf->begin = krealloc(buf->begin, size, GFP_KERNEL);
 	if (buf->begin) {
 		buf->data = &buf->begin[pos];
 		buf->end = &buf->begin[size];

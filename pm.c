@@ -573,7 +573,7 @@ static int __xradio_wow_suspend(struct xradio_vif *priv,
 #endif
 
 	/* Allocate state */
-	state = xr_kzalloc(sizeof(struct xradio_suspend_state), false);
+	state = kzalloc(sizeof(struct xradio_suspend_state), GFP_KERNEL);
 	if (!state) {
 		pm_printk(XRADIO_DBG_WARN, "%s:Do not suspend "
 		           "alloc xradio_suspend_state failed.\n", __func__);

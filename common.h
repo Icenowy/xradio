@@ -15,21 +15,6 @@
 #include <linux/version.h>
 
 /*******************************************************
- interfaces for file operation.
-********************************************************/
-struct xr_file {
-	struct file *fp;
-	char   *data;
-	size_t  size;
-};
-struct xr_file *xr_fileopen(const char *path, int open_mode, umode_t mode);
-struct xr_file *xr_request_file(const char *path);
-int xr_fileclose(const struct xr_file *fp);
-int xr_fileread(const struct xr_file *fp, char *buffer, int size);
-int xr_filewrite(const struct xr_file *fp, char *buffer, int size);
-int access_file(char *path, char *buffer, int size, int isRead);
-
-/*******************************************************
  interfaces for parse frame protocol info.
 ********************************************************/
 #define LLC_LEN       8
@@ -113,50 +98,6 @@ static inline bool is_dhcp(u8* llc_data)
 		              (((udp_hdr[0]<<8)|udp_hdr[1]) == DHCP_BOOTP_S));   //DHCP server
 	}
 	return (bool)0;
-}
-
-static inline struct sk_buff *xr_alloc_skb(unsigned int len)
-{
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
-	gfp_t flags = (in_atomic()) ? GFP_ATOMIC : GFP_KERNEL;
-	return __dev_alloc_skb(len, flags);
-#else
-	return dev_alloc_skb(len);
-#endif
-}
-
-static inline void *xr_kmalloc(unsigned int len, bool isDMA)
-{
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
-	gfp_t flags = (in_atomic()) ? GFP_ATOMIC : GFP_KERNEL;
-#else
-	gfp_t flags = GFP_ATOMIC;
-#endif
-	flags = isDMA ? (flags | GFP_DMA) : flags;
-	return kmalloc(len, flags);
-}
-
-static inline void *xr_kzalloc(unsigned int len, bool isDMA)
-{
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
-	gfp_t flags = (in_atomic()) ? GFP_ATOMIC : GFP_KERNEL;
-#else
-	gfp_t flags = GFP_ATOMIC;
-#endif
-	flags = isDMA ? (flags | GFP_DMA) : flags;
-	return kzalloc(len, flags);
-}
-
-
-static inline void *xr_krealloc(void *buf, unsigned int len, bool isDMA)
-{
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
-	gfp_t flags = (in_atomic()) ? GFP_ATOMIC : GFP_KERNEL;
-#else
-	gfp_t flags = GFP_ATOMIC;
-#endif
-	flags = isDMA ? (flags | GFP_DMA) : flags;
-	return krealloc(buf, len, flags);
 }
 
 #endif //XRADIO_COMMON_H

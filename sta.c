@@ -1402,7 +1402,7 @@ void xradio_event_handler(struct work_struct *work)
 
 				sta_printk(XRADIO_DBG_WARN, "Inactivity Event Recieved for "
 						"link_id %d\n", link_id);
-				skb = xr_alloc_skb(sizeof(struct ieee80211_mgmt) + 64);
+				skb = dev_alloc_skb(sizeof(struct ieee80211_mgmt) + 64);
 				if (!skb)
 					break;
 				skb_reserve(skb, 64);
@@ -2469,7 +2469,7 @@ int xradio_set_macaddrfilter(struct xradio_common *hw_priv, struct xradio_vif *p
 	macaddrfiltersize =  sizeof(*mac_addr_filter) + \
 			(no_of_mac_addr * sizeof(struct wsm_mac_addr_info));
 
-	mac_addr_filter = xr_kzalloc(macaddrfiltersize, false);
+	mac_addr_filter = kzalloc(macaddrfiltersize, GFP_KERNEL);
 	if (!mac_addr_filter) {
 		ret = -ENOMEM;
 		goto exit_p;
@@ -2561,7 +2561,7 @@ static int xradio_set_ipv6addrfilter(struct ieee80211_hw *hw,
 			(no_of_ip_addr * sizeof(struct wsm_ip6_addr_info));
 
 
-	ipv6_filter = xr_kzalloc(ipaddrfiltersize, false);
+	ipv6_filter = kzalloc(ipaddrfiltersize, GFP_KERNEL);
 	if (!ipv6_filter) {
 		ret = -ENOMEM;
 		goto exit_p;
@@ -2649,7 +2649,7 @@ int xradio_set_arpreply(struct ieee80211_hw *hw, struct ieee80211_vif *vif)
 	struct arphdr *arp_hdr = NULL;
 
 
-	template_frame = xr_kzalloc(MAX_ARP_REPLY_TEMPLATE_SIZE, false);
+	template_frame = kzalloc(MAX_ARP_REPLY_TEMPLATE_SIZE, GFP_KERNEL);
 	if (!template_frame) {
 		sta_printk(XRADIO_DBG_ERROR, "Template frame memory failed\n");
 		ret = -ENOMEM;
@@ -2814,7 +2814,7 @@ int xradio_set_na(struct ieee80211_hw *hw, struct ieee80211_vif *vif)
 	struct nd_opt_hdr *opt_hdr = NULL;
 
 
-	template_frame = xr_kzalloc(MAX_NEIGHBOR_ADVERTISEMENT_TEMPLATE_SIZE, false);
+	template_frame = kzalloc(MAX_NEIGHBOR_ADVERTISEMENT_TEMPLATE_SIZE, GFP_KERNEL);
 	if (!template_frame) {
 		sta_printk(XRADIO_DBG_ERROR, "Template frame memory failed\n");
 		ret = -ENOMEM;
