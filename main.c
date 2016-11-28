@@ -23,7 +23,6 @@
 #include <linux/of_net.h>
 #include <linux/etherdevice.h>
 
-#include "platform.h"
 #include "xradio.h"
 #include "txrx.h"
 #include "sbus.h"
@@ -1071,10 +1070,6 @@ EXPORT_SYMBOL_GPL(xradio_core_deinit);
 static int __init xradio_core_entry(void)
 {
 	int ret = 0;
-	ret = xradio_plat_init();
-	if (ret) {
-		xradio_dbg(XRADIO_DBG_ERROR,"xradio_plat_init failed(%d)!\n", ret);
-	}
 	ret = xradio_host_dbg_init();
 	ret = xradio_core_init();
 	return ret;
@@ -1085,7 +1080,6 @@ static void __exit xradio_core_exit(void)
 {
 	xradio_core_deinit();
 	xradio_host_dbg_deinit();
-	xradio_plat_deinit();
 }
 
 module_init(xradio_core_entry);

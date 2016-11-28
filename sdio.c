@@ -25,7 +25,6 @@
 #include <linux/of.h>
 #include <linux/of_irq.h>
 
-#include "platform.h"
 #include "xradio.h"
 #include "sbus.h"
 #include "sdio.h"
@@ -302,17 +301,11 @@ struct device * sbus_sdio_init(struct sbus_priv **sdio_priv)
 			return NULL;
 		}
 
-		//module power up.
-		xradio_wlan_power(1);
-		//detect sdio card.
-		xradio_sdio_detect(1);
 		if (wait_event_interruptible_timeout(sdio_self.init_wq,
 			sdio_self.load_state == SDIO_LOAD, 2*HZ) <= 0) {
 			sdio_unregister_driver(&sdio_driver);
 			sdio_self.load_state = SDIO_UNLOAD;
 
-			xradio_wlan_power(0); //power down.
-			xradio_sdio_detect(0);
 			printk("sdio probe timeout!\n");
 			return NULL;
 		}
@@ -334,8 +327,6 @@ void sbus_sdio_deinit()
 		memset(&sdio_self, 0, sizeof(sdio_self));
 		sdio_self.load_state = SDIO_UNLOAD;
 
-		xradio_wlan_power(0);  //power down.
-		xradio_sdio_detect(0);
 		mdelay(10);
 	}
 }

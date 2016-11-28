@@ -1,6 +1,7 @@
 CONFIG_XRADIO := m
 CONFIG_XRADIO_SDIO := y
 CONFIG_XRADIO_USE_EXTENSIONS := y
+CONFIG_XRADIO_5GHZ_SUPPORT := y
 
 xradio_wlan-y := \
 	fwio.o \
@@ -53,6 +54,8 @@ ccflags-y += -DXRADIO_USE_LONG_KEEP_ALIVE_PERIOD
 
 # Use semaphore to sync bh txrx.
 #ccflags-y += -DBH_USE_SEMAPHORE
+
+ccflags-y += -DDEBUG
 
 ldflags-y += --strip-debug
 
