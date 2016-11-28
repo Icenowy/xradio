@@ -448,6 +448,34 @@ void xradio_enable_powersave(struct xradio_vif *priv,
 	bh_printk(XRADIO_DBG_NIY, "Powerave is %s.\n", enable ? "enabled" : "disabled");
 }
 
+static void xradio_bh_rx_dump(u8 *data, size_t len){
+	u16 msgid, ifid;
+	u16 *p = (u16 *)data;
+	msgid = (*(p + 1)) & 0xC3F;
+	ifid  = (*(p + 1)) >> 6;
+	ifid &= 0xF;
+	bh_printk(XRADIO_DBG_ALWY, "[DUMP] msgid 0x%.4X ifid %d len %d\n",
+	          msgid, ifid, *p);
+	print_hex_dump_bytes("<-- ", DUMP_PREFIX_NONE,
+	                     data, min(len, (size_t) 64));
+}
+
+static void xradio_bh_tx_dump(u8 *data, size_t len){
+	u16 msgid, ifid;
+	u16 *p = (u16 *)data;
+	msgid = (*(p + 1)) & 0x3F;
+	ifid  = (*(p + 1)) >> 6;
+	ifid &= 0xF;
+	if (msgid == 0x0006) {
+		bh_printk(XRADIO_DBG_ALWY, "[DUMP] >>> msgid 0x%.4X ifid %d"
+		          "len %d MIB 0x%.4X\n", msgid, ifid,*p, *(p + 2));
+	} else {
+		bh_printk(XRADIO_DBG_ALWY, "[DUMP] >>> msgid 0x%.4X ifid %d "
+		          "len %d\n", msgid, ifid, *p);
+	}
+	print_hex_dump_bytes("--> ", DUMP_PREFIX_NONE, data,
+	                     min(len, (size_t) 64));
+}
 
 static int xradio_bh(void *arg)
 {
@@ -701,19 +729,7 @@ rx:
 			}
 
 			/* dump rx data. */
-//#if defined(CONFIG_XRADIO_DEBUG)
-//			if (unlikely(hw_priv->wsm_enable_wsm_dumps)) {
-				u16 msgid, ifid;
-				u16 *p = (u16 *)data;
-				msgid = (*(p + 1)) & 0xC3F;
-				ifid  = (*(p + 1)) >> 6;
-				ifid &= 0xF;
-				bh_printk(XRADIO_DBG_ALWY, "[DUMP] msgid 0x%.4X ifid %d len %d\n", 
-				          msgid, ifid, *p);
-				print_hex_dump_bytes("<-- ", DUMP_PREFIX_NONE,
-				                     data, min(wsm_len, hw_priv->wsm_dump_max_size));
-//			}
-//#endif /* CONFIG_XRADIO_DEBUG */
+			xradio_bh_rx_dump(data, wsm_len);
 
 			/* extract wsm id and seq. */
 			wsm_id  = __le32_to_cpu(wsm->id) & 0xFFF;
@@ -856,25 +872,7 @@ tx:
 				}
 				DBG_BH_TX_TOTAL_ADD;
 
-//#if defined(CONFIG_XRADIO_DEBUG)
-//				if (unlikely(hw_priv->wsm_enable_wsm_dumps)) {
-					u16 msgid, ifid;
-					u16 *p = (u16 *)data;
-					msgid = (*(p + 1)) & 0x3F;
-					ifid  = (*(p + 1)) >> 6;
-					ifid &= 0xF;
-					if (msgid == 0x0006) {
-						bh_printk(XRADIO_DBG_ALWY, "[DUMP] >>> msgid 0x%.4X ifid %d"
-						          "len %d MIB 0x%.4X\n", msgid, ifid,*p, *(p + 2));
-					} else {
-						bh_printk(XRADIO_DBG_ALWY, "[DUMP] >>> msgid 0x%.4X ifid %d "
-						          "len %d\n", msgid, ifid, *p);
-					}
-					print_hex_dump_bytes("--> ", DUMP_PREFIX_NONE, data,
-					                     min(__le32_to_cpu(wsm->len),
-					                     hw_priv->wsm_dump_max_size));
-//				}
-//#endif /* CONFIG_XRADIO_DEBUG */
+				xradio_bh_tx_dump(data, tx_len);
 
 				/* Process after data have sent. */
 				if (vif_selected != -1) {

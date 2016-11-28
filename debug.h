@@ -418,7 +418,6 @@ void  xradio_host_dbg_deinit(void);
 
 #else /* CONFIG_XRADIO_DEBUGFS */
 /****************************** no debugfs version *******************************/
-#define DBG_BH_IRQ_ADD
 #define DBG_BH_MISS_ADD
 #define DBG_BH_FIX_RX_ADD
 #define DBG_BH_NEXT_RX_ADD
