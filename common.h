@@ -12,8 +12,6 @@
 #ifndef XRADIO_COMMON_H
 #define XRADIO_COMMON_H
 
-#include <linux/version.h>
-
 /*******************************************************
  interfaces for parse frame protocol info.
 ********************************************************/

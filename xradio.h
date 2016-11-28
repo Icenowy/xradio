@@ -106,10 +106,6 @@
 #define XRADIO_WORKQUEUE   "xradio_wq"
 #define WIFI_CONF_PATH    "/data/xr_wifi.conf"
 
-//
-extern char *drv_version;
-#define DRV_VERSION    drv_version
-
 /* extern */ struct task_struct;
 /* extern */ struct xradio_debug_priv;
 /* extern */ struct xradio_debug_common;

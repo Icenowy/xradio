@@ -125,7 +125,6 @@ static void xradio_debug_print_map(struct seq_file *seq,
 static int xradio_version_show(struct seq_file *seq, void *v)
 {
 	struct xradio_common *hw_priv = seq->private;
-	seq_printf(seq, "Driver Label:%s\n", DRV_VERSION);
 	seq_printf(seq, "Firmware Label:%s\n", &hw_priv->wsm_caps.fw_label[0]);
 	return 0;
 }

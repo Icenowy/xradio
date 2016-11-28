@@ -32,10 +32,7 @@
 #include "ap.h"
 #include "scan.h"
 #include "pm.h"
-#include "xr_version.h"
 #include "sdio.h"
-
-char *drv_version   = XRADIO_VERSION;
 
 #ifdef HW_RESTART
 void xradio_restart_work(struct work_struct *work);
