@@ -26,8 +26,8 @@
 #include <linux/of_irq.h>
 
 #include "xradio.h"
-#include "sbus.h"
 #include "sdio.h"
+#include "main.h"
 
 /* sdio vendor id and device id*/
 #define SDIO_VENDOR_ID_XRADIO 0x0020
@@ -39,108 +39,97 @@ static const struct sdio_device_id xradio_sdio_ids[] = {
 };
 
 /* sbus_ops implemetation */
-int sdio_data_read(struct sbus_priv *self, unsigned int addr,
+int sdio_data_read(struct xradio_common* self, unsigned int addr,
                           void *dst, int count)
 {
-	int ret = sdio_memcpy_fromio(self->func, dst, addr, count);
+	int ret = sdio_memcpy_fromio(self->sdio_func, dst, addr, count);
 //	printk("sdio_memcpy_fromio 0x%x:%d ret %d\n", addr, count, ret);
 //	print_hex_dump_bytes("sdio read ", 0, dst, min(count,32));
 	return ret;
 }
 
-int sdio_data_write(struct sbus_priv *self, unsigned int addr,
+int sdio_data_write(struct xradio_common* self, unsigned int addr,
                            const void *src, int count)
 {
-	int ret = sdio_memcpy_toio(self->func, addr, (void *)src, count);
+	int ret = sdio_memcpy_toio(self->sdio_func, addr, (void *)src, count);
 //	printk("sdio_memcpy_toio 0x%x:%d ret %d\n", addr, count, ret);
 //	print_hex_dump_bytes("sdio write", 0, src, min(count,32));
 	return ret;
 }
 
-void sdio_lock(struct sbus_priv *self)
+void sdio_lock(struct xradio_common* self)
 {
-	sdio_claim_host(self->func);
+	sdio_claim_host(self->sdio_func);
 }
 
-void sdio_unlock(struct sbus_priv *self)
+void sdio_unlock(struct xradio_common *self)
 {
-	sdio_release_host(self->func);
+	sdio_release_host(self->sdio_func);
 }
 
-size_t sdio_align_len(struct sbus_priv *self, size_t size)
+size_t sdio_align_len(struct xradio_common *self, size_t size)
 {
-	return sdio_align_size(self->func, size);
+	return sdio_align_size(self->sdio_func, size);
 }
 
-int sdio_set_blk_size(struct sbus_priv *self, size_t size)
+int sdio_set_blk_size(struct xradio_common *self, size_t size)
 {
-	return sdio_set_block_size(self->func, size);
+	return sdio_set_block_size(self->sdio_func, size);
 }
 
 extern void xradio_irq_handler(struct xradio_common*);
 
 static irqreturn_t sdio_irq_handler(int irq, void *dev_id)
 {
-	struct sbus_priv *self = (struct sbus_priv*) dev_id;
-	unsigned long flags;
-	if (self->irq_priv != NULL)
-		xradio_irq_handler(self->irq_priv);
+	struct sdio_func *func = (struct sdio_func*) dev_id;
+	struct xradio_common *self = sdio_get_drvdata(func);
+	if (self != NULL)
+		xradio_irq_handler(self);
 	return IRQ_HANDLED;
 }
 
-int sdio_irq_subscribe(struct sbus_priv *self,
-				     sbus_irq_handler handler,
-				     void *priv)
+static int sdio_enableint(struct sdio_func* func)
 {
 	int ret = 0;
-	unsigned long flags;
-	
-	self->irq_priv = priv;
-	sdio_claim_host(self->func);
+	u8 cccr;
+	int func_num;
 
-	               /* Hack to access Fuction-0 */
-	               u8 cccr;
-	               int func_num = self->func->num;
-	               self->func->num = 0;
-	               cccr = sdio_readb(self->func, SDIO_CCCR_IENx, &ret);
-	               cccr |= BIT(0);         /* Master interrupt enable ... */
-	               cccr |= BIT(func_num);  /* ... for our function */
-	               sdio_writeb(self->func, cccr, SDIO_CCCR_IENx, &ret);
+	sdio_claim_host(func);
 
-	               /* Restore the WLAN function number */
-	               self->func->num = func_num;
+	/* Hack to access Fuction-0 */
+	func_num = func->num;
+	func->num = 0;
+	cccr = sdio_readb(func, SDIO_CCCR_IENx, &ret);
+	cccr |= BIT(0); /* Master interrupt enable ... */
+	cccr |= BIT(func_num); /* ... for our function */
+	sdio_writeb(func, cccr, SDIO_CCCR_IENx, &ret);
 
+	/* Restore the WLAN function number */
+	func->num = func_num;
 
-	sdio_release_host(self->func);
+	sdio_release_host(func);
 
 	return ret;
 }
 
-int sdio_irq_unsubscribe(struct sbus_priv *self)
-{
-	int ret = 0;
-	return ret;
-}
-
-int sdio_pm(struct sbus_priv *self, bool  suspend)
+int sdio_pm(struct xradio_common *self, bool  suspend)
 {
 	int ret = 0;
 	if (suspend) {
 		/* Notify SDIO that XRADIO will remain powered during suspend */
-		ret = sdio_set_host_pm_flags(self->func, MMC_PM_KEEP_POWER);
+		ret = sdio_set_host_pm_flags(self->sdio_func, MMC_PM_KEEP_POWER);
 		if (ret)
-			dev_dbg(&self->func->dev, "Error setting SDIO pm flags: %i\n", ret);
+			dev_dbg(&self->sdio_func->dev, "Error setting SDIO pm flags: %i\n", ret);
 	}
 
 	return ret;
 }
 
-static int sdio_reset(struct sbus_priv *self)
+static int sdio_reset(struct xradio_common *self)
 {
 	return 0;
 }
 
-static struct sbus_priv sdio_self;
 
 //for sdio debug  2015-5-26 11:01:21
 #if (defined(CONFIG_XRADIO_DEBUGFS))
@@ -169,8 +158,9 @@ static const struct of_device_id xradio_sdio_of_match_table[] = {
 	{ }
 };
 
-static int xradio_probe_of(struct device *dev)
+static int xradio_probe_of(struct sdio_func *func)
 {
+	struct device *dev = &func->dev;
 	struct device_node *np = dev->of_node;
 	const struct of_device_id *of_id;
 	int irq;
@@ -187,7 +177,7 @@ static int xradio_probe_of(struct device *dev)
 		return -EINVAL;
 	}
 
-	devm_request_irq(dev, irq, sdio_irq_handler, 0, "xradio", &sdio_self);
+	devm_request_irq(dev, irq, sdio_irq_handler, 0, "xradio", func);
 
 	return 0;
 }
@@ -221,17 +211,16 @@ static int sdio_probe(struct sdio_func *func,
 }
 #endif
 
-	xradio_probe_of(&func->dev);
+	xradio_probe_of(func);
 
-	sdio_self.func = func;
-	sdio_self.func->card->quirks |= MMC_QUIRK_BROKEN_BYTE_MODE_512;
-	sdio_set_drvdata(func, &sdio_self);
+	func->card->quirks |= MMC_QUIRK_BROKEN_BYTE_MODE_512;
 	sdio_claim_host(func);
 	sdio_enable_func(func);
 	sdio_release_host(func);
 
-	sdio_self.load_state = SDIO_LOAD;
-	wake_up(&sdio_self.init_wq);
+	sdio_enableint(func);
+
+	xradio_core_init(func);
 
 	return 0;
 }
@@ -239,14 +228,9 @@ static int sdio_probe(struct sdio_func *func,
  * device is disconnected */
 static void sdio_remove(struct sdio_func *func)
 {
-	struct sbus_priv *self = sdio_get_drvdata(func);
 	sdio_claim_host(func);
 	sdio_disable_func(func);
 	sdio_release_host(func);
-	sdio_set_drvdata(func, NULL);
-	if (self) {
-		self->func = NULL;
-	}
 }
 
 static int sdio_suspend(struct device *dev)
@@ -282,51 +266,10 @@ static struct sdio_driver sdio_driver = {
 };
 
 
-/* Init Module function -> Called by insmod */
-struct device * sbus_sdio_init(struct sbus_priv **sdio_priv)
-{
-	int ret = 0;
-	struct device * sdio_dev = NULL;
-	
-
-	//initialize sbus_priv.
-	if (sdio_self.load_state == SDIO_UNLOAD) {
-		spin_lock_init(&sdio_self.lock);
-		init_waitqueue_head(&sdio_self.init_wq);
-
-		//setup sdio driver.
-		ret = sdio_register_driver(&sdio_driver);
-		if (ret) {
-			printk("sdio_register_driver failed: %d\n", ret);
-			return NULL;
-		}
-
-		if (wait_event_interruptible_timeout(sdio_self.init_wq,
-			sdio_self.load_state == SDIO_LOAD, 2*HZ) <= 0) {
-			sdio_unregister_driver(&sdio_driver);
-			sdio_self.load_state = SDIO_UNLOAD;
-
-			printk("sdio probe timeout!\n");
-			return NULL;
-		}
-	}
-
-	//register sbus.
-	sdio_dev   = &(sdio_self.func->dev);
-	*sdio_priv = &sdio_self;
-
-	return sdio_dev;
+int xradio_sdio_register(){
+	return sdio_register_driver(&sdio_driver);
 }
 
-/* SDIO Driver Unloading */
-void sbus_sdio_deinit()
-{
-
-	if (sdio_self.load_state != SDIO_UNLOAD) {
-		sdio_unregister_driver(&sdio_driver);
-		memset(&sdio_self, 0, sizeof(sdio_self));
-		sdio_self.load_state = SDIO_UNLOAD;
-
-		mdelay(10);
-	}
+void xradio_sdio_unregister(){
+	sdio_unregister_driver(&sdio_driver);
 }

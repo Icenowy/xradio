@@ -15,7 +15,8 @@ xradio_wlan-y := \
 	ap.o \
 	scan.o \
 	platform.o \
-	debug.o
+	debug.o \
+	module.o
 
 xradio_wlan-$(CONFIG_PM)		+= pm.o
 xradio_wlan-$(CONFIG_XRADIO_SDIO)	+= sdio.o
@@ -26,7 +27,6 @@ ccflags-y += -DMCAST_FWDING
 ccflags-y += -DXRADIO_SUSPEND_RESUME_FILTER_ENABLE
 ccflags-y += -DAP_AGGREGATE_FW_FIX
 ccflags-y += -DAP_HT_CAP_UPDATE
-ccflags-y += -DHW_RESTART
 ccflags-y += -DHW_ERROR_WIFI_RESET
 ccflags-y += -DAP_HT_COMPAT_FIX
 #ccflags-y += -DCONFIG_XRADIO_DEBUG

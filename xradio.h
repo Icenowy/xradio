@@ -222,7 +222,7 @@ struct xradio_common {
 
 	struct mutex			conf_mutex;
 
-	struct sbus_priv		*sbus_priv;
+	struct sdio_func		*sdio_func;
 	int 			driver_ready;
 
 	/* HW/FW type (HIF_...) */

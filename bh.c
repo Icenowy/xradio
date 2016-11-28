@@ -16,7 +16,6 @@
 #include "bh.h"
 #include "hwio.h"
 #include "wsm.h"
-#include "sbus.h"
 #include "sdio.h"
 
 /* TODO: Verify these numbers with WSM specification. */
@@ -673,7 +672,7 @@ rx:
 			read_len = read_len + 2;
 			
 #if defined(CONFIG_XRADIO_NON_POWER_OF_TWO_BLOCKSIZES)
-			alloc_len = sdio_align_len(hw_priv->sbus_priv, read_len);
+			alloc_len = sdio_align_len(hw_priv, read_len);
 #else
 			/* Platform's SDIO workaround */
 			alloc_len = read_len & ~(SDIO_BLOCK_SIZE - 1);
@@ -849,7 +848,7 @@ tx:
 #if defined(CONFIG_XRADIO_NON_POWER_OF_TWO_BLOCKSIZES)
 				if (tx_len <= 8)
 					tx_len = 16;
-				tx_len = sdio_align_len(hw_priv->sbus_priv, tx_len);
+				tx_len = sdio_align_len(hw_priv, tx_len);
 #else /* CONFIG_XRADIO_NON_POWER_OF_TWO_BLOCKSIZES */
 				/* HACK!!! Platform limitation.
 				* It is also supported by upper layer:

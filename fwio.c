@@ -17,7 +17,6 @@
 #include "xradio.h"
 #include "fwio.h"
 #include "hwio.h"
-#include "sbus.h"
 #include "bh.h"
 #include "sdio.h"
 
@@ -495,11 +494,6 @@ int xradio_load_firmware(struct xradio_common *hw_priv)
 		/* TODO: verify this branch. Do we need something to do? */
 	}
 
-	/* Register Interrupt Handler */
-	ret = sdio_irq_subscribe(hw_priv->sbus_priv,
-	                                      (sbus_irq_handler)xradio_irq_handler, 
-	                                       hw_priv);
-
 	if (HIF_HW_TYPE_XRADIO  == hw_priv->hw_type) {
 		/* If device is XRADIO the IRQ enable/disable bits
 		 * are in CONFIG register */
@@ -556,7 +550,6 @@ int xradio_load_firmware(struct xradio_common *hw_priv)
 	return 0;
 
 unsubscribe:
-	sdio_irq_unsubscribe(hw_priv->sbus_priv);
 out:
 	if (hw_priv->sdd) {
 		release_firmware(hw_priv->sdd);
@@ -567,7 +560,6 @@ out:
 
 int xradio_dev_deinit(struct xradio_common *hw_priv)
 {
-	sdio_irq_unsubscribe(hw_priv->sbus_priv);
 	if (hw_priv->sdd) {
 		release_firmware(hw_priv->sdd);
 		hw_priv->sdd = NULL;

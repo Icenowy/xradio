@@ -15,7 +15,6 @@
 #include "pm.h"
 #include "sta.h"
 #include "bh.h"
-#include "sbus.h"
 #include "sdio.h"
 
 #define XRADIO_BEACON_SKIPPING_MULTIPLIER 3
@@ -491,7 +490,7 @@ int xradio_wow_suspend(struct ieee80211_hw *hw, struct cfg80211_wowlan *wowlan)
 	}
 
 	/* Enable IRQ wake */
-	ret = sdio_pm(hw_priv->sbus_priv, true);
+	ret = sdio_pm(hw_priv, true);
 	if (ret) {
 		pm_printk(XRADIO_DBG_WARN, "Don't suspend sbus pm failed\n");
 		xradio_wow_resume(hw);
@@ -666,7 +665,7 @@ int xradio_wow_resume(struct ieee80211_hw *hw)
 #endif
 
 	/* Disable IRQ wake */
-	sdio_pm(hw_priv->sbus_priv, false);
+	sdio_pm(hw_priv, false);
 
 	up(&hw_priv->scan.lock);
 
@@ -791,7 +790,7 @@ static int xradio_poweroff_suspend(struct xradio_common *hw_priv)
 	/* Schedule hardware restart, ensure no cmds in progress.*/
 	mutex_lock(&hw_priv->wsm_cmd_mux);
 	atomic_set(&hw_priv->suspend_state, XRADIO_POWEROFF_SUSP);
-	hw_priv->hw_restart = true;
+	//hw_priv->hw_restart = true;
 	mutex_unlock(&hw_priv->wsm_cmd_mux);
 	/* Stop serving thread */
 	if (xradio_bh_suspend(hw_priv)) {
@@ -810,8 +809,8 @@ static int xradio_poweroff_resume(struct xradio_common *hw_priv)
 	up(&hw_priv->scan.lock);
 	mutex_unlock(&hw_priv->conf_mutex);
 	mutex_unlock(&hw_priv->wsm_oper_lock);
-	if (schedule_work(&hw_priv->hw_restart_work) <= 0)
-		pm_printk(XRADIO_DBG_ERROR, "%s restart_work failed!\n", __func__);
+	//if (schedule_work(&hw_priv->hw_restart_work) <= 0)
+	//	pm_printk(XRADIO_DBG_ERROR, "%s restart_work failed!\n", __func__);
 	return 0;
 }
 #endif

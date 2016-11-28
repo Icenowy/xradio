@@ -11,7 +11,6 @@
 
 /*Linux version 3.4.0 compilation*/
 #include <linux/version.h>
-#include <linux/module.h>
 #include <linux/init.h>
 #include <linux/firmware.h>
 #include <linux/etherdevice.h>
@@ -22,10 +21,10 @@
 #include <net/cfg80211.h>
 #include <linux/of_net.h>
 #include <linux/etherdevice.h>
+#include <linux/mmc/sdio_func.h>
 
 #include "xradio.h"
 #include "txrx.h"
-#include "sbus.h"
 #include "fwio.h"
 #include "hwio.h"
 #include "bh.h"
@@ -35,11 +34,6 @@
 #include "pm.h"
 #include "xr_version.h"
 #include "sdio.h"
-
-MODULE_AUTHOR("XRadioTech");
-MODULE_DESCRIPTION("XRadioTech WLAN driver core");
-MODULE_LICENSE("GPL");
-MODULE_ALIAS("xradio_core");
 
 char *drv_version   = XRADIO_VERSION;
 
@@ -238,7 +232,6 @@ static const struct ieee80211_ops xradio_ops = {
 #endif /* CONFIG_XRADIO_TESTMODE */
 };
 
-struct xradio_common *g_hw_priv;
 
 /*************************************** functions ***************************************/
 void xradio_version_show(void)
@@ -654,14 +647,7 @@ struct ieee80211_hw *xradio_init_common(size_t hw_priv_data_len)
 
 	xradio_set_ifce_comb(hw_priv, hw_priv->hw);
 
-	if (!g_hw_priv) {
-		g_hw_priv = hw_priv;
-		return hw;
-	} else { //error:didn't release hw_priv last time.
-		ieee80211_free_hw(hw);
-		xradio_dbg(XRADIO_DBG_ERROR, "g_hw_priv is not NULL @ %p!\n", g_hw_priv);
-		return NULL;
-	}
+	return hw;
 }
 
 void xradio_free_common(struct ieee80211_hw *dev)
@@ -705,7 +691,6 @@ void xradio_free_common(struct ieee80211_hw *dev)
 #endif
 	/* unsigned int i; */
 	ieee80211_free_hw(dev);
-	g_hw_priv = NULL;
 }
 
 int xradio_register_common(struct ieee80211_hw *dev)
@@ -914,7 +899,7 @@ void xradio_restart_work(struct work_struct *work)
 }
 #endif
 
-int xradio_core_init(void)
+int xradio_core_init(struct sdio_func* func)
 {
 	int err = -ENOMEM;
 	u16 ctrl_reg;
@@ -937,14 +922,9 @@ int xradio_core_init(void)
 		return err;
 	}
 	hw_priv = dev->priv;
-
-	//init sdio sbus
-	hw_priv->pdev = sbus_sdio_init(&hw_priv->sbus_priv);
-	if (!hw_priv->pdev) {
-		err = -ETIMEDOUT;
-		xradio_dbg(XRADIO_DBG_ERROR,"sbus_sdio_init failed\n");
-		goto err1;
-	}
+	hw_priv->pdev = &func->dev;
+	hw_priv->sdio_func = func;
+	sdio_set_drvdata(func, hw_priv);
 
 	// fill in mac addresses
 	if (hw_priv->pdev->of_node) {
@@ -996,10 +976,10 @@ int xradio_core_init(void)
 	}
 
 	/* Set sdio blocksize. */
-	sdio_lock(hw_priv->sbus_priv);
-	SYS_WARN(sdio_set_blk_size(hw_priv->sbus_priv,
+	sdio_lock(hw_priv);
+	SYS_WARN(sdio_set_blk_size(hw_priv,
 			SDIO_BLOCK_SIZE));
-	sdio_unlock(hw_priv->sbus_priv);
+	sdio_unlock(hw_priv);
 
 	if (wait_event_interruptible_timeout(hw_priv->wsm_startup_done,
 				hw_priv->wsm_caps.firmwareReady, 3*HZ) <= 0) {
@@ -1042,46 +1022,23 @@ err4:
 err3:
 	xradio_pm_deinit(&hw_priv->pm_state);
 err2:
-	sbus_sdio_deinit();
 err1:
 	xradio_free_common(dev);
 	return err;
 }
-EXPORT_SYMBOL_GPL(xradio_core_init);
 
-void xradio_core_deinit(void)
+void xradio_core_deinit(struct sdio_func* func)
 {
-	if (g_hw_priv) {
+	struct xradio_common* hw_priv = sdio_get_drvdata(func);
+	if (hw_priv) {
 #ifdef HW_RESTART
-		cancel_work_sync(&g_hw_priv->hw_restart_work);
+		cancel_work_sync(hw_priv->hw_restart_work);
 #endif
-		xradio_unregister_common(g_hw_priv->hw);
-		xradio_dev_deinit(g_hw_priv);
-		xradio_unregister_bh(g_hw_priv);
-		xradio_pm_deinit(&g_hw_priv->pm_state);
-		xradio_free_common(g_hw_priv->hw);
-		sbus_sdio_deinit();
+		xradio_unregister_common(hw_priv->hw);
+		xradio_dev_deinit(hw_priv);
+		xradio_unregister_bh(hw_priv);
+		xradio_pm_deinit(&hw_priv->pm_state);
+		xradio_free_common(hw_priv->hw);
 	}
 	return;
 }
-EXPORT_SYMBOL_GPL(xradio_core_deinit);
-
-/* Init Module function -> Called by insmod */
-static int __init xradio_core_entry(void)
-{
-	int ret = 0;
-	ret = xradio_host_dbg_init();
-	ret = xradio_core_init();
-	return ret;
-}
-
-/* Called at Driver Unloading */
-static void __exit xradio_core_exit(void)
-{
-	xradio_core_deinit();
-	xradio_host_dbg_deinit();
-}
-
-module_init(xradio_core_entry);
-module_exit(xradio_core_exit);
-
