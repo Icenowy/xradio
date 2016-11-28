@@ -697,15 +697,14 @@ int xradio_register_common(struct ieee80211_hw *dev)
 {
 	int err = 0;
 	struct xradio_common *hw_priv = dev->priv;
-	xradio_dbg(XRADIO_DBG_TRC,"%s\n", __FUNCTION__);
 
 	SET_IEEE80211_DEV(dev, hw_priv->pdev);
 	err = ieee80211_register_hw(dev);
 	if (err) {
-		xradio_dbg(XRADIO_DBG_ERROR, "Cannot register device (%d).\n", err);
+		dev_dbg(hw_priv->pdev, "Cannot register device (%d).\n", err);
 		return err;
 	}
-	xradio_dbg(XRADIO_DBG_MSG, "is registered as '%s'\n", 
+	dev_dbg(hw_priv->pdev, "is registered as '%s'\n",
 	           wiphy_name(dev->wiphy));
 
 	xradio_debug_init_common(hw_priv);
@@ -717,7 +716,6 @@ int xradio_register_common(struct ieee80211_hw *dev)
 void xradio_unregister_common(struct ieee80211_hw *dev)
 {
 	struct xradio_common *hw_priv = dev->priv;
-	xradio_dbg(XRADIO_DBG_TRC,"%s\n", __FUNCTION__);
 
 	if (wiphy_dev(dev->wiphy)) {
 	ieee80211_unregister_hw(dev);
