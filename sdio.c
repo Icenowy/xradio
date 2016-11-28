@@ -9,19 +9,11 @@
  * published by the Free Software Foundation.
  */
 
-#include <linux/version.h>
-#include <linux/module.h>
-#include <linux/wait.h>
-#include <linux/gpio.h>
-#include <linux/regulator/consumer.h>
-#include <linux/delay.h>
 #include <linux/mmc/host.h>
 #include <linux/mmc/sdio_func.h>
 #include <linux/mmc/card.h>
 #include <linux/mmc/sdio.h>
-#include <linux/spinlock.h>
 #include <asm/mach-types.h>
-#include <net/mac80211.h>
 #include <linux/of.h>
 #include <linux/of_irq.h>
 
