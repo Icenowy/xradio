@@ -253,7 +253,8 @@ static struct sdio_driver sdio_driver = {
 	.probe    = sdio_probe,
 	.remove   = sdio_remove,
 	.drv = {
-		.pm = &sdio_pm_ops,
+			.owner = THIS_MODULE,
+			.pm = &sdio_pm_ops,
 	}
 };
 
