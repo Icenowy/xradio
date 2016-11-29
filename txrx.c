@@ -1729,7 +1729,6 @@ void xradio_tx_confirm_cb(struct xradio_common *hw_priv,
 		  tx->status.rates[1].idx   = -1;
 		  tx->status.rates[2].idx   = -1;
 		  tx->status.rates[3].idx   = -1;
-		  tx->status.rates[4].idx   = -1;
 		} else {
 			int j;
 			s8  txed_idx;
@@ -1810,12 +1809,11 @@ void xradio_tx_confirm_cb(struct xradio_common *hw_priv,
 #endif
 
 		txrx_printk(XRADIO_DBG_MSG, "[TX policy] Ack: " \
-		"%d:%d, %d:%d, %d:%d, %d:%d, %d:%d\n",
+		"%d:%d, %d:%d, %d:%d, %d:%d\n",
 		tx->status.rates[0].idx, tx->status.rates[0].count,
 		tx->status.rates[1].idx, tx->status.rates[1].count,
 		tx->status.rates[2].idx, tx->status.rates[2].count,
-		tx->status.rates[3].idx, tx->status.rates[3].count,
-		tx->status.rates[4].idx, tx->status.rates[4].count);
+		tx->status.rates[3].idx, tx->status.rates[3].count);
 		
 #ifdef CONFIG_XRADIO_TESTMODE
 		xradio_queue_remove(hw_priv, queue, arg->packetID);
