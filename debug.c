@@ -1425,11 +1425,11 @@ static ssize_t xradio_tala_set(struct file *file,
 	if(copy_from_user(buf, user_buf, count))
 		return -EFAULT;
 
-    if(start < buf+count) 
-    	tala_para.para = simple_strtoul(start, &endptr, 16);
-    start = endptr+1;
-    if(start < buf+count) 
-    	tala_para.thresh = simple_strtoul(start, &endptr, 16);
+	if(start < buf+count)
+		tala_para.para = simple_strtoul(start, &endptr, 16);
+	start = endptr+1;
+	if(start < buf+count)
+		tala_para.thresh = simple_strtoul(start, &endptr, 16);
 
 	wsm_set_tala(hw_priv, &tala_para);
 	return count;
