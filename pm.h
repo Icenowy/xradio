@@ -36,7 +36,7 @@ struct xradio_pm_state {
 #endif
 	struct platform_device *pm_dev;
 	spinlock_t lock;
-	long expires_save;
+	unsigned long expires_save;
 };
 
 struct xradio_pm_state_vif {
