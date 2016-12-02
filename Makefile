@@ -14,7 +14,6 @@ xradio_wlan-y := \
 	sta.o \
 	ap.o \
 	scan.o \
-	platform.o \
 	debug.o \
 	module.o
 
