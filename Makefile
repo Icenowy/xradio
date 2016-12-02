@@ -55,7 +55,7 @@ ccflags-y += -DXRADIO_USE_LONG_KEEP_ALIVE_PERIOD
 # Use semaphore to sync bh txrx.
 #ccflags-y += -DBH_USE_SEMAPHORE
 
-ccflags-y += -DDEBUG
+#ccflags-y += -DDEBUG
 
 ldflags-y += --strip-debug
 
