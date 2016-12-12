@@ -449,6 +449,7 @@ void xradio_enable_powersave(struct xradio_vif *priv,
 }
 
 static void xradio_bh_rx_dump(struct device *dev, u8 *data, size_t len){
+#ifdef DEBUG
 	u16 msgid, ifid;
 	u16 *p = (u16 *)data;
 	msgid = (*(p + 1)) & 0xC3F;
@@ -458,9 +459,11 @@ static void xradio_bh_rx_dump(struct device *dev, u8 *data, size_t len){
 	          msgid, ifid, *p);
 	print_hex_dump_bytes("<-- ", DUMP_PREFIX_NONE,
 	                     data, min(len, (size_t) 64));
+#endif
 }
 
 static void xradio_bh_tx_dump(struct device *dev, u8 *data, size_t len){
+#ifdef DEBUG
 	u16 msgid, ifid;
 	u16 *p = (u16 *)data;
 	msgid = (*(p + 1)) & 0x3F;
@@ -475,6 +478,7 @@ static void xradio_bh_tx_dump(struct device *dev, u8 *data, size_t len){
 	}
 	print_hex_dump_bytes("--> ", DUMP_PREFIX_NONE, data,
 	                     min(len, (size_t) 64));
+#endif
 }
 
 static int xradio_bh(void *arg)

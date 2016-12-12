@@ -34,9 +34,6 @@ ccflags-y += -DCONFIG_XRADIO_DEBUGFS
 ccflags-y += -DCONFIG_XRADIO_NON_POWER_OF_TWO_BLOCKSIZES
 
 ccflags-y += -DCONFIG_XRADIO_SUSPEND_POWER_OFF
-# Use vfs for firmware load when request_firmware 
-# can't work on other platform.
-# ccflags-y += -DUSE_VFS_FIRMWARE
 
 # Extra IE for probe response from upper layer is needed in P2P GO
 # For offloading probe response to FW, the extra IE must be included
