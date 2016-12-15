@@ -432,10 +432,9 @@ static int xradio_bh_rx(struct xradio_common *hw_priv) {
 	size_t wsm_len;
 	int wsm_id;
 	u8 wsm_seq;
-	int rx_resync = 1;
-
 	size_t alloc_len;
 	u8 *data;
+	int txconfirms  = 0;
 
 	for (;;) {
 		if (SYS_WARN(xradio_bh_read_ctrl_reg(hw_priv, &ctrl_reg))) {
@@ -444,7 +443,7 @@ static int xradio_bh_rx(struct xradio_common *hw_priv) {
 
 		read_len = (ctrl_reg & HIF_CTRL_NEXT_LEN_MASK) << 1; //read_len=ctrl_reg*2.
 		if (!read_len) {
-			return 0;
+			return txconfirms;
 		}
 
 		if (read_len < sizeof(struct wsm_hdr)
@@ -486,7 +485,7 @@ static int xradio_bh_rx(struct xradio_common *hw_priv) {
 
 		/* Read data from device. */
 		if (SYS_WARN(xradio_data_read(hw_priv, data, alloc_len))) {
-			return -1;
+			return -EIO;
 		}
 
 		/* Piggyback */
@@ -518,11 +517,6 @@ static int xradio_bh_rx(struct xradio_common *hw_priv) {
 			wsm_handle_exception(hw_priv, &data[sizeof(*wsm)],
 					wsm_len - sizeof(*wsm));
 			return -1;
-		} else if (unlikely(!rx_resync)) {
-			if (SYS_WARN(wsm_seq != hw_priv->wsm_rx_seq)) {
-				dev_err(hw_priv->pdev, "wsm_seq=%d.\n", wsm_seq);
-				return -1;
-			}
 		}
 		hw_priv->wsm_rx_seq = (wsm_seq + 1) & 7;
 
@@ -532,6 +526,8 @@ static int xradio_bh_rx(struct xradio_common *hw_priv) {
 				dev_err(hw_priv->pdev, "tx buffer < 0.\n");
 				return -1;
 			}
+			else
+				txconfirms++;
 		}
 
 		/* WSM processing frames. */
@@ -546,7 +542,6 @@ static int xradio_bh_rx(struct xradio_common *hw_priv) {
 				xradio_put_skb(hw_priv, skb_rx);
 			skb_rx = NULL;
 		}
-		read_len = 0;
 	}
 }
 
@@ -671,43 +666,30 @@ static int xradio_bh(void *arg)
 	int txnew = 0;
 	int txpending = 0;
 	int txdone;
+	int txconfirms;
+	long timeout;
 	long status;
 
 	for (;;) {
-		/* Check if devices can sleep, and set time to wait for interrupt. */
-		if (!hw_priv->hw_bufs_used && !txpending &&
-		    hw_priv->powersave_enabled && !hw_priv->device_can_sleep &&
-		    !atomic_read(&hw_priv->recent_scan) &&
-		    atomic_read(&hw_priv->bh_rx) == 0   &&
-		    atomic_read(&hw_priv->bh_tx) == 0) {
-			dev_dbg(hw_priv->pdev, "Device idle, can sleep.\n");
-			SYS_WARN(xradio_reg_write_16(hw_priv, HIF_CONTROL_REG_ID, 0));
-			hw_priv->device_can_sleep = true;
-			status = HZ/8;    //125ms
-		} else if (hw_priv->hw_bufs_used) {
-			/* don't wait too long if some frames to confirm 
-			 * and miss interrupt.*/
-			status = HZ/20;   //50ms.
-		} else {
-			status = HZ/8;    //125ms
-		}
 
-		/* Wait for Events in HZ/8 */
-		status = wait_event_interruptible_timeout(hw_priv->bh_wq, ({
+		// if there are tx's waiting wake up sooner rather than later
+		timeout = hw_priv->hw_bufs_used ? HZ/20 : HZ/8;
+
+		// wait for something to happen or a timeout
+		status = wait_event_interruptible_timeout(hw_priv->bh_wq,
+				({
 		         irq = atomic_xchg(&hw_priv->bh_rx, 0);
 		         txnew = atomic_xchg(&hw_priv->bh_tx, 0);
 		         term = kthread_should_stop();
 		         suspend = txpending ? 0 : atomic_read(&hw_priv->bh_suspend);
 		         (irq || txnew || term || suspend);}),
-		         status);
+		         timeout);
 
-		/* 0--bh is going to be shut down */
 		if(term) {
 			dev_dbg(hw_priv->pdev, "xradio_bh exit!\n");
 			break;
 		}
-		/* 1--An fatal error occurs */
-		else if (status < 0 || hw_priv->bh_error) {
+		else if (status < 0) {
 			dev_err(hw_priv->pdev, "bh_error=%d, status=%ld\n",
 			          hw_priv->bh_error, status);
 			break;
@@ -771,16 +753,26 @@ static int xradio_bh(void *arg)
 				atomic_add(1, &hw_priv->query_cnt);
 		}
 
-		/* 4--Rx & Tx process. */
+		/* do tx first, then do rx, rx might notice some tx's
+		 * that have been confirmed and buffers are ready for
+		 * new tx's so keep doing this until there are no tx's
+		 * left or nowhere for them to go
+		 */
 		txpending += txnew;
-		txdone = xradio_bh_tx(hw_priv, txpending);
-		if (txdone < 0)
-			break;
-		else
-			txpending -= txdone;
+		do {
+			txdone = xradio_bh_tx(hw_priv, txpending);
+			if (txdone < 0){
+				break;
+			}
+			else{
+				txpending -= txdone;
+			}
 
-		if(xradio_bh_rx(hw_priv) < 0)
-			break;
+			txconfirms = xradio_bh_rx(hw_priv);
+			if(txconfirms < 0){
+				break;
+			}
+		} while(txpending > 0 && txconfirms > 0);
 	}  /* for (;;)*/
 
 	dev_err(hw_priv->pdev, "bh thread exiting\n");
@@ -815,6 +807,5 @@ static int xradio_bh(void *arg)
 		}
 #endif
 	}
-	atomic_add(1, &hw_priv->bh_term);  //debug info, show bh status.
 	return 0;
 }
