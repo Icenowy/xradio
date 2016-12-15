@@ -1877,8 +1877,7 @@ int wsm_cmd_send(struct xradio_common *hw_priv,
 		hw_priv->wsm_cmd.ptr = NULL;
 		spin_unlock(&hw_priv->wsm_cmd.lock);
 
-		wsm_printk(XRADIO_DBG_ERROR,
-			   "***CMD timeout!>>> 0x%.4X (%d), buf_use=%d, bh_state=%d\n",
+		dev_err(hw_priv->pdev, "***CMD timeout!>>> 0x%.4X (%d), buf_use=%d, bh_state=%d\n",
 			   cmd, buf_len, hw_priv->hw_bufs_used, hw_priv->bh_error);
 		/* Race condition check to make sure _confirm is not called
 		 * after exit of _send */
