@@ -268,3 +268,5 @@ int xradio_sdio_register(){
 void xradio_sdio_unregister(){
 	sdio_unregister_driver(&sdio_driver);
 }
+
+MODULE_DEVICE_TABLE(sdio, xradio_sdio_ids);
