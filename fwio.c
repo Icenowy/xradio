@@ -332,12 +332,12 @@ error:
 
 static int xradio_bootloader(struct xradio_common *hw_priv)
 {
-	int ret = -1;
-	u32 i = 0;
 	const char *bl_path = XR819_BOOTLOADER;
 	u32  addr = AHB_MEMORY_ADDRESS;
-	u32 *data = NULL;
-	const struct firmware *bootloader = NULL;
+	int ret;
+	u32 i;
+	u32 *data;
+	const struct firmware *bootloader;
 
 	/* Load a bootloader file */
 	ret = request_firmware(&bootloader, bl_path, hw_priv->pdev);
@@ -347,17 +347,11 @@ static int xradio_bootloader(struct xradio_common *hw_priv)
 		goto error;
 	}
 
-	xradio_dbg(XRADIO_DBG_NIY, "%s: bootloader size = %d, loopcount = %d\n",
-	          __func__,bootloader->size, (bootloader->size)/4);
-
 	/* Down bootloader. */
 	data = (u32 *)bootloader->data;
-	for(i = 0; i < (bootloader->size)/4; i++) {
+	for(i = 0; i < (bootloader->size)/4; i++, addr+=4) {
 		REG_WRITE(HIF_SRAM_BASE_ADDR_REG_ID, addr);
 		REG_WRITE(HIF_AHB_DPORT_REG_ID,data[i]);
-		if(i == 100 || i == 200 || i == 300 || i == 400 || i == 500 || i == 600 )
-			xradio_dbg(XRADIO_DBG_NIY, "%s: addr = 0x%x,data = 0x%x\n",__func__,addr, data[i]);
-		addr += 4;
 	}
 	dev_dbg(hw_priv->pdev, "Bootloader complete\n");
 
@@ -377,8 +371,6 @@ int xradio_load_firmware(struct xradio_common *hw_priv)
 	u16 val16;
 	u32 dpll = 0;
 	int major_revision;
-
-	SYS_BUG(!hw_priv);
 
 	/* Read CONFIG Register Value - We will read 32 bits */
 	ret = xradio_reg_read_32(hw_priv, HIF_CONFIG_REG_ID, &val32);
@@ -566,7 +558,3 @@ int xradio_dev_deinit(struct xradio_common *hw_priv)
 	}
 	return 0;
 }
-#undef APB_WRITE
-#undef APB_READ
-#undef REG_WRITE
-#undef REG_READ
