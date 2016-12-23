@@ -75,12 +75,14 @@ swapping vqmmc and vmmc around results in the kernel complaining that the card's
 required IO voltage isn't supported. The setup above might not be technically correct but
 does work.
 The xr819 node should be self explanatory. The compatible string is used by the driver
-to find the node. The wake interrupt from the xr819 needs to be provided. Finally
-you can specify a MAC address to use. If you don't set one you will get a random one
-on each boot. Instead of creating a new device tree file for every system you should
-probably overwrite the address given after loading the device tree in u-boot.
-Using a unique OTP id from the SoC or similar would be a good idea.
+to find the node. The wake interrupt from the xr819 needs to be provided. 
 
+Finally you can specify a MAC address to use. If you don't set one you will get a random one
+on each boot. Instead of creating a new device tree file for every system you should
+probably overwrite the address given after loading the device tree in u-boot. For the sunxi
+uboot all you have to actually do is add something like "ethernet1 = &xr819wifi;" to the
+aliases section of the device tree you give to the kernel and u-boot will update the mac
+address to something based on the unique chip id for you.
 # What works, what doesn't
 
 Working:
