@@ -257,8 +257,6 @@ static int xradio_status_show_common(struct seq_file *seq, void *v)
 	seq_printf(seq, "BH status: %s, errcode=%d\n",
 	           atomic_read(&hw_priv->bh_term) ? "terminated" : "alive", 
 	           hw_priv->bh_error);
-	seq_printf(seq, "Pending RX: %d\n",
-		atomic_read(&hw_priv->bh_rx));
 	seq_printf(seq, "Pending TX: %d\n",
 		atomic_read(&hw_priv->bh_tx));
 

@@ -351,10 +351,10 @@ static int xradio_suspend_late(struct device *dev)
 	}
 #endif
 
-	if (atomic_read(&hw_priv->bh_rx)) {
-		pm_printk(XRADIO_DBG_WARN, "%s: Suspend interrupted.\n", __func__);
-		return -EAGAIN;
-	}
+	//if (atomic_read(&hw_priv->bh_rx)) {
+	//	pm_printk(XRADIO_DBG_WARN, "%s: Suspend interrupted.\n", __func__);
+	//	return -EAGAIN;
+	//}
 	return 0;
 }
 
@@ -498,12 +498,12 @@ int xradio_wow_suspend(struct ieee80211_hw *hw, struct cfg80211_wowlan *wowlan)
 	}
 
 	/* Force resume if event is coming from the device. */
-	if (atomic_read(&hw_priv->bh_rx)) {
-		pm_printk(XRADIO_DBG_WARN, "Don't suspend "
-		           "because of recieved rx event!\n");
-		xradio_wow_resume(hw);
-		return -EAGAIN;
-	}
+	//if (atomic_read(&hw_priv->bh_rx)) {
+	//	pm_printk(XRADIO_DBG_WARN, "Don't suspend "
+	//	           "because of recieved rx event!\n");
+	//	xradio_wow_resume(hw);
+	//	return -EAGAIN;
+	//}
 	return 0;
 
 revert3:

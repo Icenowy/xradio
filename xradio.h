@@ -266,7 +266,6 @@ struct xradio_common {
 	u8				conf_listen_interval;
 
 	/* BH */
-	atomic_t			bh_rx;
 	atomic_t			bh_tx;
 	atomic_t			bh_term;
 	atomic_t			bh_suspend;

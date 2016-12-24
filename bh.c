@@ -46,7 +46,6 @@ int xradio_register_bh(struct xradio_common *hw_priv)
 	struct sched_param param = { .sched_priority = 1 };
 
 	SYS_BUG(hw_priv->bh_thread);
-	atomic_set(&hw_priv->bh_rx, 0);
 	atomic_set(&hw_priv->bh_tx, 0);
 	atomic_set(&hw_priv->bh_term, 0);
 	atomic_set(&hw_priv->bh_suspend, XRADIO_BH_RESUMED);
@@ -776,7 +775,6 @@ static int xradio_bh(void *arg)
 			dev_dbg(hw_priv->pdev, "Host resume.\n");
 			atomic_set(&hw_priv->bh_suspend, XRADIO_BH_RESUMED);
 			wake_up(&hw_priv->bh_evt_wq);
-			atomic_add(1, &hw_priv->bh_rx);
 		}
 	} /* for (;;)*/
 
