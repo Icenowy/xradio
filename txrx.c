@@ -19,6 +19,7 @@
 #include "ap.h"
 #include "sta.h"
 #include "sdio.h"
+#include "common.h"
 
 #define B_RATE_INDEX   0     //11b rate for important short frames in 2.4G.
 #define AG_RATE_INDEX  6     //11a/g rate for important short frames in 5G.

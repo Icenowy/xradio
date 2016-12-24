@@ -260,17 +260,20 @@ int xradio_add_interface(struct ieee80211_hw *dev,
 	spin_lock(&hw_priv->vif_list_lock);
 	if (atomic_read(&hw_priv->num_vifs) < XRWL_MAX_VIFS) {
 #ifdef P2P_MULTIVIF
+		//~dgp in this mode it looks like virtual interface 2 shouldn't
+		// be used as other parts of the driver complain
+		// but when the second interface is added it gets id 2 here
 		if (!memcmp(vif->addr, hw_priv->addresses[0].addr, ETH_ALEN)) {
 			priv->if_id = 0;
 		} else if (!memcmp(vif->addr, hw_priv->addresses[1].addr,
 			ETH_ALEN)) {
-			priv->if_id = 2;
+			priv->if_id = 1;//2;
 		} else if (!memcmp(vif->addr, hw_priv->addresses[2].addr,
 			ETH_ALEN)) {
-			priv->if_id = 1;
+			priv->if_id = 2;//1;
 		}
-		sta_printk(XRADIO_DBG_MSG, "%s: if_id %d mac %pM\n",
-		           __func__, priv->if_id, vif->addr);
+		wiphy_debug(dev->wiphy, "if_id %d mac %pM\n",
+				priv->if_id, vif->addr);
 #else
 		for (i = 0; i < XRWL_MAX_VIFS; i++)
 			if (!memcmp(vif->addr, hw_priv->addresses[i].addr, ETH_ALEN))
@@ -440,7 +443,7 @@ int xradio_change_interface(struct ieee80211_hw *dev,
 				bool p2p)
 {
 	int ret = 0;
-	wiphy_debug(dev->wiphy, "new type=%d(%d), p2p=%d(%d)\n",
+	wiphy_debug(dev->wiphy, "changing interface type; new type=%d(%d), p2p=%d(%d)\n",
 			new_type, vif->type, p2p, vif->p2p);
 	if (new_type != vif->type || vif->p2p != p2p) {
 		xradio_remove_interface(dev, vif);
@@ -942,15 +945,15 @@ int xradio_set_key(struct ieee80211_hw *dev, enum set_key_cmd cmd,
 				memcpy(wsm_key->wepPairwiseKey.peerAddress, peer_addr, ETH_ALEN);
 				memcpy(wsm_key->wepPairwiseKey.keyData, &key->key[0], key->keylen);
 				wsm_key->wepPairwiseKey.keyLength = key->keylen;
-				sta_printk(XRADIO_DBG_NIY,"%s: WEP_PAIRWISE keylen=%d!\n",
-			               __func__, key->keylen);
+				wiphy_debug(dev->wiphy, "WEP_PAIRWISE keylen=%d!\n",
+						key->keylen);
 			} else {
 				wsm_key->type = WSM_KEY_TYPE_WEP_DEFAULT;
 				memcpy(wsm_key->wepGroupKey.keyData, &key->key[0], key->keylen);
 				wsm_key->wepGroupKey.keyLength = key->keylen;
 				wsm_key->wepGroupKey.keyId     = key->keyidx;
-				sta_printk(XRADIO_DBG_NIY,"%s: WEP_GROUP keylen=%d!\n",
-			               __func__, key->keylen);
+				wiphy_debug(dev->wiphy, "WEP_GROUP keylen=%d!\n",
+						key->keylen);
 			}
 			break;
 		case WLAN_CIPHER_SUITE_TKIP:
@@ -960,8 +963,8 @@ int xradio_set_key(struct ieee80211_hw *dev, enum set_key_cmd cmd,
 				memcpy(wsm_key->tkipPairwiseKey.tkipKeyData, &key->key[0], 16);
 				memcpy(wsm_key->tkipPairwiseKey.txMicKey, &key->key[16], 8);
 				memcpy(wsm_key->tkipPairwiseKey.rxMicKey, &key->key[24], 8);
-				sta_printk(XRADIO_DBG_NIY,"%s: TKIP_PAIRWISE keylen=%d!\n",
-			               __func__, key->keylen);
+				wiphy_debug(dev->wiphy,"TKIP_PAIRWISE keylen=%d!\n",
+						key->keylen);
 			} else {
 				size_t mic_offset = (priv->mode == NL80211_IFTYPE_AP) ? 16 : 24;
 				wsm_key->type = WSM_KEY_TYPE_TKIP_GROUP;
@@ -971,8 +974,8 @@ int xradio_set_key(struct ieee80211_hw *dev, enum set_key_cmd cmd,
 				/* TODO: Where can I find TKIP SEQ? */
 				memset(wsm_key->tkipGroupKey.rxSeqCounter, 0, 8);
 				wsm_key->tkipGroupKey.keyId = key->keyidx;
-				sta_printk(XRADIO_DBG_NIY,"%s: TKIP_GROUP keylen=%d!\n",
-			               __func__, key->keylen);
+				wiphy_debug(dev->wiphy,"TKIP_GROUP keylen=%d!\n",
+						key->keylen);
 			}
 			break;
 		case WLAN_CIPHER_SUITE_CCMP:
@@ -980,16 +983,16 @@ int xradio_set_key(struct ieee80211_hw *dev, enum set_key_cmd cmd,
 				wsm_key->type = WSM_KEY_TYPE_AES_PAIRWISE;
 				memcpy(wsm_key->aesPairwiseKey.peerAddress, peer_addr, ETH_ALEN);
 				memcpy(wsm_key->aesPairwiseKey.aesKeyData, &key->key[0], 16);
-				sta_printk(XRADIO_DBG_NIY,"%s: CCMP_PAIRWISE keylen=%d!\n",
-			               __func__, key->keylen);
+				wiphy_debug(dev->wiphy, "CCMP_PAIRWISE keylen=%d!\n",
+						key->keylen);
 			} else {
 				wsm_key->type = WSM_KEY_TYPE_AES_GROUP;
 				memcpy(wsm_key->aesGroupKey.aesKeyData, &key->key[0], 16);
 				/* TODO: Where can I find AES SEQ? */
 				memset(wsm_key->aesGroupKey.rxSeqCounter, 0, 8);
 				wsm_key->aesGroupKey.keyId = key->keyidx;
-				sta_printk(XRADIO_DBG_NIY,"%s: CCMP_GROUP keylen=%d!\n",
-			               __func__, key->keylen);
+				wiphy_debug(dev->wiphy, "CCMP_GROUP keylen=%d!\n",
+						key->keylen);
 			}
 			break;
 #ifdef CONFIG_XRADIO_WAPI_SUPPORT
@@ -1013,8 +1016,7 @@ int xradio_set_key(struct ieee80211_hw *dev, enum set_key_cmd cmd,
 			break;
 #endif /* CONFIG_XRADIO_WAPI_SUPPORT */
 		default:
-			sta_printk(XRADIO_DBG_ERROR,"%s: key->cipher unknown(%d)!\n",
-			           __func__, key->cipher);
+			wiphy_err(dev->wiphy, "key->cipher unknown(%d)!\n", key->cipher);
 			xradio_free_key(hw_priv, idx);
 			ret = -EOPNOTSUPP;
 			goto finally;
@@ -1047,7 +1049,7 @@ int xradio_set_key(struct ieee80211_hw *dev, enum set_key_cmd cmd,
 		xradio_free_key(hw_priv, wsm_key.entryIndex);
 		ret = wsm_remove_key(hw_priv, &wsm_key, priv->if_id);
 	} else {
-		sta_printk(XRADIO_DBG_ERROR, "%s: Unsupported command", __func__);
+		wiphy_err(dev->wiphy, "Unsupported command\n");
 	}
 
 finally:

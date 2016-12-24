@@ -410,13 +410,31 @@ void xradio_enable_powersave(struct xradio_vif *priv,
 
 static void xradio_bh_rx_dump(struct device *dev, u8 *data, size_t len){
 #ifdef DEBUG
+	static const char *msgnames[0xffff] = {
+			// 0x4?? is a sync response to a command
+			[0x0406] = "mib confirm",
+			[0x0407] = "scan started",
+			[0x0409] = "configuration confirm",
+			[0x040b] = "join confirm",
+			[0x040c] = "key added",
+			[0x0410] = "pm confirm",
+			[0x0412] = "tx queue params",
+			[0x0413] = "edca confirm",
+			// 0x8?? seem to be async responses or events
+			[0x0801] = "firmware startup complete",
+			[0x0804] = "scan result",
+			[0x0806] = "scan complete",
+			[0x0810] = "set pm indication"
+	};
+
+
 	u16 msgid, ifid;
 	u16 *p = (u16 *)data;
 	msgid = (*(p + 1)) & 0xC3F;
 	ifid  = (*(p + 1)) >> 6;
 	ifid &= 0xF;
-	dev_dbg(dev, "<<< msgid 0x%.4X ifid %d len %d\n",
-	          msgid, ifid, *p);
+	dev_dbg(dev, "<<< msgid %s(0x%.4X) ifid %d len %d\n",
+			msgnames[msgid], msgid, ifid, *p);
 //	print_hex_dump_bytes("<-- ", DUMP_PREFIX_NONE,
 //	                     data, min(len, (size_t) 64));
 #endif
@@ -560,17 +578,32 @@ out:
 
 static void xradio_bh_tx_dump(struct device *dev, u8 *data, size_t len){
 #ifdef DEBUG
-	u16 msgid, ifid;
+	static const char *msgnames[0xffff] = {
+			[0x0006] = "MIB",
+			[0x0007] = "start scan",
+			[0x0009] = "configure",
+			[0x000B] = "join",
+			[0x000C] = "add key",
+			[0x0010] = "set pm",
+			[0x0012] = "set tx queue params",
+			[0x0013] = "set edca",
+	};
+	static const char *mibnames[0xffff] = {
+			[0x1006] = "OPERATIONAL POWER MODE",
+			[0x1024] = "USE_MULTI_TX_CONF",
+	};
+
+	u16 msgid, ifid, mib;
 	u16 *p = (u16 *)data;
 	msgid = (*(p + 1)) & 0x3F;
 	ifid  = (*(p + 1)) >> 6;
 	ifid &= 0xF;
+	mib = *(p + 2);
 	if (msgid == 0x0006) {
-		dev_dbg(dev, ">>> msgid 0x%.4X ifid %d"
-		          "len %d MIB 0x%.4X\n", msgid, ifid,*p, *(p + 2));
+		dev_dbg(dev, ">>> msgid %s(0x%.4X) ifid %d len %d MIB %s(0x%.4X)\n",
+				msgnames[msgid], msgid, ifid,*p, mibnames[mib], mib);
 	} else {
-		dev_dbg(dev, ">>> msgid 0x%.4X ifid %d "
-		          "len %d\n", msgid, ifid, *p);
+		dev_dbg(dev, ">>> msgid %s(0x%.4X) ifid %d len %d\n", msgnames[msgid], msgid, ifid, *p);
 	}
 //	print_hex_dump_bytes("--> ", DUMP_PREFIX_NONE, data,
 //	                     min(len, (size_t) 64));
