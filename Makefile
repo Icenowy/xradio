@@ -15,10 +15,10 @@ xradio_wlan-y := \
 	ap.o \
 	scan.o \
 	debug.o \
-	module.o
+	module.o \
+	sdio.o
 
 xradio_wlan-$(CONFIG_PM)		+= pm.o
-xradio_wlan-$(CONFIG_XRADIO_SDIO)	+= sdio.o
 xradio_wlan-$(CONFIG_XRADIO_ITP)	+= itp.o
 
 ccflags-y += -DP2P_MULTIVIF
