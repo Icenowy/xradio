@@ -714,8 +714,13 @@ void xradio_configure_filter(struct ieee80211_hw *hw,
 	int i = 0;
 
 	/* delete umac warning */
-	if (hw_priv->vif_list[0] == NULL && hw_priv->vif_list[1] == NULL &&
-		hw_priv->vif_list[2] == NULL)
+	if (hw_priv->vif_list[0] == NULL && hw_priv->vif_list[1] == NULL
+#ifdef P2P_MULTIVIF
+			&& hw_priv->vif_list[2] == NULL)
+#else
+			)
+#endif
+
 		*total_flags &= ~(1<<31);
 		
 	xradio_for_each_vif(hw_priv, priv, i) {

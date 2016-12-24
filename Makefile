@@ -21,7 +21,7 @@ xradio_wlan-y := \
 xradio_wlan-$(CONFIG_PM)		+= pm.o
 xradio_wlan-$(CONFIG_XRADIO_ITP)	+= itp.o
 
-ccflags-y += -DP2P_MULTIVIF
+#ccflags-y += -DP2P_MULTIVIF
 ccflags-y += -DMCAST_FWDING
 ccflags-y += -DXRADIO_SUSPEND_RESUME_FILTER_ENABLE
 ccflags-y += -DAP_AGGREGATE_FW_FIX
