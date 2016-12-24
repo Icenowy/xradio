@@ -117,12 +117,6 @@ int sdio_pm(struct xradio_common *self, bool  suspend)
 	return ret;
 }
 
-static int sdio_reset(struct xradio_common *self)
-{
-	return 0;
-}
-
-
 //for sdio debug  2015-5-26 11:01:21
 #if (defined(CONFIG_XRADIO_DEBUGFS))
 u32 dbg_sdio_clk = 0;
