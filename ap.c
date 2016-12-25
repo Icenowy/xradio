@@ -22,10 +22,6 @@
 #define ERP_INFO_BYTE_OFFSET 2
 #endif
 
-#ifdef IPV6_FILTERING
-#define XRADIO_ENABLE_NDP_FILTER_OFFLOAD	3
-#endif /*IPV6_FILTERING*/
-
 static int xradio_upload_beacon(struct xradio_vif *priv);
 #ifdef PROBE_RESP_EXTRA_IE
 static int xradio_upload_proberesp(struct xradio_vif *priv);
@@ -489,82 +485,6 @@ void xradio_bss_info_changed(struct ieee80211_hw *dev,
 			priv->user_power_set_true = 0;
 		}
 	}
-
-#ifdef IPV6_FILTERING
-    /*in linux3.4 mac,the  enum ieee80211_bss_change variable doesn't have BSS_CHANGED_NDP_FILTER enum value*/
-#if 0
-	if (changed & BSS_CHANGED_NDP_FILTER) {
-		int i;
-		struct wsm_ndp_ipv6_filter filter = {0};
-		u16 *ipv6addr = NULL;
-
-		ap_printk(XRADIO_DBG_MSG, "[STA] BSS_CHANGED_NDP_FILTER enabled: %d, cnt: %d\n", 
-		          info->ndp_filter_enabled, info->ndp_addr_cnt);
-
-		if (info->ndp_filter_enabled) {
-			if (vif->type == NL80211_IFTYPE_STATION)
-				filter.enable = (u32)XRADIO_ENABLE_NDP_FILTER_OFFLOAD;
-			else if ((vif->type == NL80211_IFTYPE_AP))
-				filter.enable = (u32)(1<<1);
-			else
-				filter.enable = 0;
-		}
-
-		/* Currently only one IP address is supported by firmware.
-		 * In case of more IPs ndp filtering will be disabled. */
-		if (info->ndp_addr_cnt > 0 &&
-		    info->ndp_addr_cnt <= WSM_MAX_NDP_IP_ADDRTABLE_ENTRIES) {
-			for (i = 0; i < info->ndp_addr_cnt; i++) {
-				priv->filter6.ipv6Address[i] = filter.ipv6Address[i] = info->ndp_addr_list[i];
-				ipv6addr = (u16 *)(&filter.ipv6Address[i]);
-				ap_printk(XRADIO_DBG_MSG, "[STA] ipv6 addr[%d]: %x:%x:%x:%x:%x:%x:%x:%x\n", \
-				          i, cpu_to_be16(*(ipv6addr + 0)), cpu_to_be16(*(ipv6addr + 1)), \
-				          cpu_to_be16(*(ipv6addr + 2)), cpu_to_be16(*(ipv6addr + 3)), \
-				          cpu_to_be16(*(ipv6addr + 4)), cpu_to_be16(*(ipv6addr + 5)), \
-				          cpu_to_be16(*(ipv6addr + 6)), cpu_to_be16(*(ipv6addr + 7)));
-			}
-		} else {
-			filter.enable = 0;
-			for (i = 0; i < info->ndp_addr_cnt; i++) {
-				ipv6addr = (u16 *)(&info->ndp_addr_list[i]);
-				ap_printk(XRADIO_DBG_MSG, "[STA] ipv6 addr[%d]: %x:%x:%x:%x:%x:%x:%x:%x\n", \
-				          i, cpu_to_be16(*(ipv6addr + 0)), cpu_to_be16(*(ipv6addr + 1)), \
-				          cpu_to_be16(*(ipv6addr + 2)), cpu_to_be16(*(ipv6addr + 3)), \
-				          cpu_to_be16(*(ipv6addr + 4)), cpu_to_be16(*(ipv6addr + 5)), \
-									cpu_to_be16(*(ipv6addr + 6)), cpu_to_be16(*(ipv6addr + 7)));
-			}
-		}
-
-		ap_printk(XRADIO_DBG_NIY, "[STA] ndp ip filter enable: %d\n",
-		           __le32_to_cpu(filter.enable));
-
-		if (filter.enable)
-			xradio_set_na(dev, vif);
-
-		priv->filter6.enable = filter.enable;
-
-		if (wsm_set_ndp_ipv6_filter(hw_priv, &filter, priv->if_id))
-			SYS_WARN(1);
-#if 0 /*Commented out to disable Power Save in IPv6*/
-		if (filter.enable && (priv->join_status == XRADIO_JOIN_STATUS_STA) && 
-			  (priv->vif->p2p) && !(priv->firmware_ps_mode.pmMode & WSM_PSM_FAST_PS)) {
-			if(priv->setbssparams_done) {
-				int ret = 0;
-				struct wsm_set_pm pm = priv->powersave_mode;
-
-				priv->powersave_mode.pmMode = WSM_PSM_FAST_PS;
-				ret = xradio_set_pm(priv, &priv->powersave_mode);
-				if(ret) {
-					priv->powersave_mode = pm;
-				}
-			} else {
-				priv->powersave_mode.pmMode = WSM_PSM_FAST_PS;
-			}
-		}
-#endif
-	}
-#endif
-#endif /*IPV6_FILTERING*/
 
 	if (changed & BSS_CHANGED_BEACON) {
 		ap_printk(XRADIO_DBG_NIY, "BSS_CHANGED_BEACON\n");

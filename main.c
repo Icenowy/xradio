@@ -220,10 +220,6 @@ static const struct ieee80211_ops xradio_ops = {
 	/*.channel_switch	 = xradio_channel_switch,		*/
 	.remain_on_channel = xradio_remain_on_channel,
 	.cancel_remain_on_channel = xradio_cancel_remain_on_channel,
-#ifdef IPV6_FILTERING
-	/*in linux3.4 mac,it does't have the api*/
-	//.set_data_filter   = xradio_set_data_filter,
-#endif /*IPV6_FILTERING*/
 #ifdef CONFIG_XRADIO_TESTMODE
 	.testmode_cmd      = xradio_testmode_cmd,
 #endif /* CONFIG_XRADIO_TESTMODE */

@@ -574,14 +574,6 @@ struct xradio_common;
 #define WSM_MIB_ID_FORWARDING_OFFLOAD		0x1033
 #endif
 
-#ifdef IPV6_FILTERING
-/* IpV6 Addr Filter */
-/* 4.52 Neighbor solicitation IPv6 address table */
-#define WSM_MIB_IP_IPV6_ADDR_FILTER		0x1032
-#define WSM_MIB_ID_NS_IP_ADDRESSES_TABLE	0x1034
-#define WSM_MAX_NDP_IP_ADDRTABLE_ENTRIES	1
-#endif /*IPV6_FILTERING*/
-
 /* Frame template types */
 #define WSM_FRAME_TYPE_PROBE_REQUEST	(0)
 #define WSM_FRAME_TYPE_BEACON		(1)
@@ -590,10 +582,6 @@ struct xradio_common;
 #define WSM_FRAME_TYPE_PS_POLL		(4)
 #define WSM_FRAME_TYPE_PROBE_RESPONSE	(5)
 #define WSM_FRAME_TYPE_ARP_REPLY        (6)
-
-#ifdef IPV6_FILTERING
-#define WSM_FRAME_TYPE_NA               (7)
-#endif /*IPV6_FILTERING*/
 
 #define WSM_FRAME_GREENFIELD		(0x80)	/* See 4.11 */
 
@@ -2239,28 +2227,6 @@ struct wsm_arp_ipv4_filter {
 	__be32 ipv4Address[WSM_MAX_ARP_IP_ADDRTABLE_ENTRIES];
 } __packed;
 
-#ifdef IPV6_FILTERING
-/* NDP IPv6 filtering */
-struct wsm_ndp_ipv6_filter {
-	__le32 enable;
-	struct in6_addr ipv6Address[WSM_MAX_NDP_IP_ADDRTABLE_ENTRIES];
-} __packed;
-/* IPV6 Addr Filter Info */
-struct wsm_ip6_addr_info {
-	u8 filter_mode;
-	u8 address_mode;
-	u8 Reserved[2];
-	u8 ipv6[16];
-};
-
-/* IPV6 Addr Filter */
-struct wsm_ipv6_filter {
-	u8 numfilter;
-	u8 action_mode;
-	u8 Reserved[2];
-	struct wsm_ip6_addr_info ipv6filter[0];
-} __packed;
-#endif /*IPV6_FILTERING*/
 
 static inline int wsm_set_arp_ipv4_filter(struct xradio_common *hw_priv,
 					  struct wsm_arp_ipv4_filter *fp,
@@ -2269,16 +2235,6 @@ static inline int wsm_set_arp_ipv4_filter(struct xradio_common *hw_priv,
 	return wsm_write_mib(hw_priv, WSM_MIB_ID_ARP_IP_ADDRESSES_TABLE,
 			    fp, sizeof(*fp), if_id);
 }
-
-#ifdef IPV6_FILTERING
-static inline int wsm_set_ndp_ipv6_filter(struct xradio_common *priv,
-					  struct wsm_ndp_ipv6_filter *fp,
-					  int if_id)
-{
-	return wsm_write_mib(priv, WSM_MIB_ID_NS_IP_ADDRESSES_TABLE,
-			    fp, sizeof(*fp), if_id);
-}
-#endif /*IPV6_FILTERING*/
 
 /* P2P Power Save Mode Info - 4.31 */
 struct wsm_p2p_ps_modeinfo {

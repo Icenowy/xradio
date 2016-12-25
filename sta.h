@@ -122,9 +122,6 @@ int xradio_set_macaddrfilter(struct xradio_common *hw_priv, struct xradio_vif *p
 int xradio_testmode_event(struct wiphy *wiphy, const u32 msg_id,
                           const void *data, int len, gfp_t gfp);
 #endif /*ROAM_OFFLOAD*/
-#ifdef IPV6_FILTERING
-int xradio_set_na(struct ieee80211_hw *hw, struct ieee80211_vif *vif);
-#endif /*IPV6_FILTERING*/
 #ifdef CONFIG_XRADIO_TESTMODE
 void xradio_device_power_calc(struct xradio_common *priv,
                               s16 max_output_power, s16 fe_cor, u32 band);

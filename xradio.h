@@ -441,9 +441,6 @@ struct xradio_vif {
 	struct wsm_broadcast_addr_filter	broadcast_filter;
 	bool				disable_beacon_filter;
 	struct wsm_arp_ipv4_filter      filter4;
-#ifdef IPV6_FILTERING
-	struct wsm_ndp_ipv6_filter 	filter6;
-#endif /*IPV6_FILTERING*/
 	struct work_struct		update_filtering_work;
 	struct work_struct		set_beacon_wakeup_period_work;
 	struct xradio_pm_state_vif	pm_state_vif;
@@ -533,19 +530,7 @@ struct xradio_sta_priv {
 };
 enum xradio_data_filterid {
 	IPV4ADDR_FILTER_ID = 0,
-#ifdef IPV6_FILTERING
-	IPV6ADDR_FILTER_ID,
-#endif /*IPV6_FILTERING*/
 };
-
-#ifdef IPV6_FILTERING
-/* IPV6 host addr info */
-struct ipv6_addr_info {
-	u8 filter_mode;
-	u8 address_mode;
-	u16 ipv6[8];
-};
-#endif /*IPV6_FILTERING*/
 
 /* Datastructure for LLC-SNAP HDR */
 #define P80211_OUI_LEN  3

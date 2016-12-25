@@ -39,7 +39,6 @@ ccflags-y += -DCONFIG_XRADIO_SUSPEND_POWER_OFF
 # For offloading probe response to FW, the extra IE must be included
 # in the probe response template
 ccflags-y += -DPROBE_RESP_EXTRA_IE
-ccflags-y += -DIPV6_FILTERING
 
 # Modified by wzw
 ccflags-y += -DTES_P2P_0002_ROC_RESTART
