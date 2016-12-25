@@ -48,7 +48,7 @@ ccflags-y += -DTES_P2P_000B_DISABLE_EAPOL_FILTER
 ccflags-y += -DXRADIO_USE_LONG_DTIM_PERIOD
 ccflags-y += -DXRADIO_USE_LONG_KEEP_ALIVE_PERIOD
 
-#ccflags-y += -DDEBUG
+ccflags-y += -DDEBUG
 
 ldflags-y += --strip-debug
 

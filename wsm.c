@@ -1520,7 +1520,7 @@ static int wsm_event_indication(struct xradio_common *hw_priv,
 	priv = xrwl_hwpriv_to_vifpriv(hw_priv, interface_link_id);
 
 	if (unlikely(!priv)) {
-		wsm_printk(XRADIO_DBG_WARN, "Event: %d(%d) for removed "
+		dev_warn(hw_priv->pdev, "Event: %d(%d) for removed "
 			   "interface, ignoring\n", __le32_to_cpu(WSM_GET32(buf)),
 			   __le32_to_cpu(WSM_GET32(buf)));
 		return 0;
@@ -1534,7 +1534,7 @@ static int wsm_event_indication(struct xradio_common *hw_priv,
 
 	event = kzalloc(sizeof(struct xradio_wsm_event), GFP_KERNEL);
 	if (event == NULL) {
-		wsm_printk(XRADIO_DBG_ERROR, "%s:xr_kzalloc failed!", __func__);
+		dev_err(hw_priv->pdev, "xr_kzalloc failed!");
 		return -EINVAL;
 	}
 
@@ -1542,7 +1542,7 @@ static int wsm_event_indication(struct xradio_common *hw_priv,
 	event->evt.eventData = __le32_to_cpu(WSM_GET32(buf));
 	event->if_id = interface_link_id;
 
-	wsm_printk(XRADIO_DBG_MSG, "Event: %d(%d)\n",
+	dev_dbg(hw_priv->pdev, "Event: %d(%d)\n",
 		event->evt.eventId, event->evt.eventData);
 
 	spin_lock(&hw_priv->event_queue_lock);
