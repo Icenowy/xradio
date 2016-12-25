@@ -2830,10 +2830,6 @@ int xradio_debug_init_common(struct xradio_common *hw_priv)
 	}
 #endif
 
-	ret = xradio_itp_init(hw_priv);
-	if (ret)
-		ERR_LINE;
-
 	return 0;
 
 #undef ERR_LINE
@@ -2858,7 +2854,6 @@ void xradio_debug_release_common(struct xradio_common *hw_priv)
 	}
 #endif
 	if (d) {
-		xradio_itp_release(hw_priv);
 		hw_priv->debug = NULL;
 		//removed by mac80211, don't remove it again, fixed wifi on/off by yangfh
 		//debugfs_remove_recursive(d->debugfs_phy);

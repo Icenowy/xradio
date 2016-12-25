@@ -11,8 +11,6 @@
 #ifndef XRADIO_DEBUG_H_INCLUDED
 #define XRADIO_DEBUG_H_INCLUDED
 
-#include "itp.h"
-
 #define XRADIO_DBG_ALWY   0x01    /* Message always need to be present even in release version. */
 #define XRADIO_DBG_ERROR  0x02    /* Error message to report an error, it can hardly works. */
 #define XRADIO_DBG_WARN   0x04    /* Warning message to inform us of something unnormal or 

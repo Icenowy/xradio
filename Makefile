@@ -16,10 +16,8 @@ xradio_wlan-y := \
 	scan.o \
 	debug.o \
 	module.o \
-	sdio.o
-
-xradio_wlan-$(CONFIG_PM)		+= pm.o
-xradio_wlan-$(CONFIG_XRADIO_ITP)	+= itp.o
+	sdio.o \
+	pm.o
 
 #ccflags-y += -DP2P_MULTIVIF
 ccflags-y += -DMCAST_FWDING
@@ -52,4 +50,3 @@ ccflags-y += -DDEBUG
 ldflags-y += --strip-debug
 
 obj-$(CONFIG_XRADIO) += xradio_wlan.o
-

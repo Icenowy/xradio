@@ -1529,9 +1529,6 @@ void xradio_tx_confirm_cb(struct xradio_common *hw_priv,
 	}
 #endif
 
-	if (unlikely(xradio_itp_tx_running(hw_priv)))
-		return;
-
 	priv = xrwl_hwpriv_to_vifpriv(hw_priv, arg->if_id);
 	if (unlikely(!priv))
 		return;
@@ -1869,8 +1866,6 @@ void xradio_skb_dtor(struct xradio_common *hw_priv,
 				txpriv->raw_link_id, txpriv->tid);
 		tx_policy_put(hw_priv, txpriv->rate_id);
 	}
-	if (likely(!xradio_is_itp(hw_priv)))
-		ieee80211_tx_status(hw_priv->hw, skb);
 
 }
 #ifdef CONFIG_XRADIO_TESTMODE
@@ -2351,9 +2346,7 @@ void xradio_rx_cb(struct xradio_vif *priv,
 		return;
 	}
 	/* Try to  a packet for the case dev_alloc_skb failed in bh.*/
-	if (unlikely(xradio_itp_rxed(hw_priv, skb)))
-		consume_skb(skb);
-	else if (unlikely(early_data)) {
+	if (unlikely(early_data)) {
 		spin_lock_bh(&priv->ps_state_lock);
 		/* Double-check status with lock held */
 		if (entry->status == XRADIO_LINK_SOFT) {

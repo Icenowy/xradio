@@ -19,7 +19,6 @@
 #include "xradio.h"
 #include "wsm.h"
 #include "bh.h"
-#include "itp.h"
 #ifdef ROAM_OFFLOAD
 #include "sta.h"
 #endif /*ROAM_OFFLOAD*/
@@ -2917,10 +2916,6 @@ int wsm_get_tx(struct xradio_common *hw_priv, u8 **data,
 
 	/* More is used only for broadcasts. */
 	bool more = false;
-
-	count = xradio_itp_get_tx(hw_priv, data, tx_len, burst);
-	if (count)
-		return count;
 
 	if (hw_priv->wsm_cmd.ptr) {
 		++count;
