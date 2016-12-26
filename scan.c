@@ -173,13 +173,6 @@ int xradio_hw_scan(struct ieee80211_hw *hw,
 		return -EBUSY;
 	}
 
-#ifdef HW_RESTART
-	if (hw_priv->hw_restart) {
-		scan_printk(XRADIO_DBG_NIY, "Ignoring scan in hw reset!\n");
-		return -EBUSY;
-	}
-#endif
-
 	if (work_pending(&priv->offchannel_work) ||
 			(hw_priv->roc_if_id != -1)) {
 		scan_printk(XRADIO_DBG_WARN, "Offchannel work pending, "

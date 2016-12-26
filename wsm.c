@@ -562,10 +562,7 @@ int wsm_scan(struct xradio_common *hw_priv, const struct wsm_scan *arg,
 	wsm_cmd_unlock(hw_priv);
 	if (ret)
 		wsm_oper_unlock(hw_priv);
-#ifdef HW_RESTART
-	else if (hw_priv->hw_restart)
-		wsm_oper_unlock(hw_priv);
-#endif
+
 	return ret;
 
 nomem:
@@ -923,10 +920,7 @@ int wsm_set_pm(struct xradio_common *hw_priv, const struct wsm_set_pm *arg,
 	wsm_cmd_unlock(hw_priv);
 	if (ret)
 		wsm_oper_unlock(hw_priv);
-#ifdef HW_RESTART
-	else if (hw_priv->hw_restart)
-		wsm_oper_unlock(hw_priv);
-#endif
+
 	return ret;
 
 nomem:
@@ -1796,14 +1790,6 @@ int wsm_cmd_send(struct xradio_common *hw_priv,
 			buf_len);
 	else
 		wsm_printk(XRADIO_DBG_MSG, ">>> 0x%.4X (%d)\n", cmd, buf_len);
-
-#ifdef HW_RESTART
-	if (hw_priv->hw_restart) {
-		wsm_printk(XRADIO_DBG_NIY, "hw reset!>>> 0x%.4X (%d)\n", cmd, buf_len);
-		wsm_buf_reset(buf);
-		return 0;  /*return success, don't process cmd in power off.*/
-	}
-#endif
 
 	if (unlikely(hw_priv->bh_error)) {
 		wsm_buf_reset(buf);

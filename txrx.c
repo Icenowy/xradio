@@ -1209,14 +1209,6 @@ void xradio_tx(struct ieee80211_hw *dev, struct ieee80211_tx_control *control, s
 	if (!skb->data)
 		SYS_BUG(1);
 
-#ifdef HW_RESTART
-	if (hw_priv->hw_restart) {
-		txrx_printk(XRADIO_DBG_WARN, "%s, hw in reset.\n", __func__);
-		ret = __LINE__;
-		goto drop;
-	}
-#endif
-
 	if (!(t.tx_info->control.vif)) {
 		ret = __LINE__;
 		goto drop;

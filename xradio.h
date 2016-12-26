@@ -297,10 +297,6 @@ struct xradio_common {
 #ifdef CONFIG_XRADIO_SUSPEND_POWER_OFF
 	atomic_t            suspend_state;
 #endif
-#ifdef HW_RESTART
-	bool                hw_restart;
-	struct work_struct  hw_restart_work;
-#endif
 
 	/* WSM */
 	struct wsm_caps			wsm_caps;

@@ -34,10 +34,6 @@
 #include "pm.h"
 #include "sdio.h"
 
-#ifdef HW_RESTART
-void xradio_restart_work(struct work_struct *work);
-#endif
-
 /* TODO: use rates and channels from the device */
 #define RATETAB_ENT(_rate, _rateid, _flags)		\
 	{						\
@@ -301,14 +297,11 @@ struct ieee80211_hw *xradio_init_common(size_t hw_priv_data_len)
 	struct ieee80211_supported_band *sband;
 	int band;
 
-	xradio_dbg(XRADIO_DBG_TRC,"%s\n", __FUNCTION__);
-
 	/* Alloc ieee_802.11 hw and xradio_common struct. */
 	hw = ieee80211_alloc_hw(hw_priv_data_len, &xradio_ops);
 	if (!hw)
 		return NULL;
 	hw_priv = hw->priv;
-	xradio_dbg(XRADIO_DBG_ALWY, "Allocated hw_priv @ %p\n", hw_priv);
 	memset(hw_priv, 0, sizeof(*hw_priv));
 
 	/* Initialize members of hw_priv. */
@@ -509,10 +502,7 @@ struct ieee80211_hw *xradio_init_common(size_t hw_priv_data_len)
 #ifdef CONFIG_XRADIO_SUSPEND_POWER_OFF
 	atomic_set(&hw_priv->suspend_state, XRADIO_RESUME);
 #endif
-#ifdef HW_RESTART
-	hw_priv->hw_restart = false;
-	INIT_WORK(&hw_priv->hw_restart_work, xradio_restart_work);
-#endif
+
 #ifdef CONFIG_XRADIO_TESTMODE
 	hw_priv->test_frame.data = NULL;
 	hw_priv->test_frame.len = 0;
@@ -530,7 +520,6 @@ void xradio_free_common(struct ieee80211_hw *dev)
 {
 	int i;
 	struct xradio_common *hw_priv = dev->priv;
-	xradio_dbg(XRADIO_DBG_TRC,"%s\n", __FUNCTION__);
 
 #ifdef CONFIG_XRADIO_TESTMODE
 	kfree(hw_priv->test_frame.data);
@@ -600,178 +589,6 @@ void xradio_unregister_common(struct ieee80211_hw *dev)
 	}
 	hw_priv->driver_ready = 0;
 }
-
-#ifdef HW_RESTART
-int xradio_core_reinit(struct xradio_common *hw_priv)
-{
-	int ret = 0;
-	u16 ctrl_reg;
-	int i = 0;
-	struct xradio_vif *priv = NULL;
-	struct wsm_operational_mode mode = {
-		.power_mode = wsm_power_mode_quiescent,
-		.disableMoreFlagUsage = true,
-	};
-
-	if (!hw_priv) {
-		xradio_dbg(XRADIO_DBG_ERROR, "%s hw_priv is NULL!\n", __func__);
-		return -1;
-	}
-
-	/* Need some time for restart hardware, don't suspend again.*/
-#ifdef CONFIG_PM
-	xradio_pm_lock_awake(&hw_priv->pm_state);
-#endif
-
-	xradio_dbg(XRADIO_DBG_ALWY, "%s %d!\n", __func__, __LINE__);
-	/* Disconnect with AP or STAs. */
-	xradio_for_each_vif(hw_priv, priv, i) {
-#ifdef P2P_MULTIVIF
-		if ((i == (XRWL_MAX_VIFS - 1)) || !priv)
-#else
-		if (!priv)
-#endif
-			continue;
-		if (priv->join_status == XRADIO_JOIN_STATUS_STA) {
-			ieee80211_connection_loss(priv->vif);
-			msleep(200);
-		} else if (priv->join_status == XRADIO_JOIN_STATUS_AP) {
-			wms_send_disassoc_to_self(hw_priv, priv);
-			msleep(200);
-		}
-	}
-	xradio_unregister_common(hw_priv->hw);
-	
-	/*deinit dev */
-	xradio_dev_deinit(hw_priv);
-
-	/*reinit status refer to hif. */
-	hw_priv->powersave_enabled = false;
-	hw_priv->wsm_caps.firmwareReady = 0;
-	atomic_set(&hw_priv->bh_rx, 0);
-	atomic_set(&hw_priv->bh_tx, 0);
-	atomic_set(&hw_priv->bh_term, 0);
-	hw_priv->buf_id_tx = 0;
-	hw_priv->buf_id_rx = 0;
-	hw_priv->wsm_rx_seq   = 0;
-	hw_priv->wsm_tx_seq   = 0;
-	hw_priv->device_can_sleep = 0;
-	hw_priv->hw_bufs_used = 0;
-	memset(&hw_priv->hw_bufs_used_vif, 0, sizeof(hw_priv->hw_bufs_used_vif));
-	memset(&hw_priv->connet_time, 0, sizeof(hw_priv->connet_time));
-	atomic_set(&hw_priv->query_cnt, 0);
-	hw_priv->query_packetID = 0;
-	tx_policy_init(hw_priv);
-
-	/*reinit sdio sbus. */
-	sbus_sdio_deinit();
-	msleep(100);
-	hw_priv->pdev = sbus_sdio_init(&hw_priv->sbus_priv);
-	if (!hw_priv->pdev) {
-		xradio_dbg(XRADIO_DBG_ERROR,"%s:sbus_sdio_init failed\n", __func__);
-		ret = -ETIMEDOUT;
-		goto exit;
-	}
-
-	/*wake up bh thread. */
-	if (hw_priv->bh_thread == NULL) {
-		hw_priv->bh_error = 0;
-		atomic_set(&hw_priv->tx_lock, 0);
-		xradio_register_bh(hw_priv);
-	} else {
-#ifdef CONFIG_XRADIO_SUSPEND_POWER_OFF
-		WARN_ON(xradio_bh_resume(hw_priv));
-#endif
-	}
-
-	/* Load firmware and register Interrupt Handler */
-
-	ret = xradio_load_firmware(hw_priv);
-	if (ret) {
-		xradio_dbg(XRADIO_DBG_ERROR, "%s:xradio_load_firmware failed(%d).\n",
-			   __func__, ret);
-		goto exit;
-	}
-
-	/* Set sdio blocksize. */
-	sdio_lock(hw_priv->sbus_priv);
-	SYS_WARN(sdio_set_blk_size(hw_priv->sbus_priv,
-		 SDIO_BLOCK_SIZE));
-	sdio_unlock(hw_priv->sbus_priv);
-	if (wait_event_interruptible_timeout(hw_priv->wsm_startup_done,
-				hw_priv->wsm_caps.firmwareReady, 3*HZ) <= 0) {
-
-		/* TODO: Needs to find how to reset device */
-		/*       in QUEUE mode properly.           */
-		xradio_dbg(XRADIO_DBG_ERROR, "%s:Firmware Startup Timeout!\n",
-			   __func__);
-		ret = -ETIMEDOUT;
-		goto exit;
-	}
-	xradio_dbg(XRADIO_DBG_ALWY, "%s:Firmware Startup Done.\n", __func__);
-
-	hw_priv->hw_restart = false;
-#ifdef CONFIG_XRADIO_SUSPEND_POWER_OFF
-	atomic_set(&hw_priv->suspend_state, XRADIO_RESUME);
-#endif
-
-	/* Keep device wake up. */
-	ret = xradio_reg_write_16(hw_priv, HIF_CONTROL_REG_ID, HIF_CTRL_WUP_BIT);
-	if (xradio_reg_read_16(hw_priv, HIF_CONTROL_REG_ID, &ctrl_reg))
-		ret = xradio_reg_read_16(hw_priv, HIF_CONTROL_REG_ID, &ctrl_reg);
-	SYS_WARN(!(ctrl_reg & HIF_CTRL_RDY_BIT));
-
-	/* Set device mode parameter. */
-	for (i = 0; i < xrwl_get_nr_hw_ifaces(hw_priv); i++) {
-		/* Set low-power mode. */
-		ret = wsm_set_operational_mode(hw_priv, &mode, i);
-		/* Enable multi-TX confirmation */
-		ret = wsm_use_multi_tx_conf(hw_priv, true, i);
-	}
-
-	/* re-Register wireless net device. */
-	if (!ret)
-	ret = xradio_register_common(hw_priv->hw);
-
-	/* unlock queue if need. */
-	for (i = 0; i < 4; ++i) {
-		struct xradio_queue *queue = &hw_priv->tx_queue[i];
-		spin_lock_bh(&queue->lock);
-		if (queue->tx_locked_cnt > 0) {
-			queue->tx_locked_cnt = 0;
-			ieee80211_wake_queue(hw_priv->hw, queue->queue_id);
-			xradio_dbg(XRADIO_DBG_WARN, "%s: unlock queue!\n", __func__);
-		}
-		spin_unlock_bh(&queue->lock);
-	}
-exit:
-#ifdef CONFIG_PM
-	xradio_pm_unlock_awake(&hw_priv->pm_state);
-#endif
-	xradio_dbg(XRADIO_DBG_ALWY, "%s end!\n", __func__);
-
-	return ret;
-}
-
-void xradio_restart_work(struct work_struct *work)
-{
-	struct xradio_common *hw_priv =
-		container_of(work, struct xradio_common, hw_restart_work);
-	xradio_dbg(XRADIO_DBG_ALWY, "%s\n", __func__);
-
-	if (hw_priv->bh_error) {
-		xradio_unregister_bh(hw_priv);
-	}
-	if (unlikely(xradio_core_reinit(hw_priv))) {
-		pm_printk(XRADIO_DBG_ALWY, "%s again!\n", __func__);
-		mutex_lock(&hw_priv->wsm_cmd_mux);
-		hw_priv->hw_restart = true;
-		mutex_unlock(&hw_priv->wsm_cmd_mux);
-		xradio_unregister_bh(hw_priv);
-		xradio_core_reinit(hw_priv);
-	}
-}
-#endif
 
 int xradio_core_init(struct sdio_func* func)
 {
@@ -903,9 +720,6 @@ void xradio_core_deinit(struct sdio_func* func)
 {
 	struct xradio_common* hw_priv = sdio_get_drvdata(func);
 	if (hw_priv) {
-#ifdef HW_RESTART
-		cancel_work_sync(hw_priv->hw_restart_work);
-#endif
 		xradio_unregister_common(hw_priv->hw);
 		xradio_dev_deinit(hw_priv);
 		xradio_unregister_bh(hw_priv);

@@ -380,10 +380,6 @@ int xradio_wow_suspend(struct ieee80211_hw *hw, struct cfg80211_wowlan *wowlan)
 	if(hw_priv->bh_error) return -EBUSY;
 	WARN_ON(!atomic_read(&hw_priv->num_vifs));
 
-#ifdef HW_RESTART
-	if (work_pending(&hw_priv->hw_restart_work))
-		return -EBUSY;
-#endif
 	if (work_pending(&hw_priv->query_work))
 		return -EBUSY;
 
