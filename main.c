@@ -30,6 +30,7 @@
 #include "bh.h"
 #include "sta.h"
 #include "ap.h"
+#include "keys.h"
 #include "scan.h"
 #include "pm.h"
 #include "sdio.h"

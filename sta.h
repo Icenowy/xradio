@@ -55,9 +55,6 @@ int xradio_get_stats(struct ieee80211_hw *dev,
 int xradio_get_tx_stats(struct ieee80211_hw *dev,
 			struct ieee80211_tx_queue_stats *stats);
 */
-int xradio_set_key(struct ieee80211_hw *dev, enum set_key_cmd cmd,
-                   struct ieee80211_vif *vif, struct ieee80211_sta *sta,
-                   struct ieee80211_key_conf *key);
 int xradio_set_rts_threshold(struct ieee80211_hw *hw, u32 value);
 
 void xradio_flush(struct ieee80211_hw *hw, struct ieee80211_vif *vif, u32 queues, bool drop);

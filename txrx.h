@@ -81,13 +81,6 @@ void xradio_rx_cb(struct xradio_vif *priv,
 void xradio_tx_timeout(struct work_struct *work);
 
 /* ******************************************************************** */
-/* Security								*/
-int xradio_alloc_key(struct xradio_common *hw_priv);
-void xradio_free_key(struct xradio_common *hw_priv, int idx);
-void xradio_free_keys(struct xradio_common *hw_priv);
-int xradio_upload_keys(struct xradio_vif *priv);
-
-/* ******************************************************************** */
 /* Workaround for WFD test case 6.1.10					*/
 #if defined(CONFIG_XRADIO_USE_EXTENSIONS)
 void xradio_link_id_reset(struct work_struct *work);

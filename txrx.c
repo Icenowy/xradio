@@ -2359,56 +2359,6 @@ drop:
 	return;
 }
 
-/* ******************************************************************** */
-/* Security								*/
-
-int xradio_alloc_key(struct xradio_common *hw_priv)
-{
-	int idx;
-
-
-	idx = ffs(~hw_priv->key_map) - 1;
-	if (idx < 0 || idx > WSM_KEY_MAX_INDEX)
-		return -1;
-
-	hw_priv->key_map |= BIT(idx);
-	hw_priv->keys[idx].entryIndex = idx;
-	txrx_printk(XRADIO_DBG_NIY,"%s, idx=%d\n", __func__, idx);
-	return idx;
-}
-
-void xradio_free_key(struct xradio_common *hw_priv, int idx)
-{
-
-
-	SYS_BUG(!(hw_priv->key_map & BIT(idx)));
-	memset(&hw_priv->keys[idx], 0, sizeof(hw_priv->keys[idx]));
-	hw_priv->key_map &= ~BIT(idx);
-	txrx_printk(XRADIO_DBG_NIY,"%s, idx=%d\n", __func__, idx);
-}
-
-void xradio_free_keys(struct xradio_common *hw_priv)
-{
-
-
-	memset(&hw_priv->keys, 0, sizeof(hw_priv->keys));
-	hw_priv->key_map = 0;
-}
-
-int xradio_upload_keys(struct xradio_vif *priv)
-{
-	struct xradio_common *hw_priv = xrwl_vifpriv_to_hwpriv(priv);
-	int idx, ret = 0;
-
-
-	for (idx = 0; idx <= WSM_KEY_MAX_IDX; ++idx)
-		if (hw_priv->key_map & BIT(idx)) {
-			ret = wsm_add_key(hw_priv, &hw_priv->keys[idx], priv->if_id);
-			if (ret < 0)
-				break;
-		}
-	return ret;
-}
 #if defined(CONFIG_XRADIO_USE_EXTENSIONS)
 /* Workaround for WFD test case 6.1.10 */
 void xradio_link_id_reset(struct work_struct *work)

@@ -13,6 +13,7 @@ xradio_wlan-y := \
 	wsm.o \
 	sta.o \
 	ap.o \
+	keys.o \
 	scan.o \
 	debug.o \
 	module.o \
