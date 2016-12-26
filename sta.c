@@ -2490,41 +2490,6 @@ exit_p:
 	return ret;
 }
 
-#if 0
-/**
- * xradio_set_multicastaddrfilter -called when tesmode command
- * is for setting the ipv4 address filter
- *
- * @hw: the hardware
- * @data: incoming data
- *
- * Returns: 0 on success or non zero value on failure
- */
-static int xradio_set_multicastfilter(struct xradio_common *hw_priv, struct xradio_vif *priv, u8 *data)
-{
-	u8 i = 0;
-	int ret = 0;
-
-
-	memset(&priv->multicast_filter, 0, sizeof(priv->multicast_filter));
-	priv->multicast_filter.enable = (u32)data[0];
-	priv->multicast_filter.numOfAddresses = (u32)data[1];
-
-	for (i = 0; i < priv->multicast_filter.numOfAddresses; i++) {
-		memcpy(&priv->multicast_filter.macAddress[i], \
-			   &data[2+(i*ETH_ALEN)], ETH_ALEN);
-	}
-	/* Configure the multicast mib in case of drop all multicast */
-	if (priv->multicast_filter.enable != 2)
-		return ret;
-
-	ret = wsm_write_mib(hw_priv, WSM_MIB_ID_DOT11_GROUP_ADDRESSES_TABLE, \
-		&priv->multicast_filter, sizeof(priv->multicast_filter), priv->if_id);
-
-	return ret;
-}
-#endif
-
 /**
  * xradio_set_arpreply -called for creating and
  * configuring arp response template frame
