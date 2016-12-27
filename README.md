@@ -107,3 +107,10 @@ xr819 responds by triggering an assert and shutting down. The driver gets
 a packet that tells it that the firmware is dead and shuts down the thread used
 to push and pull data but the rest of the driver and the os has no idea and
 if the os tries to interact with the driver everything starts to lock up.
+
+#Fun stuff
+
+The driver is based on the driver for the ST CW1100/CW1200 chips.
+The XR819 is probably a clone, licensed version or actually a CW1100 that
+has been packaged by xradio/allwinner as the CW1100 is available as a raw
+wafer.

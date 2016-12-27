@@ -14,7 +14,6 @@ int xradio_alloc_key(struct xradio_common *hw_priv)
 
 	hw_priv->key_map |= BIT(idx);
 	hw_priv->keys[idx].entryIndex = idx;
-	txrx_printk(XRADIO_DBG_NIY,"%s, idx=%d\n", __func__, idx);
 	return idx;
 }
 
@@ -23,7 +22,6 @@ void xradio_free_key(struct xradio_common *hw_priv, int idx)
 	SYS_BUG(!(hw_priv->key_map & BIT(idx)));
 	memset(&hw_priv->keys[idx], 0, sizeof(hw_priv->keys[idx]));
 	hw_priv->key_map &= ~BIT(idx);
-	txrx_printk(XRADIO_DBG_NIY,"%s, idx=%d\n", __func__, idx);
 }
 
 void xradio_free_keys(struct xradio_common *hw_priv)
@@ -51,11 +49,16 @@ int xradio_set_key(struct ieee80211_hw *dev, enum set_key_cmd cmd,
                    struct ieee80211_vif *vif, struct ieee80211_sta *sta,
                    struct ieee80211_key_conf *key)
 {
+#ifdef XRADIO_DISABLE_HW_CRYPTO
+	wiphy_info(dev->wiphy, "hw crypto is disabled, ignoring key request\n");
+	return -EOPNOTSUPP;
+#else
 	int ret = -EOPNOTSUPP;
 	struct xradio_common *hw_priv = dev->priv;
 	struct xradio_vif *priv = xrwl_get_vif_from_ieee80211(vif);
 
-
+	wiphy_info(dev->wiphy, "vif %d: set_key cmd %d\n", priv->if_id, (int) cmd);
+	
 #ifdef P2P_MULTIVIF
 	SYS_WARN(priv->if_id == XRWL_GENERIC_IF_ID);
 #endif
@@ -199,4 +202,5 @@ int xradio_set_key(struct ieee80211_hw *dev, enum set_key_cmd cmd,
 finally:
 	mutex_unlock(&hw_priv->conf_mutex);
 	return ret;
+#endif // XRADIO_DISABLE_HW_CRYPTO
 }

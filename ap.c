@@ -52,8 +52,6 @@ int xradio_sta_add(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
 	struct xradio_common *hw_priv = hw->priv;
 #endif
 
-	ap_printk(XRADIO_DBG_TRC,"%s\n", __FUNCTION__);
-
 #ifdef P2P_MULTIVIF
 	SYS_WARN(priv->if_id == XRWL_GENERIC_IF_ID);
 #endif
@@ -66,7 +64,7 @@ int xradio_sta_add(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
 	sta_priv->link_id = xradio_find_link_id(priv, sta->addr);
 	if (SYS_WARN(!sta_priv->link_id)) {
 		/* Impossible error */
-		ap_printk(XRADIO_DBG_ERROR,"No more link IDs available.\n");
+		wiphy_debug(hw->wiphy, "No more link IDs available.\n");
 		return -ENOENT;
 	}
 
@@ -105,14 +103,12 @@ int xradio_sta_remove(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
 	struct xradio_vif *priv = xrwl_get_vif_from_ieee80211(vif);
 	struct xradio_link_entry *entry;
 
-	ap_printk(XRADIO_DBG_TRC,"%s\n", __FUNCTION__);
-
 #ifdef P2P_MULTIVIF
 	SYS_WARN(priv->if_id == XRWL_GENERIC_IF_ID);
 #endif
 
 	if (priv->mode != NL80211_IFTYPE_AP || !sta_priv->link_id) {
-		ap_printk(XRADIO_DBG_NIY, "no station to remove\n");
+		wiphy_warn(hw->wiphy, "no station to remove\n");
 		return 0;
 	}
 
@@ -150,8 +146,6 @@ static void __xradio_sta_notify(struct xradio_vif *priv,
 {
 	struct xradio_common *hw_priv = xrwl_vifpriv_to_hwpriv(priv);
 	u32 bit, prev;
-
-	ap_printk(XRADIO_DBG_TRC,"%s\n", __FUNCTION__);
 
 	/* Zero link id means "for all link IDs" */
 	if (link_id)
@@ -194,8 +188,6 @@ void xradio_sta_notify(struct ieee80211_hw *dev,
 	struct xradio_vif *priv = xrwl_get_vif_from_ieee80211(vif);
 	struct xradio_sta_priv *sta_priv = (struct xradio_sta_priv *)&sta->drv_priv;
 
-	ap_printk(XRADIO_DBG_TRC,"%s\n", __FUNCTION__);
-
 #ifdef P2P_MULTIVIF
 	SYS_WARN(priv->if_id == XRWL_GENERIC_IF_ID);
 #endif
@@ -207,8 +199,6 @@ void xradio_sta_notify(struct ieee80211_hw *dev,
 static void xradio_ps_notify(struct xradio_vif *priv,
 		      int link_id, bool ps)
 {
-	ap_printk(XRADIO_DBG_TRC,"%s\n", __FUNCTION__);
-
 	if (link_id > MAX_STA_IN_AP_MODE) {
 		ap_printk(XRADIO_DBG_WARN,"link_id is invalid=%d\n", link_id);
 		return;
@@ -271,8 +261,6 @@ static int xradio_set_tim_impl(struct xradio_vif *priv, bool aid0_bit_set)
 void xradio_set_tim_work(struct work_struct *work)
 {
 	struct xradio_vif *priv = container_of(work, struct xradio_vif, set_tim_work);
-	ap_printk(XRADIO_DBG_TRC,"%s\n", __FUNCTION__);
-
 	xradio_set_tim_impl(priv, priv->aid0_bit_set);
 }
 
@@ -281,8 +269,6 @@ int xradio_set_tim(struct ieee80211_hw *dev, struct ieee80211_sta *sta,
 {
 	struct xradio_sta_priv *sta_priv = (struct xradio_sta_priv *)&sta->drv_priv;
 	struct xradio_vif *priv = sta_priv->priv;
-
-	ap_printk(XRADIO_DBG_TRC,"%s\n", __FUNCTION__);
 
 #ifdef P2P_MULTIVIF
 	SYS_WARN(priv->if_id == XRWL_GENERIC_IF_ID);
@@ -306,7 +292,6 @@ void xradio_set_cts_work(struct work_struct *work)
 	};
 	u32 erp_info;
 	__le32 use_cts_prot;
-	ap_printk(XRADIO_DBG_TRC,"%s\n", __FUNCTION__);
 
 	mutex_lock(&hw_priv->conf_mutex);
 	erp_info = priv->erp_info;
@@ -333,7 +318,6 @@ static int xradio_set_btcoexinfo(struct xradio_vif *priv)
 {
 	struct wsm_override_internal_txrate arg;
 	int ret = 0;
-	ap_printk(XRADIO_DBG_TRC,"%s\n", __FUNCTION__);
 
 	if (priv->mode == NL80211_IFTYPE_STATION) {
 		/* Plumb PSPOLL and NULL template */
@@ -386,8 +370,6 @@ void xradio_bss_info_changed(struct ieee80211_hw *dev,
 {
 	struct xradio_common *hw_priv = dev->priv;
 	struct xradio_vif *priv = xrwl_get_vif_from_ieee80211(vif);
-
-	ap_printk(XRADIO_DBG_TRC,"%s\n", __FUNCTION__);
 
 #ifdef P2P_MULTIVIF
 	if (priv->if_id == XRWL_GENERIC_IF_ID)
@@ -943,8 +925,6 @@ void xradio_multicast_start_work(struct work_struct *work)
 	       container_of(work, struct xradio_vif, multicast_start_work);
 	long tmo = priv->join_dtim_period * (priv->beacon_int + 20) * HZ / 1024;
 
-	ap_printk(XRADIO_DBG_TRC,"%s\n", __FUNCTION__);
-
 	cancel_work_sync(&priv->multicast_stop_work);
 	if (!priv->aid0_bit_set) {
 		wsm_lock_tx(priv->hw_priv);
@@ -959,7 +939,6 @@ void xradio_multicast_stop_work(struct work_struct *work)
 {
 	struct xradio_vif *priv =
 		container_of(work, struct xradio_vif, multicast_stop_work);
-	ap_printk(XRADIO_DBG_TRC,"%s\n", __FUNCTION__);
 
 	if (priv->aid0_bit_set) {
 		del_timer_sync(&priv->mcast_timeout);
@@ -973,7 +952,6 @@ void xradio_multicast_stop_work(struct work_struct *work)
 void xradio_mcast_timeout(unsigned long arg)
 {
 	struct xradio_vif *priv = (struct xradio_vif *)arg;
-	ap_printk(XRADIO_DBG_TRC,"%s\n", __FUNCTION__);
 
 	ap_printk(XRADIO_DBG_WARN, "Multicast delivery timeout.\n");
 	spin_lock_bh(&priv->ps_state_lock);
@@ -994,7 +972,6 @@ int xradio_ampdu_action(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
 	 * sends ADDBA Response which is discarded in the driver as
 	 * FW generates the ADDBA Response on its own.*/
 	int ret;
-	ap_printk(XRADIO_DBG_TRC,"%s\n", __FUNCTION__);
 
 	switch (params->action) {
 	case IEEE80211_AMPDU_RX_START:
@@ -1013,7 +990,6 @@ int xradio_ampdu_action(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
 void xradio_suspend_resume(struct xradio_vif *priv, struct wsm_suspend_resume *arg)
 {
 	struct xradio_common *hw_priv = xrwl_vifpriv_to_hwpriv(priv);
-	ap_printk(XRADIO_DBG_TRC,"%s\n", __FUNCTION__);
 
 #if 0
 	ap_printk(XRADIO_DBG_MSG, "[AP] %s: %s\n", 
@@ -1064,7 +1040,6 @@ static int xradio_upload_beacon(struct xradio_vif *priv)
 	struct ieee80211_mgmt *mgmt;
 	u8 *erp_inf, *ies, *ht_oper;
 	u32 ies_len;
-	ap_printk(XRADIO_DBG_TRC,"%s\n", __FUNCTION__);
 
 	if (priv->vif->p2p || hw_priv->channel->band == NL80211_BAND_5GHZ)
 		frame.rate = WSM_TRANSMIT_RATE_6;
@@ -1164,7 +1139,6 @@ static int xradio_upload_proberesp(struct xradio_vif *priv)
 #ifdef HIDDEN_SSID
 	u8 *ssid_ie;
 #endif
-	ap_printk(XRADIO_DBG_TRC,"%s\n", __FUNCTION__);
 
 	if (priv->vif->p2p || hw_priv->channel->band == NL80211_BAND_5GHZ)
 		frame.rate = WSM_TRANSMIT_RATE_6;
@@ -1212,7 +1186,6 @@ static int xradio_upload_pspoll(struct xradio_vif *priv)
 		.frame_type = WSM_FRAME_TYPE_PS_POLL,
 		.rate = 0xFF,
 	};
-	ap_printk(XRADIO_DBG_TRC,"%s\n", __FUNCTION__);
 
 	frame.skb = ieee80211_pspoll_get(priv->hw, priv->vif);
 	if (SYS_WARN(!frame.skb))
@@ -1229,7 +1202,6 @@ static int xradio_upload_null(struct xradio_vif *priv)
 		.frame_type = WSM_FRAME_TYPE_NULL,
 		.rate = 0xFF,
 	};
-	ap_printk(XRADIO_DBG_TRC,"%s\n", __FUNCTION__);
 
 	frame.skb = ieee80211_nullfunc_get(priv->hw, priv->vif);
 	if (SYS_WARN(!frame.skb))
@@ -1282,7 +1254,6 @@ static int xradio_enable_beaconing(struct xradio_vif *priv,
 	struct wsm_beacon_transmit transmit = {
 		.enableBeaconing = enable,
 	};
-	ap_printk(XRADIO_DBG_TRC,"%s\n", __FUNCTION__);
 
 	return wsm_beacon_transmit(hw_priv, &transmit, priv->if_id);
 }
@@ -1475,7 +1446,6 @@ int xradio_alloc_link_id(struct xradio_vif *priv, const u8 *mac)
 	unsigned long max_inactivity = 0;
 	unsigned long now = jiffies;
 	struct xradio_common *hw_priv = xrwl_vifpriv_to_hwpriv(priv);
-	ap_printk(XRADIO_DBG_TRC,"%s\n", __FUNCTION__);
 
 	spin_lock_bh(&priv->ps_state_lock);
 	for (i = 0; i < MAX_STA_IN_AP_MODE; ++i) {
@@ -1533,7 +1503,6 @@ void xradio_link_id_gc_work(struct work_struct *work)
 	bool need_reset;
 	u32 mask;
 	int i;
-	ap_printk(XRADIO_DBG_TRC,"%s\n", __FUNCTION__);
 
 	if (priv->join_status != XRADIO_JOIN_STATUS_AP)
 		return;
@@ -1616,8 +1585,6 @@ void xradio_notify_noa(struct xradio_vif *priv, int delay)
 	struct wsm_p2p_ps_modeinfo *modeinfo;
 	modeinfo = &priv->p2p_ps_modeinfo;
 
-	ap_printk(XRADIO_DBG_TRC,"%s\n", __FUNCTION__);
-
 	if (priv->join_status != XRADIO_JOIN_STATUS_AP)
 		return;
 
@@ -1650,7 +1617,6 @@ int xrwl_unmap_link(struct xradio_vif *priv, int link_id)
 		.power_mode = wsm_power_mode_quiescent,
 		.disableMoreFlagUsage = true,
 	};
-	ap_printk(XRADIO_DBG_TRC,"%s\n", __FUNCTION__);
 
 	if (is_hardware_xradio(hw_priv)) {
 		struct wsm_map_link maplink = {
@@ -1684,7 +1650,6 @@ void xradio_ht_oper_update_work(struct work_struct *work)
 		.what = WSM_UPDATE_IE_BEACON,
 		.count = 1,
 	};
-	ap_printk(XRADIO_DBG_TRC,"%s\n", __FUNCTION__);
 
 	skb = ieee80211_beacon_get(priv->hw, priv->vif);
 	if (SYS_WARN(!skb))

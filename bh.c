@@ -416,6 +416,7 @@ static void xradio_bh_rx_dump(struct device *dev, u8 *data, size_t len){
 			[0x0406] = "mib confirm",
 			[0x0407] = "scan started",
 			[0x0409] = "configuration confirm",
+			[0x040a] = "reset confirm",
 			[0x040b] = "join confirm",
 			[0x040c] = "key added",
 			[0x040d] = "key removed",
@@ -444,8 +445,8 @@ static void xradio_bh_rx_dump(struct device *dev, u8 *data, size_t len){
 		msgname = "scan result";
 	}
 
-	dev_dbg(dev, "<<< msgid %s(0x%.4X) ifid %d len %d\n",
-			msgname, msgid, ifid, *p);
+	dev_dbg(dev, "vif %d: sdio rx, msgid %s(0x%.4X) len %d\n",
+			ifid, msgname, msgid, *p);
 //	print_hex_dump_bytes("<-- ", DUMP_PREFIX_NONE,
 //	                     data, min(len, (size_t) 64));
 #endif
@@ -594,6 +595,7 @@ static void xradio_bh_tx_dump(struct device *dev, u8 *data, size_t len){
 			[0x0006] = "MIB",
 			[0x0007] = "start scan",
 			[0x0009] = "configure",
+			[0x000A] = "reset",
 			[0x000B] = "join",
 			[0x000C] = "add key",
 			[0x000D] = "remove key",
@@ -606,10 +608,23 @@ static void xradio_bh_tx_dump(struct device *dev, u8 *data, size_t len){
 			[0x001c] = "map link",
 	};
 	static const char *mibnames[0xffff] = {
+			[0x0003] = "DOT11_SLOT_TIME",
 			[0x1002] = "TEMPLATE_FRAME",
 			[0x1003] = "RX_FILTER",
+			[0x1004] = "BEACON_FILTER_TABLE",
+			[0x1005] = "BEACON_FILTER_ENABLE",
 			[0x1006] = "OPERATIONAL POWER MODE",
+			[0x1007] = "BEACON_WAKEUP_PERIOD",
+			[0x1009] = "RCPI_RSSI_THRESHOLD",
+			[0x1010] = "SET_ASSOCIATION_MODE",
+			[0x100e] = "BLOCK_ACK_POLICY",
+			[0x100f] = "OVERRIDE_INTERNAL_TX_RATE",
+			[0x1013] = "SET_UAPSD_INFORMATION",
+			[0x1016] = "SET_TX_RATE_RETRY_POLICY",
+			[0x1020] = "PROTECTED_MGMT_POLICY",
+			[0x1021] = "SET_HT_PROTECTION",
 			[0x1024] = "USE_MULTI_TX_CONF",
+			[0x1025] = "KEEP_ALIVE_PERIOD",
 			[0x1026] = "DISABLE_BSSID_FILTER",
 			[0x1035] = "SET_INACTIVITY",
 	};
@@ -624,10 +639,10 @@ static void xradio_bh_tx_dump(struct device *dev, u8 *data, size_t len){
 	WARN_ON(msgnames[msgid] == NULL);
 
 	if (msgid == 0x0006) {
-		dev_dbg(dev, ">>> msgid %s(0x%.4X) ifid %d len %d MIB %s(0x%.4X)\n",
-				msgnames[msgid], msgid, ifid,*p, mibnames[mib], mib);
+		dev_dbg(dev, "vif %d: sdio tx, msgid %s(0x%.4X) len %d MIB %s(0x%.4X)\n",
+				ifid, msgnames[msgid], msgid,*p, mibnames[mib], mib);
 	} else {
-		dev_dbg(dev, ">>> msgid %s(0x%.4X) ifid %d len %d\n", msgnames[msgid], msgid, ifid, *p);
+		dev_dbg(dev, "vif %d: sdio tx, msgid %s(0x%.4X) len %d\n", ifid, msgnames[msgid], msgid, *p);
 	}
 
 //	print_hex_dump_bytes("--> ", DUMP_PREFIX_NONE, data,

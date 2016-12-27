@@ -1416,7 +1416,7 @@ static int wsm_receive_indication(struct xradio_common *hw_priv,
 	struct xradio_vif *priv;
 
 	hw_priv->rx_timestamp = jiffies;
-	if (hw_priv->wsm_cbc.rx) {
+
 		struct wsm_rx rx;
 		struct ieee80211_hdr *hdr;
 		size_t hdr_len;
@@ -1454,7 +1454,7 @@ static int wsm_receive_indication(struct xradio_common *hw_priv,
 		}
 		priv = xrwl_hwpriv_to_vifpriv(hw_priv, rx.if_id);
 		if (!priv) {
-			wsm_printk(XRADIO_DBG_ERROR, "wsm_receive_indication: NULL priv drop frame\n");
+			dev_dbg(hw_priv->pdev, "got frame on a vif we don't have, dropped\n");
 			return 0;
 		}
 		//remove wsm hdr of skb
@@ -1480,7 +1480,7 @@ static int wsm_receive_indication(struct xradio_common *hw_priv,
 		if (!rx.status && unlikely(ieee80211_is_deauth(hdr->frame_control))) {
 			if (priv->join_status == XRADIO_JOIN_STATUS_STA) {
 				/* Shedule unjoin work */
-				wsm_printk(XRADIO_DBG_WARN, \
+				dev_dbg(hw_priv->pdev,
 					"Issue unjoin command (RX).\n");
 				wsm_lock_tx_async(hw_priv);
 				if (queue_work(hw_priv->workqueue,
@@ -1488,11 +1488,11 @@ static int wsm_receive_indication(struct xradio_common *hw_priv,
 					wsm_unlock_tx(hw_priv);
 			}
 		}
-		hw_priv->wsm_cbc.rx(priv, &rx, skb_p);
+		xradio_rx_cb(priv, &rx, skb_p);
 		if (*skb_p)
 			skb_push(*skb_p, hdr_len);
 		spin_unlock(&priv->vif_lock);
-	}
+
 	return 0;
 
 underflow:

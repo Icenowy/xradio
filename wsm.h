@@ -1345,7 +1345,6 @@ int wsm_map_link(struct xradio_common *hw_priv, const struct wsm_map_link *arg,
 struct wsm_cbc {
 	wsm_scan_complete_cb scan_complete;
 	wsm_tx_confirm_cb tx_confirm;
-	wsm_rx_cb rx;
 	wsm_event_cb event;
 	wsm_set_pm_complete_cb set_pm_complete;
 	wsm_channel_switch_cb channel_switch;
