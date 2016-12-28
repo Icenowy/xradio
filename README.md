@@ -88,15 +88,8 @@ address to something based on the unique chip id for you.
 Working:
 
 Standard client station mode seems to work fine.
-Master (AP) mode seems to work with hostapd up to the point that the AP
-is visible. Not tested any further.
-
-Not working:
-
-Dual role station and master mode. Adding both interface types works
-but the AP is not visible when hostapd is running.
-
-
+Master (AP) mode works with WPA/WPA2 enabled etc.
+Dual role station and master mode.
 
 #Issues
 
@@ -108,9 +101,21 @@ a packet that tells it that the firmware is dead and shuts down the thread used
 to push and pull data but the rest of the driver and the os has no idea and
 if the os tries to interact with the driver everything starts to lock up.
 
+Pings from the device to the network are faster than from the network to the device.
+This seems to be because of latency between the interrupt and servicing RX reports
+from the device.
+
 #Fun stuff
 
 The driver is based on the driver for the ST CW1100/CW1200 chips.
-The XR819 is probably a clone, licensed version or actually a CW1100 that
-has been packaged by xradio/allwinner as the CW1100 is available as a raw
-wafer.
+The XR819 is probably a clone, licensed version or actually a CW1100 family chip
+that has been packaged by xradio/allwinner as the CW1100 is available as a raw
+wafer. 
+
+The silicon version from the XR819 and procedure for loading firmware
+matches up with the CW1x60 chips which were apparently never released so
+maybe Allwinner bought the design after the ST/Ericsson split?
+
+If anyone wants to mainline support for the XR819 they should probably do it by
+adding support for the XR819 to the existing CW1200 driver so they don't have to
+get thousands and thousands of lines of code signed off.
