@@ -71,9 +71,6 @@ void xradio_skb_dtor(struct xradio_common *hw_priv,
 
 void xradio_tx_confirm_cb(struct xradio_common *hw_priv,
 			  struct wsm_tx_confirm *arg);
-void xradio_rx_cb(struct xradio_vif *priv,
-		  struct wsm_rx *arg,
-		  struct sk_buff **skb_p);
 
 /* ******************************************************************** */
 /* Timeout								*/

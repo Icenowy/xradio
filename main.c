@@ -16,7 +16,6 @@
 #include <linux/mmc/sdio_func.h>
 
 #include "xradio.h"
-#include "txrx.h"
 #include "fwio.h"
 #include "hwio.h"
 #include "bh.h"

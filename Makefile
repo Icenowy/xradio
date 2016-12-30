@@ -5,7 +5,8 @@ CONFIG_XRADIO_5GHZ_SUPPORT := y
 
 xradio_wlan-y := \
 	fwio.o \
-	txrx.o \
+	tx.o \
+	rx.o \
 	main.o \
 	queue.o \
 	hwio.o \
@@ -18,7 +19,9 @@ xradio_wlan-y := \
 	debug.o \
 	module.o \
 	sdio.o \
-	pm.o
+	pm.o \
+	ht.o \
+	p2p.o
 
 #ccflags-y += -DP2P_MULTIVIF
 ccflags-y += -DMCAST_FWDING

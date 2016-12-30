@@ -38,4 +38,7 @@ static inline int xradio_ht_ampdu_density(const struct xradio_ht_oper *ht_oper)
 	return ht_oper->ht_cap.ampdu_density;
 }
 
+int xradio_apcompat_detect(struct xradio_vif *priv, u8 rx_rate);
+void xradio_remove_ht_ie(struct xradio_vif *priv, struct sk_buff *skb);
+
 #endif /* XRADIO_HT_H_INCLUDED */

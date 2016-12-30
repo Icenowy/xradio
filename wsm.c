@@ -21,6 +21,7 @@
 #include "bh.h"
 #include "ap.h"
 #include "sta.h"
+#include "rx.h"
 
 #define WSM_CMD_TIMEOUT		(2 * HZ) /* With respect to interrupt loss */
 #define WSM_CMD_JOIN_TIMEOUT	(7 * HZ) /* Join timeout is 5 sec. in FW   */

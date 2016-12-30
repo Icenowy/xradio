@@ -45,7 +45,7 @@
 #include "queue.h"
 #include "wsm.h"
 #include "scan.h"
-#include "txrx.h"
+#include "tx.h"
 #include "ht.h"
 #include "pm.h"
 #include "fwio.h"
