@@ -19,10 +19,8 @@
 #include "xradio.h"
 #include "wsm.h"
 #include "bh.h"
-#ifdef ROAM_OFFLOAD
+#include "ap.h"
 #include "sta.h"
-#endif /*ROAM_OFFLOAD*/
-
 
 #define WSM_CMD_TIMEOUT		(2 * HZ) /* With respect to interrupt loss */
 #define WSM_CMD_JOIN_TIMEOUT	(7 * HZ) /* Join timeout is 5 sec. in FW   */
@@ -615,8 +613,7 @@ static int wsm_tx_confirm(struct xradio_common *hw_priv,
 
 	wsm_release_vif_tx_buffer(hw_priv, tx_confirm.if_id, 1);
 
-	if (hw_priv->wsm_cbc.tx_confirm)
-		hw_priv->wsm_cbc.tx_confirm(hw_priv, &tx_confirm);
+	xradio_tx_confirm_cb(hw_priv, &tx_confirm);
 	return 0;
 
 underflow:
@@ -1414,12 +1411,11 @@ static int wsm_receive_indication(struct xradio_common *hw_priv,
 					struct sk_buff **skb_p)
 {
 	struct xradio_vif *priv;
+	struct wsm_rx rx;
+	struct ieee80211_hdr *hdr;
+	size_t hdr_len;
 
 	hw_priv->rx_timestamp = jiffies;
-
-		struct wsm_rx rx;
-		struct ieee80211_hdr *hdr;
-		size_t hdr_len;
 
 		rx.status = WSM_GET32(buf);
 		rx.channelNumber = WSM_GET16(buf);
@@ -1678,8 +1674,8 @@ static int wsm_channel_switch_indication(struct xradio_common *hw_priv,
 	hw_priv->channel_switch_in_progress = 0;
 	wake_up(&hw_priv->channel_switch_done);
 
-	if (hw_priv->wsm_cbc.channel_switch)
-		hw_priv->wsm_cbc.channel_switch(hw_priv);
+
+	xradio_channel_switch_cb(hw_priv);
 	return 0;
 
 underflow:
@@ -1696,6 +1692,7 @@ static int wsm_set_pm_indication(struct xradio_common *hw_priv,
 static int wsm_scan_complete_indication(struct xradio_common *hw_priv,
 					struct wsm_buf *buf)
 {
+	struct wsm_scan_complete arg;
 #ifdef ROAM_OFFLOAD
 	if(hw_priv->auto_scanning == 0)
 		wsm_oper_unlock(hw_priv);
@@ -1703,13 +1700,11 @@ static int wsm_scan_complete_indication(struct xradio_common *hw_priv,
 	wsm_oper_unlock(hw_priv);
 #endif /*ROAM_OFFLOAD*/
 
-	if (hw_priv->wsm_cbc.scan_complete) {
-		struct wsm_scan_complete arg;
-		arg.status = WSM_GET32(buf);
-		arg.psm = WSM_GET8(buf);
-		arg.numChannels = WSM_GET8(buf);
-		hw_priv->wsm_cbc.scan_complete(hw_priv, &arg);
-	}
+	arg.status = WSM_GET32(buf);
+	arg.psm = WSM_GET8(buf);
+	arg.numChannels = WSM_GET8(buf);
+	xradio_scan_complete_cb(hw_priv, &arg);
+
 	return 0;
 
 underflow:
@@ -1728,7 +1723,6 @@ static int wsm_suspend_resume_indication(struct xradio_common *hw_priv,
 					 int interface_link_id,
 					 struct wsm_buf *buf)
 {
-	if (hw_priv->wsm_cbc.suspend_resume) {
 		u32 flags;
 		struct wsm_suspend_resume arg;
 		struct xradio_vif *priv;
@@ -1764,9 +1758,9 @@ static int wsm_suspend_resume_indication(struct xradio_common *hw_priv,
 				   " for removed interface!\n");
 			return 0;
 		}
-		hw_priv->wsm_cbc.suspend_resume(priv, &arg);
+		xradio_suspend_resume(priv, &arg);
 		spin_unlock(&priv->vif_lock);
-	}
+
 	return 0;
 
 underflow:

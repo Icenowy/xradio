@@ -613,13 +613,6 @@ int xradio_core_init(struct sdio_func* func)
 	hw_priv->addresses[2].addr[4] ^= 0x80;
 #endif
 
-	/* WSM callbacks. */
-	hw_priv->wsm_cbc.scan_complete = xradio_scan_complete_cb;
-	hw_priv->wsm_cbc.tx_confirm = xradio_tx_confirm_cb;
-	hw_priv->wsm_cbc.suspend_resume = xradio_suspend_resume;
-	/* hw_priv->wsm_cbc.set_pm_complete = xradio_set_pm_complete_cb; */
-	hw_priv->wsm_cbc.channel_switch = xradio_channel_switch_cb;
-
 	/*init pm and wakelock. */
 #ifdef CONFIG_PM
 	err = xradio_pm_init(&hw_priv->pm_state, hw_priv);

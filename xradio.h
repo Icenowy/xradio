@@ -49,9 +49,6 @@
 #include "ht.h"
 #include "pm.h"
 #include "fwio.h"
-#ifdef CONFIG_XRADIO_TESTMODE
-#include "nl80211_testmode_msg_copy.h"
-#endif /*CONFIG_XRADIO_TESTMODE*/
 
 /* #define ROC_DEBUG */
 /* hidden ssid is only supported when separate probe resp IE
@@ -153,52 +150,7 @@ struct xradio_testframe {
 	u8 *data;
 };
 #endif
-#ifdef CONFIG_XRADIO_TESTMODE
-struct advance_scan_elems {
-	u8 scanMode;
-	u16 duration;
-};
-/**
- * xradio_tsm_info - Keeps information about ongoing TSM collection
- * @ac: Access category for which metrics to be collected
- * @use_rx_roaming: Use received voice packets to compute roam delay
- * @sta_associated: Set to 1 after association
- * @sta_roamed: Set to 1 after successful roaming
- * @roam_delay: Roam delay
- * @rx_timestamp_vo: Timestamp of received voice packet
- * @txconf_timestamp_vo: Timestamp of received tx confirmation for
- * successfully transmitted VO packet
- * @sum_pkt_q_delay: Sum of packet queue delay
- * @sum_media_delay: Sum of media delay
- *
- */
-struct xradio_tsm_info {
-	u8 ac;
-	u8 use_rx_roaming;
-	u8 sta_associated;
-	u8 sta_roamed;
-	u16 roam_delay;
-	u32 rx_timestamp_vo;
-	u32 txconf_timestamp_vo;
-	u32 sum_pkt_q_delay;
-	u32 sum_media_delay;
-};
 
-/**
- * xradio_start_stop_tsm - To start or stop collecting TSM metrics in
- * xradio driver
- * @start: To start or stop collecting TSM metrics
- * @up: up for which metrics to be collected
- * @packetization_delay: Packetization delay for this TID
- *
- */
-struct xradio_start_stop_tsm {
-	u8 start;       /*1: To start, 0: To stop*/
-	u8 up;
-	u16 packetization_delay;
-};
-
-#endif /* CONFIG_XRADIO_TESTMODE */
 struct xradio_common {
 	struct xradio_debug_common	*debug;
 	struct xradio_queue		tx_queue[AC_QUEUE_NUM];
@@ -305,7 +257,6 @@ struct xradio_common {
 	struct wsm_cmd			wsm_cmd;
 	wait_queue_head_t		wsm_cmd_wq;
 	wait_queue_head_t		wsm_startup_done;
-	struct wsm_cbc			wsm_cbc;
 	struct semaphore		tx_lock_sem;
 	atomic_t				tx_lock;
 	u32				pending_frame_id;
