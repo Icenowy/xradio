@@ -126,25 +126,6 @@ underflow:
 	return -EINVAL;
 }
 
-#if defined(DGB_XRADIO_HWT)
-int wsm_hwt_cmd(struct xradio_common *hw_priv, void *arg, size_t arg_size)
-{
-	int ret = 0;
-	struct wsm_buf *buf = &hw_priv->wsm_cmd_buf;
-
-	wsm_cmd_lock(hw_priv);
-	WSM_PUT(buf, arg, arg_size);
-	ret = wsm_cmd_send(hw_priv, buf, NULL, 0x0024, WSM_CMD_TIMEOUT, -1);
-	wsm_cmd_unlock(hw_priv);
-	
-	return ret;
-
-nomem:
-	wsm_cmd_unlock(hw_priv);
-	return -ENOMEM;
-}
-#endif
-
 #ifdef XR_RRM//RadioResourceMeasurement
 static int wsm_start_measure_requset(struct xradio_common *hw_priv,
 		                                MEASUREMENT_PARAMETERS *arg,
@@ -2105,87 +2086,6 @@ underflow:
 	SYS_WARN(1);
 	return -EINVAL;
 }
-
-#if defined(DGB_XRADIO_HWT)
-extern u8  hwt_testing;
-extern u16 hwt_tx_len;
-extern u16 hwt_tx_num;
-extern int sent_num;
-extern struct timeval hwt_start_time;
-extern struct timeval hwt_end_time;
-int wsm_hwt_tx_confirm(struct xradio_common *hw_priv, struct wsm_buf *buf)
-{
-	u32 *packetID = (u32 *)(buf->data+8);
-	u8 num = *(buf->data + 6);
-
-	wsm_printk(XRADIO_DBG_NIY, "%s, num=%d, hw_bufs_used=%d\n", 
-	           __func__, num, hw_priv->hw_bufs_used);
-
-	wsm_release_vif_tx_buffer(hw_priv, 0, num);
-	wsm_release_tx_buffer(hw_priv, num-1);  //one release is in bh.
-	
-	//confirm of last packet, so report the test results.
-	if (*(buf->data+7) & 0x01) { //last packet
-		u32 time_int = 0;
-		u32 total    = hwt_tx_num*hwt_tx_len*8;
-		do_gettimeofday(&hwt_end_time);
-		time_int = (hwt_end_time.tv_sec-hwt_start_time.tv_sec)*1000000 + \
-				       (hwt_end_time.tv_usec-hwt_start_time.tv_usec);
-		wsm_printk(XRADIO_DBG_ALWY, "%s, HIF TX: time=%dms, throughput=%d.%dMbps, SW time=%dus\n", 
-		           __func__, time_int/1000, total/time_int, (total%time_int)*10/time_int, 
-		           (*(u32 *)(buf->data+8)));
-		hwt_tx_len = 0;
-		hwt_tx_num = 0;
-		sent_num   = 0;  //reset the sent_num
-		hwt_testing = 0;
-	}
-	return 0;
-}
-
-u16 recv_num = 0;
-extern u8  hwt_rx_en;
-extern u16 hwt_rx_len;
-extern u16 hwt_rx_num;
-int wsm_hwt_rx_frames(struct xradio_common *hw_priv, struct wsm_buf *buf)
-{
-
-	wsm_printk(XRADIO_DBG_NIY, "%s, status=%d, len=%d\n", __func__, 
-	           *(u16 *)(buf->data+2), *(u16 *)(buf->data+4));
-	recv_num++;
-	if (recv_num >= hwt_rx_num) {  //last packet
-		u32 time_int = 0;
-		u32 total    = recv_num*hwt_rx_len*8;
-		do_gettimeofday(&hwt_end_time);
-		time_int = (hwt_end_time.tv_sec-hwt_start_time.tv_sec)*1000000 + \
-				       (hwt_end_time.tv_usec-hwt_start_time.tv_usec);
-		wsm_printk(XRADIO_DBG_ALWY, "%s, HIF RX: time=%dms, throughput=%d.%dMbps\n", 
-		           __func__, time_int/1000, total/time_int, (total%time_int)*10/time_int);
-		hwt_rx_en  = 0;
-		hwt_rx_num = 0;
-		recv_num   = 0;  //reset the recv_num
-		hwt_testing = 0;
-	}
-
-	return 0;
-}
-
-int wsm_hwt_enc_results(struct xradio_common *hw_priv, struct wsm_buf *buf)
-{
-	wsm_printk(XRADIO_DBG_ALWY, "%s, status=%d, enc throughput=%d.%02dMbps\n", __func__,
-	           *(u16 *)(buf->data+2), *(u32 *)(buf->data+8), *(u32 *)(buf->data+12));
-	hwt_testing = 0;
-	return 0;
-}
-
-int wsm_hwt_mic_results(struct xradio_common *hw_priv, struct wsm_buf *buf)
-{
-	wsm_printk(XRADIO_DBG_ALWY, "%s, status=%d, mic throughput=%d.%02dMbps\n", __func__,
-	           *(u16 *)(buf->data+2), *(u32 *)(buf->data+8), *(u32 *)(buf->data+12));
-	hwt_testing = 0;
-	return 0;
-}
-#endif //DGB_XRADIO_HWT
-
 
 int wsm_handle_rx(struct xradio_common *hw_priv, int id,
 		  struct wsm_hdr *wsm, struct sk_buff **skb_p)
