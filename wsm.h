@@ -721,9 +721,6 @@ int wsm_reset(struct xradio_common *hw_priv, const struct wsm_reset *arg,
 	      int if_id);
 
 //add by yangfh
-void wsm_upper_restart(struct xradio_common *hw_priv);
-
-//add by yangfh
 void wsm_query_work(struct work_struct *work);
 
 /* 3.5 */

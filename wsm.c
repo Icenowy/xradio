@@ -268,59 +268,6 @@ underflow:
 	return -EINVAL;
 }
 
-/* ******************************************************************** */
-/*forcing upper layer to restart wifi.*/
-void wsm_upper_restart(struct xradio_common *hw_priv)
-{
-	int i = 0;
-	struct xradio_vif *priv = NULL;
-
-#ifdef CONFIG_PM
-	xradio_pm_stay_awake(&hw_priv->pm_state, 3*HZ);
-#endif
-
-#if defined(CONFIG_XRADIO_USE_EXTENSIONS) && 0
-	spin_lock(&hw_priv->vif_list_lock);
-	xradio_for_each_vif(hw_priv, priv, i) {
-		if (!priv)
-			continue;
-		ieee80211_driver_hang_notify(priv->vif, GFP_KERNEL);
-		wsm_printk(XRADIO_DBG_WARN, "%s driver_hang_notify\n", __func__);
-	}
-	spin_unlock(&hw_priv->vif_list_lock);
-#elif defined(HW_RESTART)
-	if (!work_pending(&hw_priv->hw_restart_work)) {
-		bool reset = false;
-		spin_lock(&hw_priv->vif_list_lock);
-		xradio_for_each_vif(hw_priv, priv, i) {
-			if (priv) {
-				reset = true;
-				break;
-			}
-		}
-		spin_unlock(&hw_priv->vif_list_lock);
-		if (reset) {
-			wsm_cmd_lock(hw_priv);
-			hw_priv->hw_restart = true;
-			wsm_cmd_unlock(hw_priv);
-			/* wait for scan complete.*/
-			wsm_printk(XRADIO_DBG_WARN, "Wait for scan complete!\n");
-			down(&hw_priv->scan.lock);
-			mutex_lock(&hw_priv->conf_mutex);
-			/* Unlock wsm_oper_lock since no confirms of wsm_oper_locks.*/
-			if (!mutex_trylock(&hw_priv->wsm_oper_lock))
-				wsm_printk(XRADIO_DBG_WARN, "oper_lock may be locked!\n");
-			mutex_unlock(&hw_priv->wsm_oper_lock);
-			mutex_unlock(&hw_priv->conf_mutex);
-			up(&hw_priv->scan.lock);
-			msleep(200);
-			schedule_work(&hw_priv->hw_restart_work);
-			wsm_printk(XRADIO_DBG_WARN, "%s schedule restart_work!\n", __func__);
-		}
-	}
-#endif
-}
-
 void wsm_query_work(struct work_struct *work)
 {
 	struct xradio_common *hw_priv =
