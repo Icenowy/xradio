@@ -762,9 +762,6 @@ struct wsm_scan_complete {
 #endif /*ROAM_OFFLOAD*/
 };
 
-typedef void (*wsm_scan_complete_cb) (struct xradio_common *hw_priv,
-				      struct wsm_scan_complete *arg);
-
 /* 3.9 */
 struct wsm_scan {
 	/* WSM_PHY_BAND_... */
@@ -852,8 +849,6 @@ struct wsm_tx_confirm {
 };
 
 /* 3.15 */
-typedef void (*wsm_tx_confirm_cb) (struct xradio_common *hw_priv,
-				   struct wsm_tx_confirm *arg);
 
 /* Note that ideology of wsm_tx struct is different against the rest of
  * WSM API. wsm_hdr is /not/ a caller-adapted struct to be used as an input
@@ -937,9 +932,6 @@ struct wsm_rx {
 /* = sizeof(generic hi hdr) + sizeof(wsm hdr) */
 #define WSM_RX_EXTRA_HEADROOM (16)
 
-typedef void (*wsm_rx_cb) (struct xradio_vif *priv, struct wsm_rx *arg,
-			   struct sk_buff **skb_p);
-
 /* 3.17 */
 struct wsm_event {
 	/* WSM_STATUS_... */
@@ -961,8 +953,6 @@ struct xradio_wsm_event {
 /* 3.18 - 3.22 */
 /* Measurement. Skipped for now. Irrelevent. */
 
-typedef void (*wsm_event_cb) (struct xradio_common *hw_priv,
-			      struct wsm_event *arg);
 
 /* 3.23 */
 struct wsm_join {
@@ -1042,9 +1032,6 @@ int wsm_set_pm(struct xradio_common *hw_priv, const struct wsm_set_pm *arg,
 struct wsm_set_pm_complete {
 	u8 psm;			/* WSM_PSM_... */
 };
-
-typedef void (*wsm_set_pm_complete_cb) (struct xradio_common *hw_priv,
-					struct wsm_set_pm_complete *arg);
 
 /* 3.28 */
 struct wsm_set_bss_params {
@@ -1240,8 +1227,6 @@ struct wsm_switch_channel {
 int wsm_switch_channel(struct xradio_common *hw_priv,
 		       const struct wsm_switch_channel *arg, int if_id);
 
-typedef void (*wsm_channel_switch_cb) (struct xradio_common *hw_priv);
-
 struct wsm_start {
 	/* WSM_START_MODE_... */
 	/* [in] */ u8 mode;
@@ -1298,9 +1283,6 @@ int wsm_start_find(struct xradio_common *hw_priv, int if_id);
 
 int wsm_stop_find(struct xradio_common *hw_priv, int if_id);
 
-typedef void (*wsm_find_complete_cb) (struct xradio_common *hw_priv,
-				      u32 status);
-
 struct wsm_suspend_resume {
 	/* See 3.52 */
 	/* Link ID */
@@ -1315,9 +1297,6 @@ struct wsm_suspend_resume {
 	/* [out] */ int queue;
 	/* [out] */ int if_id;
 };
-
-typedef void (*wsm_suspend_resume_cb) (struct xradio_vif *priv,
-				       struct wsm_suspend_resume *arg);
 
 /* 3.54 Update-IE request. */
 struct wsm_update_ie {
