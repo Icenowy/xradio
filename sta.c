@@ -867,26 +867,9 @@ int xradio_get_tx_stats(struct ieee80211_hw *dev,
 }
 */
 
-/* for ps debug */
-#ifdef CONFIG_XRADIO_DEBUGFS
-u8 ps_disable      = 0;
-u8 ps_idleperiod   = 0;
-u8 ps_changeperiod = 0;
-#endif
-
 int xradio_set_pm(struct xradio_vif *priv, const struct wsm_set_pm *arg)
 {
 	struct wsm_set_pm pm = *arg;
-
-
-#ifdef CONFIG_XRADIO_DEBUGFS
-	if (ps_disable)
-		pm.pmMode = WSM_PSM_ACTIVE;
-	if (ps_idleperiod) {
-		pm.fastPsmIdlePeriod = ps_idleperiod << 1;
-		pm.apPsmChangePeriod = ps_changeperiod << 1;
-	}
-#endif
 
 	if (priv->uapsd_info.uapsdFlags != 0)
 		pm.pmMode &= ~WSM_PSM_FAST_PS_FLAG;

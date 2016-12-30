@@ -117,28 +117,6 @@ int sdio_pm(struct xradio_common *self, bool  suspend)
 	return ret;
 }
 
-//for sdio debug  2015-5-26 11:01:21
-#if (defined(CONFIG_XRADIO_DEBUGFS))
-u32 dbg_sdio_clk = 0;
-static int sdio_set_clk(struct sdio_func *func, u32 clk)
-{
-	if (func) {
-		if (func->card->host->ops->set_ios && clk >= 1000000) {  //set min to 1M
-			sdio_claim_host(func);
-			func->card->host->ios.clock = (clk < 50000000) ? clk : 50000000;
-			func->card->host->ops->set_ios(func->card->host, &func->card->host->ios);
-			sdio_release_host(func);
-			dev_dbg(&func->dev, "change mmc clk=%d\n",
-			            func->card->host->ios.clock);
-		} else {
-			dev_dbg(&func->dev, "fail change mmc clk=%d\n", clk);
-		}
-	}
-	return 0;
-
-}
-#endif
-
 static const struct of_device_id xradio_sdio_of_match_table[] = {
 	{ .compatible = "xradio,xr819" },
 	{ }
@@ -178,11 +156,6 @@ static int sdio_probe(struct sdio_func *func,
 	dev_dbg(&func->dev, "sdio_vendor: 0x%04x\n", func->vendor);
 	dev_dbg(&func->dev, "sdio_device: 0x%04x\n", func->device);
 	dev_dbg(&func->dev, "Function#: 0x%04x\n",   func->num);
-
-#if (defined(CONFIG_XRADIO_DEBUGFS))
-	if (dbg_sdio_clk)
-		sdio_set_clk(func, dbg_sdio_clk);
-#endif
 
 #if 0  //for odly and sdly debug.
 {

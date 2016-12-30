@@ -42,10 +42,8 @@ static int xradio_bh(void *arg);
 
 int xradio_register_bh(struct xradio_common *hw_priv)
 {
-	int err = 0;
-	struct sched_param param = { .sched_priority = 1 };
+	int ret = 0;
 
-	SYS_BUG(hw_priv->bh_thread);
 	atomic_set(&hw_priv->bh_tx, 0);
 	atomic_set(&hw_priv->bh_term, 0);
 	atomic_set(&hw_priv->bh_suspend, XRADIO_BH_RESUMED);
@@ -54,18 +52,13 @@ int xradio_register_bh(struct xradio_common *hw_priv)
 	init_waitqueue_head(&hw_priv->bh_wq);
 	init_waitqueue_head(&hw_priv->bh_evt_wq);
 
-	hw_priv->bh_thread = kthread_create(&xradio_bh, hw_priv, XRADIO_BH_THREAD);
+	hw_priv->bh_thread = kthread_run(&xradio_bh, hw_priv, XRADIO_BH_THREAD);
 	if (IS_ERR(hw_priv->bh_thread)) {
-		err = PTR_ERR(hw_priv->bh_thread);
+		ret = PTR_ERR(hw_priv->bh_thread);
 		hw_priv->bh_thread = NULL;
-	} else {
-		SYS_WARN(sched_setscheduler(hw_priv->bh_thread, SCHED_FIFO, &param));
-#ifdef HAS_PUT_TASK_STRUCT
-		get_task_struct(hw_priv->bh_thread);
-#endif
-		wake_up_process(hw_priv->bh_thread);
 	}
-	return err;
+
+	return ret;
 }
 
 void xradio_unregister_bh(struct xradio_common *hw_priv)
@@ -532,7 +525,8 @@ static int xradio_bh_rx(struct xradio_common *hw_priv, u16* nextlen) {
 	wsm_len = __le32_to_cpu(wsm->len);
 
 	if (SYS_WARN(wsm_len > read_len)) {
-		dev_err(hw_priv->pdev, "wsm_len=%d.\n", wsm_len);
+		dev_err(hw_priv->pdev, "wsm is bigger than data read, read %d but frame is %d\n",
+				read_len, wsm_len);
 		ret = -1;
 		goto out;
 	}
@@ -749,7 +743,8 @@ static int xradio_bh_exchange(struct xradio_common *hw_priv) {
 			atomic_add(1, &hw_priv->query_cnt);
 	}
 
-	/* keep doing tx and rx until they both stop */
+	/* keep doing tx and rx until they both stop or we are told
+	 * to terminate */
 	do {
 		txdone = xradio_bh_tx(hw_priv);
 		if (txdone < 0) {
@@ -759,7 +754,7 @@ static int xradio_bh_exchange(struct xradio_common *hw_priv) {
 		if (rxdone < 0) {
 			break;
 		}
-	} while (txdone > 0 || rxdone > 0);
+	} while ((txdone > 0 || rxdone > 0) && !kthread_should_stop());
 	return 0;
 }
 
@@ -853,28 +848,5 @@ static int xradio_bh(void *arg)
 
 	dev_err(hw_priv->pdev, "bh thread exiting\n");
 
-	/* If BH Error, handle it. */
-	if (!term) {
-		dev_err(hw_priv->pdev, "Fatal error, exitting code=%d.\n",
-		          hw_priv->bh_error);
-
-#ifdef HW_ERROR_WIFI_RESET
-		/* notify upper layer to restart wifi. 
-		 * don't do it in debug version. */
-		wsm_upper_restart(hw_priv);
-#endif
-		/* TODO: schedule_work(recovery) */
-#ifndef HAS_PUT_TASK_STRUCT
-		/* The only reason of having this stupid code here is
-		 * that __put_task_struct is not exported by kernel. */
-		for (;;) {
-			int status = wait_event_interruptible(hw_priv->bh_wq, ({
-			             term = kthread_should_stop();
-			             (term);}));
-			if (status || term)
-				break;
-		}
-#endif
-	}
 	return 0;
 }

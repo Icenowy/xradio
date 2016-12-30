@@ -43,13 +43,6 @@ xradio_get_tx_rate(const struct xradio_common *hw_priv,
 u32 TxedRateIdx_Map[24] = {0};
 u32 RxedRateIdx_Map[24] = {0};
 
-#ifdef CONFIG_XRADIO_DEBUGFS
-//add by yangfh for tx rates debug.
-extern u8  rates_dbg_en;
-extern u32 rates_debug[3];
-extern u8  maxRate_dbg;
-extern u8  retry_dbg;
-#endif
 /* ******************************************************************** */
 /* TX policy cache implementation					*/
 
@@ -541,16 +534,6 @@ static int tx_policy_get(struct xradio_common *hw_priv,
 	} else
 		tx_policy_build(hw_priv, &wanted, rates, IEEE80211_TX_MAX_RATES);
 
-	/* use rate policy instead of minstel policy in debug mode*/
-#ifdef CONFIG_XRADIO_DEBUGFS
-	if (rates_dbg_en & 0x2) {
-		memset(&wanted, 0, sizeof(wanted));
-		wanted.defined = maxRate_dbg + 1;
-		wanted.retry_count = (hw_priv->short_frame_max_tx_count&0xf);
-		memcpy(&wanted.tbl[0], &rates_debug[0], sizeof(wanted.tbl));
-	}
-#endif
-
 	spin_lock_bh(&cache->lock);
 	idx = tx_policy_find(cache, &wanted);
 	if (idx >= 0) {
@@ -582,16 +565,6 @@ static int tx_policy_get(struct xradio_common *hw_priv,
 		xradio_tx_queues_lock(hw_priv);
 	}
 	spin_unlock_bh(&cache->lock);
-
-	/*force to upload retry limit when using debug rate policy */
-#ifdef CONFIG_XRADIO_DEBUGFS
-	if (retry_dbg & 0x2) {
-		retry_dbg &= ~0x2;
-		//retry dgb need to be applied to policy.
-		*renew = true;
-		cache->cache[idx].policy.uploaded = 0;
-	}
-#endif
 
 	return idx;
 }
@@ -667,16 +640,7 @@ static int tx_policy_upload(struct xradio_common *hw_priv)
 	xradio_debug_tx_cache_miss(hw_priv);
 	txrx_printk(XRADIO_DBG_MSG, "[TX policy] Upload %d policies\n",
 				arg.hdr.numTxRatePolicies);
-#ifdef CONFIG_XRADIO_DEBUGFS
-	//test yangfh
-	if(arg.tbl[0].policyIndex == 7)
-		txrx_printk(XRADIO_DBG_MSG, "rate:0x%08x, 0x%08x, 0x%08x\n",
-								arg.tbl[0].rateCountIndices[2],
-								arg.tbl[0].rateCountIndices[1],
-								arg.tbl[0].rateCountIndices[0]);
-	policy_upload++;
-	policy_num += arg.hdr.numTxRatePolicies;
-#endif
+
 	/*TODO: COMBO*/
 	return wsm_set_tx_rate_retry_policy(hw_priv, &arg, if_id);
 }
@@ -861,7 +825,6 @@ xradio_tx_h_crypt(struct xradio_vif *priv,
 	size_t icv_len;
 	u8 *icv;
 
-
 	if (!t->tx_info->control.hw_key ||
 	    !(t->hdr->frame_control &
 	     __cpu_to_le32(IEEE80211_FCTL_PROTECTED)))
@@ -873,22 +836,22 @@ xradio_tx_h_crypt(struct xradio_vif *priv,
 	if (t->tx_info->control.hw_key->cipher == WLAN_CIPHER_SUITE_TKIP)
 		icv_len += 8; /* MIC */
 
-	if ((skb_headroom(t->skb) + skb_tailroom(t->skb) <
+	if (unlikely((skb_headroom(t->skb) + skb_tailroom(t->skb) <
 			 iv_len + icv_len + WSM_TX_EXTRA_HEADROOM) ||
 			(skb_headroom(t->skb) <
-			 iv_len + WSM_TX_EXTRA_HEADROOM)) {
-		txrx_printk(XRADIO_DBG_ERROR,
-			"Bug: no space allocated for crypto headers.\n"
+			 iv_len + WSM_TX_EXTRA_HEADROOM))) {
+		dev_dbg(priv->hw_priv->pdev,
+			"no space allocated for crypto headers.\n"
 			"headroom: %d, tailroom: %d, "
 			"req_headroom: %d, req_tailroom: %d\n"
 			"Please fix it in xradio_get_skb().\n",
 			skb_headroom(t->skb), skb_tailroom(t->skb),
 			iv_len + WSM_TX_EXTRA_HEADROOM, icv_len);
 		return -ENOMEM;
-	} else if (skb_tailroom(t->skb) < icv_len) {
+	} else if (unlikely(skb_tailroom(t->skb) < icv_len)) {
 		size_t offset = icv_len - skb_tailroom(t->skb);
 		u8 *p;
-		txrx_printk(XRADIO_DBG_ERROR,
+		dev_dbg(priv->hw_priv->pdev,
 			"Slowpath: tailroom is not big enough. "
 			"Req: %d, got: %d.\n",
 			icv_len, skb_tailroom(t->skb));
@@ -1057,14 +1020,6 @@ xradio_tx_h_rate_policy(struct xradio_common *hw_priv, struct xradio_txinfo *t,
 	struct xradio_vif *priv =
 				xrwl_get_vif_from_ieee80211(t->tx_info->control.vif);
 
-
-	/*use debug policy for data frames only*/
-#ifdef CONFIG_XRADIO_DEBUGFS
-	if((rates_dbg_en & 0x1) && ieee80211_is_data(t->hdr->frame_control)) {
-		rates_dbg_en |= 0x02;
-	}
-#endif
-
 	t->txpriv.rate_id = tx_policy_get(hw_priv,
 		t->tx_info->control.rates, t->txpriv.use_bg_rate,
 		&tx_policy_renew);
@@ -1077,14 +1032,6 @@ xradio_tx_h_rate_policy(struct xradio_common *hw_priv, struct xradio_txinfo *t,
 		wsm->maxTxRate = (u8)(t->txpriv.use_bg_rate & 0x3f);
 	else
 		wsm->maxTxRate = t->rate->hw_value;
-
-	/*set the maxTxRate and clear the dataframe flag of rates_dbg_en */
-#ifdef CONFIG_XRADIO_DEBUGFS
-	if(rates_dbg_en & 0x02) {
-		wsm->maxTxRate = maxRate_dbg;
-		rates_dbg_en  &= ~0x2;
-	}
-#endif
 
 	if (t->rate->flags & IEEE80211_TX_RC_MCS) {
 		if (priv->association_mode.greenfieldMode)
@@ -1656,24 +1603,6 @@ void xradio_tx_confirm_cb(struct xradio_common *hw_priv,
 			} 
 		}
 
-#ifdef CONFIG_XRADIO_DEBUGFS
-		if (arg->status == WSM_STATUS_RETRY_EXCEEDED) {
-			tx_retrylimit++;
-			retry_mis += ((s32)hw_priv->short_frame_max_tx_count-arg->ackFailures-1);
-			if(arg->ackFailures != (hw_priv->short_frame_max_tx_count-1)) {
-				if(arg->ackFailures < (hw_priv->short_frame_max_tx_count-1))
-					tx_lower_limit++;
-				else
-					tx_over_limit++;
-				txrx_printk(XRADIO_DBG_WARN, "retry_err, ackFailures=%d, feedbk_retry=%d.\n",
-				            arg->ackFailures, feedback_retry);
-	 		}
-		} else if (feedback_retry > hw_priv->short_frame_max_tx_count-1) {
-			txrx_printk(XRADIO_DBG_WARN, "status=%d, ackFailures=%d, feedbk_retry=%d.\n",
-			            arg->status, arg->ackFailures, feedback_retry);
-		}
-#endif
-
 		dev_dbg(hw_priv->pdev, "[TX policy] Ack: " \
 		"%d:%d, %d:%d, %d:%d, %d:%d\n",
 		tx->status.rates[0].idx, tx->status.rates[0].count,
@@ -1733,84 +1662,6 @@ void xradio_skb_dtor(struct xradio_common *hw_priv,
 	}
 	ieee80211_tx_status(hw_priv->hw, skb);
 }
-#ifdef CONFIG_XRADIO_TESTMODE
-/* TODO It should be removed before official delivery */
-static void frame_hexdump(char *prefix, u8 *data, int len)
-{
-	int i;
-
-	txrx_printk(XRADIO_DBG_MSG, "%s hexdump:\n", prefix);
-	for (i = 0; i < len; i++) {
-		if (i + 10 < len) {
-			txrx_printk(XRADIO_DBG_MSG, "%.1X %.1X %.1X %.1X" \
-				"%.1X %.1X %.1X %.1X %.1X %.1X",
-				data[i], data[i+1], data[i+2],
-				data[i+3], data[i+4], data[i+5],
-				data[i+6], data[i+7], data[i+8],
-				data[i+9]);
-			i += 9;
-		} else {
-			txrx_printk(XRADIO_DBG_MSG, "%.1X ", data[i]);
-		}
-	}
-}
-/**
- * c1200_tunnel_send_testmode_data - Send test frame to the driver
- *
- * @priv: pointer to xradio private structure
- * @skb: skb with frame
- *
- * Returns: 0 on success or non zero value on failure
- */
-static int xradio_tunnel_send_testmode_data(struct xradio_common *hw_priv,
-					    struct sk_buff *skb)
-{
-
-	if (xradio_tesmode_event(hw_priv->hw->wiphy, AW_MSG_EVENT_FRAME_DATA,
-				 skb->data, skb->len, GFP_ATOMIC))
-		return -EINVAL;
-
-	return 0;
-}
-
-/**
- * xradio_frame_test_detection - Detection frame_test
- *
- * @priv: pointer to xradio vif structure
- * @frame: ieee80211 header
- * @skb: skb with frame
- *
- * Returns: 1 - frame test detected, 0 - not detected
- */
-static int xradio_frame_test_detection(struct xradio_vif *priv,
-				       struct ieee80211_hdr *frame,
-				       struct sk_buff *skb)
-{
-	struct xradio_common *hw_priv = xrwl_vifpriv_to_hwpriv(priv);
-	int hdrlen = ieee80211_hdrlen(frame->frame_control);
-	int detected = 0;
-	int ret;
-
-
-	if (hdrlen + hw_priv->test_frame.len <= skb->len &&
-	    memcmp(skb->data + hdrlen, hw_priv->test_frame.data,
-		   hw_priv->test_frame.len) == 0) {
-		detected = 1;
-		txrx_printk(XRADIO_DBG_MSG, "TEST FRAME detected");
-		frame_hexdump("TEST FRAME original:", skb->data, skb->len);
-		ret = ieee80211_data_to_8023(skb, hw_priv->mac_addr,
-				priv->mode);
-		if (!ret) {
-			frame_hexdump("FRAME 802.3:", skb->data, skb->len);
-			ret = xradio_tunnel_send_testmode_data(hw_priv, skb);
-		}
-		if (ret)
-			txrx_printk(XRADIO_DBG_ERROR, "Send TESTFRAME failed(%d)", ret);
-	}
-	return detected;
-}
-#endif /* CONFIG_XRADIO_TESTMODE */
-
 
 static void
 xradio_rx_h_ba_stat(struct xradio_vif *priv,

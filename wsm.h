@@ -1878,21 +1878,12 @@ struct wsm_operational_mode {
 	int performAntDiversity;
 };
 
-#ifdef CONFIG_XRADIO_DEBUGFS
-extern u8 low_pwr_disable;
-#endif
-
 static inline int wsm_set_operational_mode(struct xradio_common *hw_priv,
 					const struct wsm_operational_mode *arg,
 					int if_id)
 {
 	u32 val = arg->power_mode;
 	
-#ifdef CONFIG_XRADIO_DEBUGFS  //add by yangfh for disable low_power mode.
-	if(low_pwr_disable)
-		val = wsm_power_mode_active;
-#endif
-
 	if (arg->disableMoreFlagUsage)
 		val |= BIT(4);
 	if (arg->performAntDiversity)

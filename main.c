@@ -9,18 +9,10 @@
  * published by the Free Software Foundation.
  */
 
-/*Linux version 3.4.0 compilation*/
-#include <linux/version.h>
-#include <linux/init.h>
+
 #include <linux/firmware.h>
-#include <linux/etherdevice.h>
-#include <linux/vmalloc.h>
-#include <linux/random.h>
-#include <linux/sched.h>
-#include <net/mac80211.h>
 #include <net/cfg80211.h>
 #include <linux/of_net.h>
-#include <linux/etherdevice.h>
 #include <linux/mmc/sdio_func.h>
 
 #include "xradio.h"
@@ -371,7 +363,7 @@ struct ieee80211_hw *xradio_init_common(size_t hw_priv_data_len)
 #if defined(CONFIG_XRADIO_USE_EXTENSIONS)
 	hw->wiphy->flags |= WIPHY_FLAG_AP_UAPSD;
 #endif /* CONFIG_XRADIO_USE_EXTENSIONS */
-	/* fix the problem that driver can not set pro-resp templet frame to fw */
+	/* fix the problem that driver can not set pro-resp template frame to fw */
 	hw->wiphy->flags |= WIPHY_FLAG_AP_PROBE_RESP_OFFLOAD;
 
 #if defined(CONFIG_XRADIO_DISABLE_BEACON_HINTS)
@@ -504,14 +496,6 @@ struct ieee80211_hw *xradio_init_common(size_t hw_priv_data_len)
 	atomic_set(&hw_priv->suspend_state, XRADIO_RESUME);
 #endif
 
-#ifdef CONFIG_XRADIO_TESTMODE
-	hw_priv->test_frame.data = NULL;
-	hw_priv->test_frame.len = 0;
-	spin_lock_init(&hw_priv->tsm_lock);
-	INIT_DELAYED_WORK(&hw_priv->advance_scan_timeout,
-	                  xradio_advance_scan_timeout);
-#endif /*CONFIG_XRADIO_TESTMODE*/
-
 	xradio_set_ifce_comb(hw_priv, hw_priv->hw);
 
 	return hw;
@@ -521,10 +505,6 @@ void xradio_free_common(struct ieee80211_hw *dev)
 {
 	int i;
 	struct xradio_common *hw_priv = dev->priv;
-
-#ifdef CONFIG_XRADIO_TESTMODE
-	kfree(hw_priv->test_frame.data);
-#endif /* CONFIG_XRADIO_TESTMODE */
 
 	cancel_work_sync(&hw_priv->query_work);
 	del_timer_sync(&hw_priv->ba_timer);
@@ -608,7 +588,7 @@ int xradio_core_init(struct sdio_func* func)
 	//init xradio_common
 	dev = xradio_init_common(sizeof(struct xradio_common));
 	if (!dev) {
-		xradio_dbg(XRADIO_DBG_ERROR,"xradio_init_common failed\n");
+		dev_dbg(&func->dev, "xradio_init_common failed\n");
 		return err;
 	}
 	hw_priv = dev->priv;
@@ -644,23 +624,21 @@ int xradio_core_init(struct sdio_func* func)
 #ifdef CONFIG_PM
 	err = xradio_pm_init(&hw_priv->pm_state, hw_priv);
 	if (err) {
-		xradio_dbg(XRADIO_DBG_ERROR, "xradio_pm_init failed(%d).\n", err);
+		dev_dbg(hw_priv->pdev, "xradio_pm_init failed(%d).\n", err);
 		goto err2;
 	}
 #endif
 	/* Register bh thread*/
 	err = xradio_register_bh(hw_priv);
 	if (err) {
-		xradio_dbg(XRADIO_DBG_ERROR, "xradio_register_bh failed(%d).\n",
-			   err);
+		dev_dbg(hw_priv->pdev, "xradio_register_bh failed(%d).\n", err);
 		goto err3;
 	}
 
 	/* Load firmware and register Interrupt Handler */
 	err = xradio_load_firmware(hw_priv);
 	if (err) {
-		xradio_dbg(XRADIO_DBG_ERROR, "xradio_load_firmware failed(%d).\n",
-			   err);
+		dev_dbg(hw_priv->pdev, "xradio_load_firmware failed(%d).\n", err);
 		goto err4;
 	}
 
@@ -675,11 +653,11 @@ int xradio_core_init(struct sdio_func* func)
 
 		/* TODO: Needs to find how to reset device */
 		/*       in QUEUE mode properly.           */
-		xradio_dbg(XRADIO_DBG_ERROR, "Firmware Startup Timeout!\n");
+		dev_dbg(hw_priv->pdev, "Firmware Startup Timeout!\n");
 		err = -ETIMEDOUT;
 		goto err5;
 	}
-	xradio_dbg(XRADIO_DBG_ALWY,"Firmware Startup Done.\n");
+	dev_dbg(hw_priv->pdev, "Firmware Startup Done.\n");
 
 	/* Keep device wake up. */
 	SYS_WARN(xradio_reg_write_16(hw_priv, HIF_CONTROL_REG_ID, HIF_CTRL_WUP_BIT));
@@ -698,7 +676,7 @@ int xradio_core_init(struct sdio_func* func)
 	/* Register wireless net device. */
 	err = xradio_register_common(dev);
 	if (err) {
-		xradio_dbg(XRADIO_DBG_ERROR,"xradio_register_common failed(%d)!\n", err);
+		dev_dbg(hw_priv->pdev, "xradio_register_common failed(%d)!\n", err);
 		goto err5;
 	}
 

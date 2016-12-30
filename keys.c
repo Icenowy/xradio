@@ -57,7 +57,7 @@ int xradio_set_key(struct ieee80211_hw *dev, enum set_key_cmd cmd,
 	struct xradio_common *hw_priv = dev->priv;
 	struct xradio_vif *priv = xrwl_get_vif_from_ieee80211(vif);
 
-	wiphy_info(dev->wiphy, "vif %d: set_key cmd %d\n", priv->if_id, (int) cmd);
+	wiphy_dbg(dev->wiphy, "vif %d: set_key cmd %d\n", priv->if_id, (int) cmd);
 	
 #ifdef P2P_MULTIVIF
 	SYS_WARN(priv->if_id == XRWL_GENERIC_IF_ID);
@@ -98,15 +98,11 @@ int xradio_set_key(struct ieee80211_hw *dev, enum set_key_cmd cmd,
 				memcpy(wsm_key->wepPairwiseKey.peerAddress, peer_addr, ETH_ALEN);
 				memcpy(wsm_key->wepPairwiseKey.keyData, &key->key[0], key->keylen);
 				wsm_key->wepPairwiseKey.keyLength = key->keylen;
-				wiphy_debug(dev->wiphy, "WEP_PAIRWISE keylen=%d!\n",
-						key->keylen);
 			} else {
 				wsm_key->type = WSM_KEY_TYPE_WEP_DEFAULT;
 				memcpy(wsm_key->wepGroupKey.keyData, &key->key[0], key->keylen);
 				wsm_key->wepGroupKey.keyLength = key->keylen;
 				wsm_key->wepGroupKey.keyId     = key->keyidx;
-				wiphy_debug(dev->wiphy, "WEP_GROUP keylen=%d!\n",
-						key->keylen);
 			}
 			break;
 		case WLAN_CIPHER_SUITE_TKIP:
@@ -116,8 +112,6 @@ int xradio_set_key(struct ieee80211_hw *dev, enum set_key_cmd cmd,
 				memcpy(wsm_key->tkipPairwiseKey.tkipKeyData, &key->key[0], 16);
 				memcpy(wsm_key->tkipPairwiseKey.txMicKey, &key->key[16], 8);
 				memcpy(wsm_key->tkipPairwiseKey.rxMicKey, &key->key[24], 8);
-				wiphy_debug(dev->wiphy,"TKIP_PAIRWISE keylen=%d!\n",
-						key->keylen);
 			} else {
 				size_t mic_offset = (priv->mode == NL80211_IFTYPE_AP) ? 16 : 24;
 				wsm_key->type = WSM_KEY_TYPE_TKIP_GROUP;
@@ -127,8 +121,6 @@ int xradio_set_key(struct ieee80211_hw *dev, enum set_key_cmd cmd,
 				/* TODO: Where can I find TKIP SEQ? */
 				memset(wsm_key->tkipGroupKey.rxSeqCounter, 0, 8);
 				wsm_key->tkipGroupKey.keyId = key->keyidx;
-				wiphy_debug(dev->wiphy,"TKIP_GROUP keylen=%d!\n",
-						key->keylen);
 			}
 			break;
 		case WLAN_CIPHER_SUITE_CCMP:
@@ -144,8 +136,6 @@ int xradio_set_key(struct ieee80211_hw *dev, enum set_key_cmd cmd,
 				/* TODO: Where can I find AES SEQ? */
 				memset(wsm_key->aesGroupKey.rxSeqCounter, 0, 8);
 				wsm_key->aesGroupKey.keyId = key->keyidx;
-				wiphy_debug(dev->wiphy, "CCMP_GROUP keylen=%d!\n",
-						key->keylen);
 			}
 			break;
 #ifdef CONFIG_XRADIO_WAPI_SUPPORT
