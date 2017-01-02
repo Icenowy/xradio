@@ -423,8 +423,6 @@ void xradio_remove_interface(struct ieee80211_hw *dev,
 	spin_unlock(&hw_priv->vif_list_lock);
 	priv->listening = false;
 
-	xradio_debug_release_priv(priv);
-
 	xradio_tx_queues_unlock(hw_priv);
 	mutex_unlock(&hw_priv->conf_mutex);
 
@@ -787,7 +785,7 @@ int xradio_conf_tx(struct ieee80211_hw *dev, struct ieee80211_vif *vif,
 	/* To prevent re-applying PM request OID again and again*/
 	bool old_uapsdFlags;
 
-	wiphy_debug(dev->wiphy, "configuring tx for vif %d\n", priv->if_id);
+	wiphy_debug(dev->wiphy, "vif %d, configuring tx\n", priv->if_id);
 
 	if (SYS_WARN(!priv))
 		return -EOPNOTSUPP;
@@ -1524,7 +1522,6 @@ void xradio_offchannel_work(struct work_struct *work)
 				       "queue_remove failed %d\n", ret);
 		wsm_unlock_tx(hw_priv);
 		//workaround by yangfh
-		LOG_FILE(1, "xradio_offchannel_work error\n");
 		up(&hw_priv->scan.lock);
 		ieee80211_connection_loss(priv->vif);
 		sta_printk(XRADIO_DBG_ERROR,"lock %d\n", hw_priv->scan.lock.count);
@@ -2017,8 +2014,6 @@ void xradio_ba_timer(unsigned long arg)
 
 
 	spin_lock_bh(&hw_priv->ba_lock);
-	xradio_debug_ba(hw_priv, hw_priv->ba_cnt, hw_priv->ba_acc,
-			hw_priv->ba_cnt_rx, hw_priv->ba_acc_rx);
 
 	if (atomic_read(&hw_priv->scan.in_progress)) {
 		hw_priv->ba_cnt = 0;
@@ -2104,7 +2099,6 @@ int xradio_vif_setup(struct xradio_vif *priv)
 	priv->power_set_true = 0;
 	priv->user_power_set_true = 0;
 	priv->user_pm_mode = 0;
-	SYS_WARN(xradio_debug_init_priv(hw_priv, priv));
 
 	/* Initialising the broadcast filter */
 	memset(priv->broadcast_filter.MacAddr, 0xFF, ETH_ALEN);

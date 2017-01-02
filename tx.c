@@ -496,7 +496,6 @@ static int tx_policy_upload(struct xradio_common *hw_priv)
 	spin_unlock_bh(&cache->lock);
 	atomic_set(&hw_priv->upload_count, 0);
 	
-	xradio_debug_tx_cache_miss(hw_priv);
 	txrx_printk(XRADIO_DBG_MSG, "[TX policy] Upload %d policies\n",
 				arg.hdr.numTxRatePolicies);
 
@@ -757,7 +756,6 @@ xradio_tx_h_align(struct xradio_vif *priv, struct xradio_txinfo *t,
 		memmove(newhdr, newhdr + offset, t->skb->len-offset);
 		skb_trim(t->skb, t->skb->len-offset);
 		t->hdr = (struct ieee80211_hdr *) newhdr;
-		xradio_debug_tx_align(priv);
 		return 0;
 	}
   //add by dingxh
@@ -766,7 +764,6 @@ xradio_tx_h_align(struct xradio_vif *priv, struct xradio_txinfo *t,
 	t->hdrlen += offset;
 	t->txpriv.offset += offset;
 	*flags |= WSM_TX_2BYTES_SHIFT;
-	xradio_debug_tx_align(priv);
 	return 0;
 }
 
@@ -1321,12 +1318,10 @@ void xradio_tx_confirm_cb(struct xradio_common *hw_priv,
 				TxedRateIdx_Map[arg->txedRate]++;
 			else
 				SYS_WARN(1);
-			xradio_debug_txed(priv);
 			if (arg->flags & WSM_TX_STATUS_AGGREGATION) {
 				/* Do not report aggregation to mac80211:
 				 * it confuses minstrel a lot. */
 				/* tx->flags |= IEEE80211_TX_STAT_AMPDU; */
-				xradio_debug_txed_agg(priv);
 			}
 		} else {
 			/* TODO: Update TX failure counters */

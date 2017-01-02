@@ -13,7 +13,6 @@ MODULE_ALIAS("xradio_core");
 static int __init xradio_core_entry(void)
 {
 	int ret = 0;
-	ret = xradio_host_dbg_init();
 	ret = xradio_sdio_register();
 	return ret;
 }
@@ -22,7 +21,6 @@ static int __init xradio_core_entry(void)
 static void __exit xradio_core_exit(void)
 {
 	xradio_sdio_unregister();
-	xradio_host_dbg_deinit();
 }
 
 module_init(xradio_core_entry);

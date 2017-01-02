@@ -570,7 +570,6 @@ static int wsm_multi_tx_confirm(struct xradio_common *hw_priv,
 	}
 	priv = xrwl_hwpriv_to_vifpriv(hw_priv, interface_link_id);
 	if (priv) {
-		xradio_debug_txed_multi(priv, count);
 		spin_unlock(&priv->vif_lock);
 	}
 	for (i = 0; i < count; ++i) {

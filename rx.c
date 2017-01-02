@@ -287,10 +287,6 @@ void xradio_rx_cb(struct xradio_vif *priv,
 		parse_iv_len = iv_len;
 	}
 
-	xradio_debug_rxed(priv);
-	if (arg->flags & WSM_RX_STATUS_AGGREGATE)
-		xradio_debug_rxed_agg(priv);
-
 	if (ieee80211_is_beacon(frame->frame_control) &&
 		!arg->status &&
 		!memcmp(ieee80211_get_SA(frame), priv->join_bssid,ETH_ALEN)) {

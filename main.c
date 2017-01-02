@@ -552,7 +552,6 @@ int xradio_register_common(struct ieee80211_hw *dev)
 	dev_dbg(hw_priv->pdev, "is registered as '%s'\n",
 	           wiphy_name(dev->wiphy));
 
-	xradio_debug_init_common(hw_priv);
 	hw_priv->driver_ready = 1;
 	wake_up(&hw_priv->wsm_startup_done);
 	return 0;
@@ -565,7 +564,6 @@ void xradio_unregister_common(struct ieee80211_hw *dev)
 	if (wiphy_dev(dev->wiphy)) {
 	ieee80211_unregister_hw(dev);
 		SET_IEEE80211_DEV(dev, NULL);
-	xradio_debug_release_common(hw_priv);
 	}
 	hw_priv->driver_ready = 0;
 }
