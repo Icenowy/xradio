@@ -8,8 +8,6 @@
 #include "bh.h"
 #include "ap.h"
 
-u32 RxedRateIdx_Map[24] = {0};
-
 static int xradio_handle_pspoll(struct xradio_vif *priv,
 				struct sk_buff *skb)
 {
@@ -202,11 +200,6 @@ void xradio_rx_cb(struct xradio_vif *priv,
 			goto drop;
 	}
 #endif
-
-	if (arg->rxedRate<24)
-		RxedRateIdx_Map[arg->rxedRate]++;
-	else
-		SYS_WARN(1);
        
 	if (arg->rxedRate >= 14) {
 		hdr->flag |= RX_FLAG_HT;

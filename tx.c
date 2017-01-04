@@ -31,17 +31,19 @@
  */
 #define HIGH_RATE_MAX_RETRY  7
 
-#ifdef CONFIG_XRADIO_TESTMODE
-#include "nl80211_testmode_msg_copy.h"
-#endif /* CONFIG_XRADIO_TESTMODE */
 #ifdef TES_P2P_0002_ROC_RESTART
 #include <linux/time.h>
 #endif
+
+//for test yangfh
+extern u32 tx_retrylimit;
+extern u32 tx_over_limit;
+extern u32 tx_lower_limit;
+extern int retry_mis;
+
 static const struct ieee80211_rate *
 xradio_get_tx_rate(const struct xradio_common *hw_priv,
 		   const struct ieee80211_tx_rate *rate);
-
-u32 TxedRateIdx_Map[24] = {0};
 
 /* ******************************************************************** */
 /* TX policy cache implementation					*/
@@ -1210,15 +1212,6 @@ drop:
 	return;
 }
 
-/* ******************************************************************** */
-
-/* ******************************************************************** */
-//for test yangfh
-extern u32 tx_retrylimit;
-extern u32 tx_over_limit;
-extern u32 tx_lower_limit;
-extern int retry_mis;
-
 void xradio_tx_confirm_cb(struct xradio_common *hw_priv,
 			  struct wsm_tx_confirm *arg)
 {
@@ -1314,10 +1307,7 @@ void xradio_tx_confirm_cb(struct xradio_common *hw_priv,
 			tx->flags |= IEEE80211_TX_STAT_ACK;
 			priv->cqm_tx_failure_count = 0;
 			++tx_count;
-			if (arg->txedRate<24)
-				TxedRateIdx_Map[arg->txedRate]++;
-			else
-				SYS_WARN(1);
+
 			if (arg->flags & WSM_TX_STATUS_AGGREGATION) {
 				/* Do not report aggregation to mac80211:
 				 * it confuses minstrel a lot. */
@@ -1467,11 +1457,6 @@ void xradio_skb_dtor(struct xradio_common *hw_priv,
 	}
 	ieee80211_tx_status(hw_priv->hw, skb);
 }
-
-#if 0
-u8 nettest_bssid[] = {0x00,0x02,0x03,0x04,0x05,0x06};
-u8 save_rate_ie;
-#endif
 
 #if defined(CONFIG_XRADIO_USE_EXTENSIONS)
 /* Workaround for WFD test case 6.1.10 */
