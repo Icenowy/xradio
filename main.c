@@ -103,30 +103,6 @@ static struct ieee80211_channel xradio_2ghz_chantable[] = {
 	CHAN2G(14, 2484, 0),
 };
 
-#ifdef CONFIG_XRADIO_5GHZ_SUPPORT
-static struct ieee80211_channel xradio_5ghz_chantable[] = {
-	CHAN5G(34, 0),		CHAN5G(36, 0),
-	CHAN5G(38, 0),		CHAN5G(40, 0),
-	CHAN5G(42, 0),		CHAN5G(44, 0),
-	CHAN5G(46, 0),		CHAN5G(48, 0),
-	CHAN5G(52, 0),		CHAN5G(56, 0),
-	CHAN5G(60, 0),		CHAN5G(64, 0),
-	CHAN5G(100, 0),		CHAN5G(104, 0),
-	CHAN5G(108, 0),		CHAN5G(112, 0),
-	CHAN5G(116, 0),		CHAN5G(120, 0),
-	CHAN5G(124, 0),		CHAN5G(128, 0),
-	CHAN5G(132, 0),		CHAN5G(136, 0),
-	CHAN5G(140, 0),		CHAN5G(149, 0),
-	CHAN5G(153, 0),		CHAN5G(157, 0),
-	CHAN5G(161, 0),		CHAN5G(165, 0),
-	CHAN5G(184, 0),		CHAN5G(188, 0),
-	CHAN5G(192, 0),		CHAN5G(196, 0),
-	CHAN5G(200, 0),		CHAN5G(204, 0),
-	CHAN5G(208, 0),		CHAN5G(212, 0),
-	CHAN5G(216, 0),
-};
-#endif /* CONFIG_XRADIO_5GHZ_SUPPORT */
-
 static struct ieee80211_supported_band xradio_band_2ghz = {
 	.channels = xradio_2ghz_chantable,
 	.n_channels = ARRAY_SIZE(xradio_2ghz_chantable),
@@ -145,27 +121,6 @@ static struct ieee80211_supported_band xradio_band_2ghz = {
 		},
 	},
 };
-
-#ifdef CONFIG_XRADIO_5GHZ_SUPPORT
-static struct ieee80211_supported_band xradio_band_5ghz = {
-	.channels   = xradio_5ghz_chantable,
-	.n_channels = ARRAY_SIZE(xradio_5ghz_chantable),
-	.bitrates   = xradio_a_rates,
-	.n_bitrates = xradio_a_rates_size,
-	.ht_cap = {
-		.cap = IEEE80211_HT_CAP_GRN_FLD |
-		       (1 << IEEE80211_HT_CAP_RX_STBC_SHIFT),
-		.ht_supported  = 1,
-		.ampdu_factor  = IEEE80211_HT_MAX_AMPDU_8K,
-		.ampdu_density = IEEE80211_HT_MPDU_DENSITY_NONE,
-		.mcs = {
-			.rx_mask[0] = 0xFF,
-			.rx_highest = __cpu_to_le16(0x41),
-			.tx_params  = IEEE80211_HT_MCS_TX_DEFINED,
-		},
-	},
-};
-#endif /* CONFIG_XRADIO_5GHZ_SUPPORT */
 
 static const unsigned long xradio_ttl[] = {
 	1 * HZ,	/* VO */
@@ -372,9 +327,6 @@ struct ieee80211_hw *xradio_init_common(size_t hw_priv_data_len)
 	                        8  /* TKIP IV */      +
 	                        12 /* TKIP ICV and MIC */;
 	hw->wiphy->bands[NL80211_BAND_2GHZ] = &xradio_band_2ghz;
-#ifdef CONFIG_XRADIO_5GHZ_SUPPORT
-	hw->wiphy->bands[NL80211_BAND_5GHZ] = &xradio_band_5ghz;
-#endif /* CONFIG_XRADIO_5GHZ_SUPPORT */
 	hw->queues         = AC_QUEUE_NUM;
 	hw->max_rates      = MAX_RATES_STAGE;
 	hw->max_rate_tries = MAX_RATES_RETRY;

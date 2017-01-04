@@ -20,7 +20,6 @@ xradio_wlan-y := \
 	ht.o \
 	p2p.o
 
-ccflags-y += -DCONFIG_XRADIO_5GHZ_SUPPORT
 #ccflags-y += -DP2P_MULTIVIF
 ccflags-y += -DMCAST_FWDING
 ccflags-y += -DXRADIO_SUSPEND_RESUME_FILTER_ENABLE
