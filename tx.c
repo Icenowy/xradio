@@ -72,7 +72,6 @@ static void tx_policy_dump(struct tx_policy *policy)
 static void xradio_check_go_neg_conf_success(struct xradio_common *hw_priv,
 						u8 *action)
 {
-
 	if (action[2] == 0x50 && action[3] == 0x6F && action[4] == 0x9A &&
 		action[5] == 0x09 && action[6] == 0x02) {
 		if(action[17] == 0) {
@@ -87,7 +86,6 @@ static void xradio_check_go_neg_conf_success(struct xradio_common *hw_priv,
 static void xradio_check_prov_desc_req(struct xradio_common *hw_priv,
                                                 u8 *action)
 {
-
 	if (action[2] == 0x50 && action[3] == 0x6F && action[4] == 0x9A &&
 	    action[5] == 0x09 && action[6] == 0x07) {
 		hw_priv->is_go_thru_go_neg = false;
@@ -363,7 +361,6 @@ void tx_policy_init(struct xradio_common *hw_priv)
 	struct tx_policy_cache *cache = &hw_priv->tx_policy_cache;
 	int i;
 
-
 	memset(cache, 0, sizeof(*cache));
 
 	spin_lock_init(&cache->lock);
@@ -435,7 +432,6 @@ static void tx_policy_put(struct xradio_common *hw_priv, int idx)
 	int usage, locked;
 	struct tx_policy_cache *cache = &hw_priv->tx_policy_cache;
 
-
 	spin_lock_bh(&cache->lock);
 	locked = list_empty(&cache->free);
 	usage = tx_policy_release(cache, &cache->cache[idx]);
@@ -469,7 +465,6 @@ static int tx_policy_upload(struct xradio_common *hw_priv)
 		}
 	};
 	int if_id = 0;
-
 
 	spin_lock_bh(&cache->lock);
 	/* Upload only modified entries. */
@@ -509,7 +504,6 @@ void tx_policy_upload_work(struct work_struct *work)
 {
 	struct xradio_common *hw_priv =
 		container_of(work, struct xradio_common, tx_policy_upload_work);
-
 
 	SYS_WARN(tx_policy_upload(hw_priv));
 	wsm_unlock_tx(hw_priv);
@@ -651,8 +645,6 @@ static void
 xradio_tx_h_pm(struct xradio_vif *priv,
 	       struct xradio_txinfo *t)
 {
-
-
 	if (unlikely(ieee80211_is_auth(t->hdr->frame_control))) {
 		u32 mask = ~BIT(t->txpriv.raw_link_id);
 		spin_lock_bh(&priv->ps_state_lock);
@@ -774,7 +766,6 @@ xradio_tx_h_action(struct xradio_vif *priv, struct xradio_txinfo *t)
 {
 	struct ieee80211_mgmt *mgmt = (struct ieee80211_mgmt *)t->hdr;
 
-
 	if (ieee80211_is_action(t->hdr->frame_control) &&
 			mgmt->u.action.category == WLAN_CATEGORY_BACK)
 		return 1;
@@ -788,7 +779,6 @@ xradio_tx_h_wsm(struct xradio_vif *priv, struct xradio_txinfo *t)
 {
 	struct wsm_tx *wsm;
 	struct xradio_common *hw_priv = xrwl_vifpriv_to_hwpriv(priv);
-
 
 	if (skb_headroom(t->skb) < sizeof(struct wsm_tx)) {
 		txrx_printk(XRADIO_DBG_ERROR,
@@ -820,7 +810,6 @@ xradio_tx_h_bt(struct xradio_vif *priv, struct xradio_txinfo *t, struct wsm_tx *
 {
 	u8 priority = 0;
 	struct xradio_common *hw_priv = xrwl_vifpriv_to_hwpriv(priv);
-
 
 	if (!hw_priv->is_BT_Present)
 		return;
@@ -1029,20 +1018,6 @@ void xradio_tx(struct ieee80211_hw *dev, struct ieee80211_tx_control *control, s
 		goto drop;
 	}
 
-#if (defined(CONFIG_XRADIO_DEBUG))
-	/* parse frame for debug. */
-	if (txparse_flags){
-		u8 temp_iv_len ;
-		if(t.tx_info->control.hw_key && 
-			 (t.hdr->frame_control & __cpu_to_le32(IEEE80211_FCTL_PROTECTED)) &&
-			 	(t.tx_info->control.hw_key->cipher == WLAN_CIPHER_SUITE_CCMP))
-			temp_iv_len = t.tx_info->control.hw_key->iv_len;
-		else
-			temp_iv_len =0;
-		xradio_parse_frame(skb->data, temp_iv_len, txparse_flags, priv->if_id);
-	}
-#endif
-
 	//dhcp and 80211 frames are important, use b/g rate and delay scan.
 	//it can make sense, such as accelerate connect.
 	if (ieee80211_is_auth(frame->frame_control)) {
@@ -1077,15 +1052,6 @@ void xradio_tx(struct ieee80211_hw *dev, struct ieee80211_tx_control *control, s
 		xradio_remove_ht_ie(priv, skb);
 	}
 #endif
-
-#ifdef CONFIG_XRADIO_TESTMODE
-	spin_lock_bh(&hw_priv->tsm_lock);
-	if (hw_priv->start_stop_tsm.start) {
-		if (hw_priv->tsm_info.ac == t.queue)
-			hw_priv->tsm_stats.txed_msdu_count++;
-	}
-	spin_unlock_bh(&hw_priv->tsm_lock);
-#endif /*CONFIG_XRADIO_TESTMODE*/
 
 #ifdef TES_P2P_0002_ROC_RESTART
 	xradio_frame_monitor(hw_priv,skb,true);
@@ -1161,9 +1127,7 @@ void xradio_tx(struct ieee80211_hw *dev, struct ieee80211_tx_control *control, s
 		ret = __LINE__;
 		goto drop;
 	}
-#ifdef CONFIG_XRADIO_TESTMODE
-	flags |= WSM_TX_FLAG_EXPIRY_TIME;
-#endif /*CONFIG_XRADIO_TESTMODE*/
+
 	wsm->flags |= flags;
 	xradio_tx_h_bt(priv, &t, wsm);
 	ret = xradio_tx_h_rate_policy(hw_priv, &t, wsm);
