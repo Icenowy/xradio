@@ -1285,10 +1285,6 @@ static int xradio_start_ap(struct xradio_vif *priv)
 		.CTWindow = priv->vif->p2p ? 0xFFFFFFFF : 0,
 #endif
 	};
-	struct wsm_operational_mode mode = {
-		.power_mode = wsm_power_mode_quiescent,
-		.disableMoreFlagUsage = true,
-	};
 
 #ifdef TES_P2P_000B_EXTEND_INACTIVITY_CNT
 	///w, TES_P2P_000B WorkAround:
@@ -1389,7 +1385,7 @@ static int xradio_start_ap(struct xradio_vif *priv)
 		priv->join_status = XRADIO_JOIN_STATUS_AP;
 		/* xradio_update_filtering(priv); */
 	}
-	SYS_WARN(wsm_set_operational_mode(hw_priv, &mode, priv->if_id));
+	SYS_WARN(wsm_set_operational_mode(hw_priv, &defaultoperationalmode, priv->if_id));
 	hw_priv->vif0_throttle = XRWL_HOST_VIF0_11BG_THROTTLE;
 	hw_priv->vif1_throttle = XRWL_HOST_VIF1_11BG_THROTTLE;
 	ap_printk(XRADIO_DBG_WARN, "vif%d, AP/GO mode THROTTLE=%d\n", priv->if_id,
@@ -1613,10 +1609,6 @@ int xrwl_unmap_link(struct xradio_vif *priv, int link_id)
 {
 	struct xradio_common *hw_priv = xrwl_vifpriv_to_hwpriv(priv);
 	int ret = 0;
-	struct wsm_operational_mode mode = {
-		.power_mode = wsm_power_mode_quiescent,
-		.disableMoreFlagUsage = true,
-	};
 
 	if (is_hardware_xradio(hw_priv)) {
 		struct wsm_map_link maplink = {
@@ -1632,7 +1624,7 @@ int xrwl_unmap_link(struct xradio_vif *priv, int link_id)
 			.reset_statistics = true,
 		};
 		ret = wsm_reset(hw_priv, &reset, priv->if_id);
-		SYS_WARN(wsm_set_operational_mode(hw_priv, &mode, priv->if_id));
+		SYS_WARN(wsm_set_operational_mode(hw_priv, &defaultoperationalmode, priv->if_id));
 		return ret;
 	}
 }

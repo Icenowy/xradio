@@ -323,10 +323,7 @@ void xradio_remove_interface(struct ieee80211_hw *dev,
 	int i;
 	bool is_htcapie = false;
 	struct xradio_vif *tmp_priv;
-	struct wsm_operational_mode mode = {
-		.power_mode = wsm_power_mode_quiescent,
-		.disableMoreFlagUsage = true,
-	};
+
 	wiphy_warn(dev->wiphy, "!!! vif_id=%d\n", priv->if_id);
 	atomic_set(&priv->enabled, 0);
 	down(&hw_priv->scan.lock);
@@ -360,7 +357,7 @@ void xradio_remove_interface(struct ieee80211_hw *dev,
 		priv->pspoll_mask = 0;
 		reset.link_id = 0;
 		wsm_reset(hw_priv, &reset, priv->if_id);
-		SYS_WARN(wsm_set_operational_mode(hw_priv, &mode, priv->if_id));
+		SYS_WARN(wsm_set_operational_mode(hw_priv, &defaultoperationalmode, priv->if_id));
 		xradio_for_each_vif(hw_priv, tmp_priv, i) {
 #ifdef P2P_MULTIVIF
 			if ((i == (XRWL_MAX_VIFS - 1)) || !tmp_priv)
@@ -1579,10 +1576,6 @@ void xradio_join_work(struct work_struct *work)
 	const u8 *dtimie;
 	const struct ieee80211_tim_ie *tim = NULL;
 	struct wsm_protected_mgmt_policy mgmt_policy;
-	struct wsm_operational_mode mode = {
-		.power_mode = wsm_power_mode_quiescent,
-		.disableMoreFlagUsage = true,
-	};
 	//struct wsm_reset reset = {
 	//	.reset_statistics = true,
 	//};
@@ -1720,7 +1713,7 @@ void xradio_join_work(struct work_struct *work)
 		xradio_disable_listening(priv);
 
 		//SYS_WARN(wsm_reset(hw_priv, &reset, priv->if_id));
-		SYS_WARN(wsm_set_operational_mode(hw_priv, &mode, priv->if_id));
+		SYS_WARN(wsm_set_operational_mode(hw_priv, &defaultoperationalmode, priv->if_id));
 		SYS_WARN(wsm_set_block_ack_policy(hw_priv,
 			0, hw_priv->ba_tid_mask, priv->if_id));
 		spin_lock_bh(&hw_priv->ba_lock);
@@ -1793,11 +1786,6 @@ void xradio_unjoin_work(struct work_struct *work)
 	bool is_htcapie = false;
 	int i;
 	struct xradio_vif *tmp_priv;
-	struct wsm_operational_mode mode = {
-		.power_mode = wsm_power_mode_quiescent,
-		.disableMoreFlagUsage = true,
-	};
-
 
 	//add by yangfh.
 	hw_priv->connet_time[priv->if_id] = 0;
@@ -1837,7 +1825,7 @@ void xradio_unjoin_work(struct work_struct *work)
 		wsm_flush_tx(hw_priv);
 		SYS_WARN(wsm_keep_alive_period(hw_priv, 0, priv->if_id));
 		SYS_WARN(wsm_reset(hw_priv, &reset, priv->if_id));
-		SYS_WARN(wsm_set_operational_mode(hw_priv, &mode, priv->if_id));
+		SYS_WARN(wsm_set_operational_mode(hw_priv, &defaultoperationalmode, priv->if_id));
 		SYS_WARN(wsm_set_output_power(hw_priv,
 			hw_priv->output_power * 10, priv->if_id));
 		priv->join_dtim_period = 0;

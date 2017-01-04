@@ -1845,6 +1845,11 @@ struct wsm_operational_mode {
 	int performAntDiversity;
 };
 
+static const struct wsm_operational_mode defaultoperationalmode = {
+	.power_mode = wsm_power_mode_active,
+	.disableMoreFlagUsage = true,
+};
+
 static inline int wsm_set_operational_mode(struct xradio_common *hw_priv,
 					const struct wsm_operational_mode *arg,
 					int if_id)

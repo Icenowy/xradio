@@ -280,11 +280,7 @@ void wsm_query_work(struct work_struct *work)
 	if(ret[5] & 0x4) {
 		wsm_printk(XRADIO_DBG_ERROR,"Hardware need to reset 0x%x.\n", ret[5]);
 		hw_priv->bh_error = 1;
-#ifdef BH_USE_SEMAPHORE
-		up(&hw_priv->bh_sem);
-#else
 		wake_up(&hw_priv->bh_wq);
-#endif
 	}
 	hw_priv->query_packetID = 0;
 }

@@ -575,10 +575,6 @@ int xradio_core_init(struct sdio_func* func)
 	int if_id;
 	struct ieee80211_hw *dev;
 	struct xradio_common *hw_priv;
-	struct wsm_operational_mode mode = {
-		.power_mode = wsm_power_mode_quiescent,
-		.disableMoreFlagUsage = true,
-	};
 	unsigned char randomaddr[ETH_ALEN];
 	const unsigned char *addr = NULL;
 
@@ -658,7 +654,7 @@ int xradio_core_init(struct sdio_func* func)
 	/* Set device mode parameter. */
 	for (if_id = 0; if_id < xrwl_get_nr_hw_ifaces(hw_priv); if_id++) {
 		/* Set low-power mode. */
-		SYS_WARN(wsm_set_operational_mode(hw_priv, &mode, if_id));
+		SYS_WARN(wsm_set_operational_mode(hw_priv, &defaultoperationalmode, if_id));
 		/* Enable multi-TX confirmation */
 		SYS_WARN(wsm_use_multi_tx_conf(hw_priv, true, if_id));
 	}
