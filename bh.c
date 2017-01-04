@@ -479,14 +479,7 @@ static int xradio_bh_rx(struct xradio_common *hw_priv, u16* nextlen) {
 	 * to the NEXT Message length + 2 Bytes for SKB */
 	read_len = read_len + 2;
 
-#if defined(CONFIG_XRADIO_NON_POWER_OF_TWO_BLOCKSIZES)
 	alloc_len = sdio_align_len(hw_priv, read_len);
-#else
-	/* Platform's SDIO workaround */
-	alloc_len = read_len & ~(SDIO_BLOCK_SIZE - 1);
-	if (read_len & (SDIO_BLOCK_SIZE - 1))
-		alloc_len += SDIO_BLOCK_SIZE;
-#endif /* CONFIG_XRADIO_NON_POWER_OF_TWO_BLOCKSIZES */
 	/* Check if not exceeding XRADIO capabilities */
 	if (WARN_ON_ONCE(alloc_len > EFFECTIVE_BUF_SIZE)) {
 		dev_err(hw_priv->pdev, "Read aligned len: %d\n", alloc_len);
@@ -688,19 +681,10 @@ static int xradio_bh_tx(struct xradio_common *hw_priv){
 			SYS_BUG(__le32_to_cpu(wsm->len) != tx_len);
 
 			/* Align tx length and check it. */
-#if defined(CONFIG_XRADIO_NON_POWER_OF_TWO_BLOCKSIZES)
 			if (tx_len <= 8)
 			tx_len = 16;
 			tx_len = sdio_align_len(hw_priv, tx_len);
-#else /* CONFIG_XRADIO_NON_POWER_OF_TWO_BLOCKSIZES */
-			/* HACK!!! Platform limitation.
-			 * It is also supported by upper layer:
-			 * there is always enough space at the end of the buffer. */
-			if (tx_len & (SDIO_BLOCK_SIZE - 1)) {
-				tx_len &= ~(SDIO_BLOCK_SIZE - 1);
-				tx_len += SDIO_BLOCK_SIZE;
-			}
-#endif /* CONFIG_XRADIO_NON_POWER_OF_TWO_BLOCKSIZES */
+
 			/* Check if not exceeding XRADIO capabilities */
 			if (tx_len > EFFECTIVE_BUF_SIZE) {
 				dev_warn(hw_priv->pdev, "Write aligned len: %d\n", tx_len);
