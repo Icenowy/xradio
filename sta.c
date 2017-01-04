@@ -27,10 +27,6 @@
 #ifdef ROAM_OFFLOAD
 #include <net/netlink.h>
 #endif /*ROAM_OFFLOAD*/
-#ifdef CONFIG_XRADIO_TESTMODE
-#include "nl80211_testmode_msg_copy.h"
-#include <net/netlink.h>
-#endif /* CONFIG_XRADIO_TESTMODE */
 
 #include "net/mac80211.h"
 
@@ -47,32 +43,6 @@
 #define WAPI_ENCRYPT_HDR_SIZE   18
 #define WAPI_ENCRYPT_TAIL_SIZE  16
 #define MAX_ARP_REPLY_TEMPLATE_SIZE     120
-#ifdef CONFIG_XRADIO_TESTMODE
-const int xradio_1d_to_ac[8] = {
-	IEEE80211_AC_BE,
-	IEEE80211_AC_BK,
-	IEEE80211_AC_BK,
-	IEEE80211_AC_BE,
-	IEEE80211_AC_VI,
-	IEEE80211_AC_VI,
-	IEEE80211_AC_VO,
-	IEEE80211_AC_VO
-};
-
-/**
- * enum xradio_ac_numbers - AC numbers as used in xradio
- * @XRADIO_AC_VO: voice
- * @XRADIO_AC_VI: video
- * @XRADIO_AC_BE: best effort
- * @XRADIO_AC_BK: background
- */
-enum xradio_ac_numbers {
-	XRADIO_AC_VO	= 0,
-	XRADIO_AC_VI	= 1,
-	XRADIO_AC_BE	= 2,
-	XRADIO_AC_BK	= 3,
-};
-#endif /*CONFIG_XRADIO_TESTMODE*/
 
 static inline void __xradio_free_event_queue(struct list_head *list)
 {
@@ -84,19 +54,6 @@ static inline void __xradio_free_event_queue(struct list_head *list)
 	}
 }
 
-#ifdef CONFIG_XRADIO_TESTMODE
-/* User priority to WSM queue mapping */
-const int xradio_priority_to_queueId[8] = {
-	WSM_QUEUE_BEST_EFFORT,
-	WSM_QUEUE_BACKGROUND,
-	WSM_QUEUE_BACKGROUND,
-	WSM_QUEUE_BEST_EFFORT,
-	WSM_QUEUE_VIDEO,
-	WSM_QUEUE_VIDEO,
-	WSM_QUEUE_VOICE,
-	WSM_QUEUE_VOICE
-};
-#endif /*CONFIG_XRADIO_TESTMODE*/
 static inline void __xradio_bf_configure(struct xradio_vif *priv)
 {
 	priv->bf_table.numOfIEs = __cpu_to_le32(3);
@@ -142,12 +99,6 @@ int xradio_start(struct ieee80211_hw *dev)
 
 	mutex_lock(&hw_priv->conf_mutex);
 
-#ifdef CONFIG_XRADIO_TESTMODE
-	spin_lock_bh(&hw_priv->tsm_lock);
-	memset(&hw_priv->tsm_stats, 0, sizeof(struct xr_tsm_stats));
-	memset(&hw_priv->tsm_info, 0, sizeof(struct xradio_tsm_info));
-	spin_unlock_bh(&hw_priv->tsm_lock);
-#endif /*CONFIG_XRADIO_TESTMODE*/
 	memcpy(hw_priv->mac_addr, dev->wiphy->perm_addr, ETH_ALEN);
 	hw_priv->softled_state = 0;
 
@@ -179,9 +130,6 @@ void xradio_stop(struct ieee80211_hw *dev)
 
 	cancel_delayed_work_sync(&hw_priv->scan.probe_work);
 	cancel_delayed_work_sync(&hw_priv->scan.timeout);
-#ifdef CONFIG_XRADIO_TESTMODE
-	cancel_delayed_work_sync(&hw_priv->advance_scan_timeout);
-#endif
 	flush_workqueue(hw_priv->workqueue);
 	del_timer_sync(&hw_priv->ba_timer);
 
@@ -452,10 +400,6 @@ int xradio_config(struct ieee80211_hw *dev, u32 changed)
 	int ret = 0;
 	struct xradio_common *hw_priv = dev->priv;
 	struct ieee80211_conf *conf = &dev->conf;
-#ifdef CONFIG_XRADIO_TESTMODE
-	int max_power_level = 0;
-	int min_power_level = 0;
-#endif
 	/* TODO:COMBO: adjust to multi vif interface
 	 * IEEE80211_CONF_CHANGE_IDLE is still handled per xradio_vif*/
 	int if_id = 0;
@@ -484,21 +428,6 @@ int xradio_config(struct ieee80211_hw *dev, u32 changed)
 	if (changed & IEEE80211_CONF_CHANGE_POWER) {
 		/*hw_priv->output_power = conf->power_level;*/
 		hw_priv->output_power = 20;
-#ifdef CONFIG_XRADIO_TESTMODE
-		/* Testing if Power Level to set is out of device power range */
-		if (conf->chan_conf->channel->band == NL80211_BAND_2GHZ) {
-			max_power_level = hw_priv->txPowerRange[0].max_power_level;
-			min_power_level = hw_priv->txPowerRange[0].min_power_level;
-		} else {
-			max_power_level = hw_priv->txPowerRange[1].max_power_level;
-			min_power_level = hw_priv->txPowerRange[1].min_power_level;
-		}
-		if (hw_priv->output_power > max_power_level)
-			hw_priv->output_power = max_power_level;
-		else if (hw_priv->output_power < min_power_level)
-			hw_priv->output_power = min_power_level;
-#endif /* CONFIG_XRADIO_TESTMODE */
-
 		wiphy_debug(dev->wiphy, "Config Tx power=%d, but real=%d\n",
 		           conf->power_level, hw_priv->output_power);
 		SYS_WARN(wsm_set_output_power(hw_priv, hw_priv->output_power * 10, if_id));
@@ -896,11 +825,8 @@ void xradio_wep_key_work(struct work_struct *work)
 	                       &wep_default_key_id, sizeof(wep_default_key_id),
 	                       priv->if_id));
 
-#ifdef CONFIG_XRADIO_TESTMODE
-	xradio_queue_requeue(hw_priv, queue, hw_priv->pending_frame_id, true);
-#else
 	xradio_queue_requeue(queue, hw_priv->pending_frame_id, true);
-#endif
+
 	wsm_unlock_tx(hw_priv);
 }
 
@@ -1340,98 +1266,6 @@ void xradio_tx_failure_work(struct work_struct *work)
 #endif /* CONFIG_XRADIO_USE_EXTENSIONS */
 }
 
-#ifdef CONFIG_XRADIO_TESTMODE
-/**
- * xradio_device_power_calc- Device power calculation
- * from values fetch from SDD File.
- *
- * @priv: the private structure
- * @Max_output_power: Power fetch from SDD
- * @fe_cor: front-end loss correction
- * @band: Either 2GHz or 5GHz
- *
- */
-void xradio_device_power_calc(struct xradio_common *hw_priv,
-		s16 max_output_power, s16 fe_cor, u32 band)
-{
-	s16 power_calc;
-
-	power_calc = max_output_power - fe_cor;
-	if ((power_calc % 16) != 0)
-		power_calc += 16;
-
-	hw_priv->txPowerRange[band].max_power_level = power_calc/16;
-	/*
-	 * 12dBm is control range supported by firmware.
-	 * This means absolute min power is
-	 * max_power_level - 12.
-	 */
-	hw_priv->txPowerRange[band].min_power_level =
-		hw_priv->txPowerRange[band].max_power_level - 12;
-	hw_priv->txPowerRange[band].stepping = 1;
-
-}
-#endif
-/* ******************************************************************** */
-#ifdef CONFIG_XRADIO_TESTMODE
-#define SDD_MAX_OUTPUT_POWER_2G4_ELT_ID 0xE3
-#define SDD_MAX_OUTPUT_POWER_5G_ELT_ID  0xE4
-#define SDD_FE_COR_2G4_ELT_ID   0x30
-#define SDD_FE_COR_5G_ELT_ID    0x31
-#define MIN(x, y, z) (x < y ? (x < z ? x : z) : (y < z ? y : z))
-static int xradio_test_pwrlevel(struct xradio_common *hw_priv)
-{
-	int ret = -1;
-	int parsedLength = 0;
-	struct xradio_sdd *pElement = (struct xradio_sdd *)hw_priv->sdd->data;
-
-
-
-	parsedLength += (FIELD_OFFSET(struct xradio_sdd, data) + pElement->length);
-	pElement = FIND_NEXT_ELT(pElement);
-
-	while (parsedLength <= hw_priv->sdd->size) {
-		switch (pElement->id) {
-		case SDD_MAX_OUTPUT_POWER_2G4_ELT_ID:
-			max_output_power_2G = *((s16 *)pElement->data);
-			break;
-		case SDD_FE_COR_2G4_ELT_ID:
-			fe_cor_2G = *((s16 *)pElement->data);
-			break;
-		case SDD_MAX_OUTPUT_POWER_5G_ELT_ID:
-			max_output_power_5G = *((s16 *)(pElement->data + 4));
-			break;
-		case SDD_FE_COR_5G_ELT_ID:
-			fe_cor_5G = MIN(*((s16 *)pElement->data), 
-			                *((s16 *)(pElement->data + 2)), 
-			                *((s16 *)(pElement->data + 4)));
-			fe_cor_5G = MIN(fe_cor_5G, 
-			                *((s16 *)(pElement->data + 6)),
-			                *((s16 *)(pElement->data + 8)));
-			break;
-		default:
-			break;
-		}
-		parsedLength += (FIELD_OFFSET(struct xradio_sdd, data) + pElement->length);
-		pElement = FIND_NEXT_ELT(pElement);
-	}
-
-	/* Max/Min Power Calculation for 2.4G */
-	xradio_device_power_calc(hw_priv, max_output_power_2G, fe_cor_2G, NL80211_BAND_2GHZ);
-	/* Max/Min Power Calculation for 5G */
-	xradio_device_power_calc(hw_priv, max_output_power_5G, fe_cor_5G, NL80211_BAND_5GHZ);
-	for (i = 0; i < 2; ++i) {
-		sta_printk(XRADIO_DBG_MSG, "Power Values Read from SDD %s:"
-			"min_power_level[%d]: %d max_power_level[%d]:"
-			"%d stepping[%d]: %d\n", __func__, i,
-			hw_priv->txPowerRange[i].min_power_level, i,
-			hw_priv->txPowerRange[i].max_power_level, i,
-			hw_priv->txPowerRange[i].stepping);
-	}
-	return 0;
-}
-#endif
-
 /* Internal API								*/
 int xradio_setup_mac(struct xradio_common *hw_priv)
 {
@@ -1450,10 +1284,6 @@ int xradio_setup_mac(struct xradio_common *hw_priv)
 			ret |= SYS_WARN(wsm_configuration(hw_priv, &cfg,
 				       if_id));
 		}
-#ifdef CONFIG_XRADIO_TESTMODE
-		/* Parse SDD file for power level test */
-		xradio_test_pwrlevel(hw_priv);
-#endif
 		/* wsm_configuration only once, so release it */
 		release_firmware(hw_priv->sdd);
 		hw_priv->sdd = NULL;
@@ -1508,12 +1338,7 @@ void xradio_offchannel_work(struct work_struct *work)
 	if (unlikely(down_trylock(&hw_priv->scan.lock))) {
 		int ret;
 		sta_printk(XRADIO_DBG_ERROR, "xradio_offchannel_work***** drop frame\n");
-#ifdef CONFIG_XRADIO_TESTMODE
-		xradio_queue_remove(hw_priv, queue,
-				hw_priv->pending_frame_id);
-#else
 		ret = xradio_queue_remove(queue, hw_priv->pending_frame_id);
-#endif
 		if (ret)
 			sta_printk(XRADIO_DBG_ERROR, "xradio_offchannel_work: "
 				       "queue_remove failed %d\n", ret);
@@ -1536,19 +1361,9 @@ void xradio_offchannel_work(struct work_struct *work)
 		/* xradio_update_filtering(priv); */
 	}
 	if (unlikely(!priv->join_status))
-#ifdef CONFIG_XRADIO_TESTMODE
-		xradio_queue_remove(hw_priv, queue,
-				hw_priv->pending_frame_id);
-#else
 		xradio_queue_remove(queue, hw_priv->pending_frame_id);
-#endif /*CONFIG_XRADIO_TESTMODE*/
 	else
-#ifdef CONFIG_XRADIO_TESTMODE
-		xradio_queue_requeue(hw_priv, queue,
-			hw_priv->pending_frame_id, false);
-#else
 		xradio_queue_requeue(queue, hw_priv->pending_frame_id, false);
-#endif
 
 	queue_delayed_work(hw_priv->workqueue,
 			&priv->pending_offchanneltx_work, 204 * HZ/1000);
@@ -1607,11 +1422,7 @@ void xradio_join_work(struct work_struct *work)
 	bss = cfg80211_get_bss(hw_priv->hw->wiphy, hw_priv->channel,
 			bssid, NULL, 0, 0, 0);
 	if (!bss) {
-#ifdef CONFIG_XRADIO_TESTMODE
-		xradio_queue_remove(hw_priv, queue, hw_priv->pending_frame_id);
-#else
 		xradio_queue_remove(queue, hw_priv->pending_frame_id);
-#endif /*CONFIG_XRADIO_TESTMODE*/
 		wsm_unlock_tx(hw_priv);
 		return;
 	}
@@ -1733,22 +1544,12 @@ void xradio_join_work(struct work_struct *work)
 		if (wsm_join(hw_priv, &join, priv->if_id)) {
 			memset(&priv->join_bssid[0],
 				0, sizeof(priv->join_bssid));
-#ifdef CONFIG_XRADIO_TESTMODE
-			xradio_queue_remove(hw_priv, queue,
-						hw_priv->pending_frame_id);
-#else
 			xradio_queue_remove(queue, hw_priv->pending_frame_id);
-#endif /*CONFIG_XRADIO_TESTMODE*/
 			cancel_delayed_work_sync(&priv->join_timeout);
 		} else {
 			/* Upload keys */
-#ifdef CONFIG_XRADIO_TESTMODE
-			xradio_queue_requeue(hw_priv, queue,
-				hw_priv->pending_frame_id, true);
-#else
 			xradio_queue_requeue(queue, hw_priv->pending_frame_id,
 						true);
-#endif
 			priv->join_status = XRADIO_JOIN_STATUS_STA;
 
 			/* Due to beacon filtering it is possible that the
@@ -2461,492 +2262,3 @@ int xradio_testmode_event(struct wiphy *wiphy, const u32 msg_id,
 	return 0;
 }
 #endif /*ROAM_OFFLOAD*/
-
-
-#ifdef CONFIG_XRADIO_TESTMODE
-/**
- * xradio_set_snap_frame -Set SNAP frame format
- *
- * @hw: the hardware
- * @data: data frame
- * @len: data length
- *
- * Returns: 0 on success or non zero value on failure
- */
-static int xradio_set_snap_frame(struct ieee80211_hw *hw,
-				 u8 *data, int len)
-{
-	struct xr_msg_set_snap_frame *snap_frame =
-		(struct xr_msg_set_snap_frame *) data;
-	struct xradio_common *priv = (struct xradio_common *) hw->priv;
-	u8 frame_len = snap_frame->len;
-	u8 *frame = &snap_frame->frame[0];
-
-
-	/*
-	 * Check length of incoming frame format:
-	 * SNAP + SNAP_LEN (u8)
-	 */
-	if (frame_len + sizeof(snap_frame->len) != len)
-		return -EINVAL;
-
-	if (frame_len > 0) {
-		priv->test_frame.data = (u8 *) xr_krealloc(priv->test_frame.data,
-						sizeof(u8) * frame_len, false);
-		if (priv->test_frame.data == NULL) {
-			sta_printk(XRADIO_DBG_ERROR, "xradio_set_snap_frame memory" \
-					 "allocation failed");
-			priv->test_frame.len = 0;
-			return -EINVAL;
-		}
-		memcpy(priv->test_frame.data, frame, frame_len);
-	} else {
-		kfree(priv->test_frame.data);
-		priv->test_frame.data = NULL;
-	}
-	priv->test_frame.len = frame_len;
-	return 0;
-}
-
-#ifdef CONFIG_XRADIO_TESTMODE
-/**
- * xradio_set_txqueue_params -Set txqueue params after successful TSPEC negotiation
- *
- * @hw: the hardware
- * @data: data frame
- * @len: data length
- *
- * Returns: 0 on success or non zero value on failure
- */
-static int xradio_set_txqueue_params(struct ieee80211_hw *hw,
-				     u8 *data, int len)
-{
-	struct xr_msg_set_txqueue_params *txqueue_params =
-		(struct xr_msg_set_txqueue_params *) data;
-	struct xradio_common *hw_priv = (struct xradio_common *) hw->priv;
-	struct xradio_vif *priv;
-	/* Interface ID is hard coded here, as interface is not
-         * passed in testmode command.
-         * Also it is assumed here that STA will be on interface
-         * 0 always.
-         */
-
-	int if_id = 0;
-	u16 queueId = xradio_priority_to_queueId[txqueue_params->user_priority];
-
-
-	priv = xrwl_hwpriv_to_vifpriv(hw_priv, if_id);
-
-	if (unlikely(!priv)) {
-		sta_printk(XRADIO_DBG_ERROR, "%s: Warning Priv is Null\n",
-			   __func__);
-		return 0;
-	}
-	spin_unlock(&priv->vif_lock);
-
-	/* Default Ack policy is WSM_ACK_POLICY_NORMAL */
-	WSM_TX_QUEUE_SET(&priv->tx_queue_params,
-			queueId,
-			WSM_ACK_POLICY_NORMAL,
-			txqueue_params->medium_time,
-			txqueue_params->expiry_time);
-	return SYS_WARN(wsm_set_tx_queue_params(hw_priv,
-			&priv->tx_queue_params.params[queueId], queueId,
-			priv->if_id));
-}
-#endif /*CONFIG_XRADIO_TESTMODE*/
-
-/**
- * xradio_tesmode_reply -called inside a testmode command
- * handler to send a response to user space
- *
- * @wiphy: the wiphy
- * @data: data to be send to user space
- * @len: data length
- *
- * Returns: 0 on success or non zero value on failure
- */
-static int xradio_tesmode_reply(struct wiphy *wiphy,
-				const void *data, int len)
-{
-	int ret = 0;
-	struct sk_buff *skb = NULL;
-
-
-	skb = cfg80211_testmode_alloc_reply_skb(wiphy, nla_total_size(len));
-
-	if (!skb)
-		return -ENOMEM;
-
-	ret = nla_put(skb, XR_TM_MSG_DATA, len, data);
-	if (ret) {
-		kfree_skb(skb);
-		return ret;
-	}
-
-	return cfg80211_testmode_reply(skb);
-}
-
-/**
- * xradio_tesmode_event -send asynchronous event
- * to userspace
- *
- * @wiphy: the wiphy
- * @msg_id: XR msg ID
- * @data: data to be sent
- * @len: data length
- * @gfp: allocation flag
- *
- * Returns: 0 on success or non zero value on failure
- */
-int xradio_tesmode_event(struct wiphy *wiphy, const u32 msg_id,
-			 const void *data, int len, gfp_t gfp)
-{
-	struct sk_buff *skb = NULL;
-
-
-	skb = cfg80211_testmode_alloc_event_skb(wiphy,
-	      nla_total_size(len+sizeof(msg_id)), gfp);
-	if (!skb)
-		return -ENOMEM;
-
-	NLA_PUT_U32(skb, XR_TM_MSG_ID, msg_id);
-	if (data)
-		NLA_PUT(skb, XR_TM_MSG_DATA, len, data);
-
-	cfg80211_testmode_event(skb, gfp);
-	return 0;
-nla_put_failure:
-	kfree_skb(skb);
-	return -ENOBUFS;
-}
-
-/**
- * example function for test purposes
- * sends both: synchronous reply and asynchronous event
- */
-static int xradio_test(struct ieee80211_hw *hw,
-		       void *data, int len)
-{
-	struct xr_msg_test_t *test_p;
-	struct xr_reply_test_t reply;
-	struct xr_event_test_t event;
-
-
-	if (sizeof(struct xr_msg_test_t)  != len)
-		return -EINVAL;
-
-	test_p = (struct xr_msg_test_t *) data;
-
-	reply.dummy = test_p->dummy + 10;
-
-	event.dummy = test_p->dummy + 20;
-
-	if (xradio_tesmode_event(hw->wiphy, XR_MSG_EVENT_TEST,
-		&event, sizeof(event), GFP_KERNEL))
-		return -1;
-
-	return xradio_tesmode_reply(hw->wiphy, &reply, sizeof(reply));
-}
-
-/**
- * xradio_get_tx_power_level - send tx power level
- * to userspace
- *
- * @hw: the hardware
- *
- * Returns: 0 on success or non zero value on failure
- */
-int xradio_get_tx_power_level(struct ieee80211_hw *hw)
-{
-	struct xradio_common *hw_priv = hw->priv;
-	int get_power = 0;
-
-
-	get_power = hw_priv->output_power;
-	sta_printk(XRADIO_DBG_MSG, "%s: Power set on Device : %d",
-		__func__, get_power);
-	return xradio_tesmode_reply(hw->wiphy, &get_power, sizeof(get_power));
-}
-
-/**
- * xradio_get_tx_power_range- send tx power range
- * to userspace for each band
- *
- * @hw: the hardware
- *
- * Returns: 0 on success or non zero value on failure
- */
-int xradio_get_tx_power_range(struct ieee80211_hw *hw)
-{
-	struct xradio_common *hw_priv = hw->priv;
-	struct wsm_tx_power_range txPowerRange[2];
-
-
-	size_t len = sizeof(txPowerRange);
-	memcpy(txPowerRange, hw_priv->txPowerRange, len);
-	return xradio_tesmode_reply(hw->wiphy, txPowerRange, len);
-}
-
-/**
- * xradio_set_advance_scan_elems -Set Advcance Scan
- * elements
- * @hw: the hardware
- * @data: data frame
- * @len: data length
- *
- * Returns: 0 on success or non zero value on failure
- */
-static int xradio_set_advance_scan_elems(struct ieee80211_hw *hw,
-				 u8 *data, int len)
-{
-	struct advance_scan_elems *scan_elems =
-		(struct advance_scan_elems *) data;
-	struct xradio_common *hw_priv = (struct xradio_common *) hw->priv;
-	size_t elems_len = sizeof(struct advance_scan_elems);
-
-
-	if (elems_len != len)
-		return -EINVAL;
-
-	scan_elems = (struct advance_scan_elems *) data;
-
-	/* Locks required to prevent simultaneous scan */
-	down(&hw_priv->scan.lock);
-	mutex_lock(&hw_priv->conf_mutex);
-
-	hw_priv->advanceScanElems.scanMode = scan_elems->scanMode;
-	hw_priv->advanceScanElems.duration = scan_elems->duration;
-	hw_priv->enable_advance_scan = true;
-
-	mutex_unlock(&hw_priv->conf_mutex);
-	up(&hw_priv->scan.lock);
-
-	return 0;
-}
-
-/**
- * xradio_set_power_save -Set Power Save
- * elements
- * @hw: the hardware
- * @data: data frame
- * @len: data length
- *
- * Returns: 0 on success or non zero value on failure
- */
-static int xradio_set_power_save(struct ieee80211_hw *hw,
-				 u8 *data, int len)
-{
-	struct power_save_elems *ps_elems =
-		(struct power_save_elems *) data;
-	struct xradio_common *hw_priv = (struct xradio_common *) hw->priv;
-	size_t elems_len = sizeof(struct power_save_elems);
-	struct xradio_vif *priv;
-	int if_id = 0;
-
-
-	/* Interface ID is hard coded here, as interface is not
-	* passed in testmode command.
-	* Also it is assumed here that STA will be on interface
-	* 0 always. */
-
-	if (elems_len != len)
-		return -EINVAL;
-
-	priv = xrwl_hwpriv_to_vifpriv(hw_priv, if_id);
-
-	if (unlikely(!priv)) {
-		sta_printk(XRADIO_DBG_ERROR, "%s: Warning Priv is Null\n",
-			   __func__);
-		return 0;
-	}
-
-	spin_unlock(&priv->vif_lock);
-	mutex_lock(&hw_priv->conf_mutex);
-
-	ps_elems = (struct power_save_elems *) data;
-
-	if (ps_elems->powerSave == 1)
-		priv->user_pm_mode = WSM_PSM_PS;
-	else
-		priv->user_pm_mode = WSM_PSM_FAST_PS;
-
-	sta_printk(XRADIO_DBG_MSG, "Aid: %d, Joined: %s, Powersave: %s\n",
-		priv->bss_params.aid,
-		priv->join_status == XRADIO_JOIN_STATUS_STA ? "yes" : "no",
-		priv->user_pm_mode == WSM_PSM_ACTIVE ? "WSM_PSM_ACTIVE" :
-		priv->user_pm_mode == WSM_PSM_PS ? "WSM_PSM_PS" :
-		priv->user_pm_mode == WSM_PSM_FAST_PS ? "WSM_PSM_FAST_PS" : "UNKNOWN");
-	if (priv->join_status == XRADIO_JOIN_STATUS_STA &&
-			priv->bss_params.aid &&
-			priv->setbssparams_done &&
-			priv->filter4.enable) {
-		priv->powersave_mode.pmMode = priv->user_pm_mode;
-		xradio_set_pm(priv, &priv->powersave_mode);
-	}
-	else
-		priv->user_power_set_true = ps_elems->powerSave;
-	mutex_unlock(&hw_priv->conf_mutex);
-	return 0;
-}
-/**
- * xradio_start_stop_tsm - starts/stops collecting TSM
- *
- * @hw: the hardware
- * @data: data frame
- *
- * Returns: 0 on success or non zero value on failure
- */
-int xradio_start_stop_tsm(struct ieee80211_hw *hw, void *data)
-{
-	struct xr_msg_start_stop_tsm *start_stop_tsm =
-		(struct xr_msg_start_stop_tsm *) data;
-	struct xradio_common *hw_priv = hw->priv;
-
-
-	hw_priv->start_stop_tsm.start = start_stop_tsm->start;
-	hw_priv->start_stop_tsm.up = start_stop_tsm->up;
-	hw_priv->start_stop_tsm.packetization_delay =
-		start_stop_tsm->packetization_delay;
-	sta_printk(XRADIO_DBG_MSG, "%s: start : %u: up : %u",
-		__func__, hw_priv->start_stop_tsm.start,
-		hw_priv->start_stop_tsm.up);
-	hw_priv->tsm_info.ac = xradio_1d_to_ac[start_stop_tsm->up];
-
-	if (!hw_priv->start_stop_tsm.start) {
-		spin_lock_bh(&hw_priv->tsm_lock);
-		memset(&hw_priv->tsm_stats, 0, sizeof(hw_priv->tsm_stats));
-		memset(&hw_priv->tsm_info, 0, sizeof(hw_priv->tsm_info));
-		spin_unlock_bh(&hw_priv->tsm_lock);
-	}
-	return 0;
-}
-
-/**
- * xradio_get_tsm_params - Retrieves TSM parameters
- *
- * @hw: the hardware
- *
- * Returns: TSM parameters collected
- */
-int xradio_get_tsm_params(struct ieee80211_hw *hw)
-{
-	struct xradio_common *hw_priv = hw->priv;
-	struct xr_tsm_stats tsm_stats;
-	u32 pkt_count;
-
-
-	spin_lock_bh(&hw_priv->tsm_lock);
-	pkt_count = hw_priv->tsm_stats.txed_msdu_count -
-			 hw_priv->tsm_stats.msdu_discarded_count;
-	if (pkt_count) {
-		hw_priv->tsm_stats.avg_q_delay =
-			hw_priv->tsm_info.sum_pkt_q_delay/(pkt_count * 1000);
-		hw_priv->tsm_stats.avg_transmit_delay =
-			hw_priv->tsm_info.sum_media_delay/pkt_count;
-	} else {
-		hw_priv->tsm_stats.avg_q_delay = 0;
-		hw_priv->tsm_stats.avg_transmit_delay = 0;
-	}
-	sta_printk(XRADIO_DBG_MSG, "%s: Txed MSDU count : %u",
-		__func__, hw_priv->tsm_stats.txed_msdu_count);
-	sta_printk(XRADIO_DBG_MSG, "%s: Average queue delay : %u",
-			__func__, hw_priv->tsm_stats.avg_q_delay);
-	sta_printk(XRADIO_DBG_MSG, "%s: Average transmit delay : %u",
-			__func__, hw_priv->tsm_stats.avg_transmit_delay);
-	memcpy(&tsm_stats, &hw_priv->tsm_stats, sizeof(hw_priv->tsm_stats));
-	/* Reset the TSM statistics */
-	memset(&hw_priv->tsm_stats, 0, sizeof(hw_priv->tsm_stats));
-	hw_priv->tsm_info.sum_pkt_q_delay = 0;
-	hw_priv->tsm_info.sum_media_delay = 0;
-	spin_unlock_bh(&hw_priv->tsm_lock);
-	return xradio_tesmode_reply(hw->wiphy, &tsm_stats,
-				     sizeof(hw_priv->tsm_stats));
-}
-
-/**
- * xradio_get_roam_delay - Retrieves roam delay
- *
- * @hw: the hardware
- *
- * Returns: Returns the last measured roam delay
- */
-int xradio_get_roam_delay(struct ieee80211_hw *hw)
-{
-	struct xradio_common *hw_priv = hw->priv;
-	u16 roam_delay = hw_priv->tsm_info.roam_delay / 1000;
-	sta_printk(XRADIO_DBG_MSG, "%s: Roam delay : %u",
-		__func__, roam_delay);
-
-	spin_lock_bh(&hw_priv->tsm_lock);
-	hw_priv->tsm_info.roam_delay = 0;
-	hw_priv->tsm_info.use_rx_roaming = 0;
-	spin_unlock_bh(&hw_priv->tsm_lock);
-	return xradio_tesmode_reply(hw->wiphy, &roam_delay, sizeof(u16));
-}
-
-/**
- * xradio_testmode_cmd -called when tesmode command
- * reaches xradio
- *
- * @hw: the hardware
- * @data: incoming data
- * @len: incoming data length
- *
- * Returns: 0 on success or non zero value on failure
- */
-int xradio_testmode_cmd(struct ieee80211_hw *hw, void *data, int len)
-{
-	int ret = 0;
-	struct nlattr *type_p = nla_find(data, len, XR_TM_MSG_ID);
-	struct nlattr *data_p = nla_find(data, len, XR_TM_MSG_DATA);
-
-
-	if (!type_p || !data_p)
-		return -EINVAL;
-
-	sta_printk(XRADIO_DBG_MSG,  "%s: type: %i",
-	           __func__, nla_get_u32(type_p));
-
-	switch (nla_get_u32(type_p)) {
-	case XR_MSG_TEST:
-		ret = xradio_test(hw,
-			nla_data(data_p), nla_len(data_p));
-		break;
-	case XR_MSG_SET_SNAP_FRAME:
-		ret = xradio_set_snap_frame(hw, (u8 *) nla_data(data_p),
-			nla_len(data_p));
-		break;
-	case XR_MSG_GET_TX_POWER_LEVEL:
-		ret = xradio_get_tx_power_level(hw);
-		break;
-	case XR_MSG_GET_TX_POWER_RANGE:
-		ret = xradio_get_tx_power_range(hw);
-		break;
-	case XR_MSG_SET_ADVANCE_SCAN_ELEMS:
-		ret = xradio_set_advance_scan_elems(hw, (u8 *) nla_data(data_p),
-			nla_len(data_p));
-		break;
-	case XR_MSG_SET_TX_QUEUE_PARAMS:
-		ret = xradio_set_txqueue_params(hw, (u8 *) nla_data(data_p),
-			nla_len(data_p));
-		break;
-	case XR_MSG_GET_TSM_PARAMS:
-		ret = xradio_get_tsm_params(hw);
-		break;
-	case XR_MSG_START_STOP_TSM:
-		ret = xradio_start_stop_tsm(hw, (u8 *) nla_data(data_p));
-		break;
-	case XR_MSG_GET_ROAM_DELAY:
-		ret = xradio_get_roam_delay(hw);
-		break;
-	case XR_MSG_SET_POWER_SAVE:
-		ret = xradio_set_power_save(hw, (u8 *) nla_data(data_p),
-			nla_len(data_p));
-		break;
-	default:
-		break;
-	}
-	return ret;
-}
-#endif /* CONFIG_XRADIO_TESTMODE */

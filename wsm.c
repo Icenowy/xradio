@@ -2481,16 +2481,6 @@ static bool wsm_handle_tx_data(struct xradio_vif *priv,
 
 	if (action == doTx) {
 		if (unlikely(ieee80211_is_probe_req(fctl))) {
-#ifdef CONFIG_XRADIO_TESTMODE
-			if (hw_priv->enable_advance_scan &&
-				(priv->join_status == XRADIO_JOIN_STATUS_STA) &&
-				(hw_priv->advanceScanElems.scanMode ==
-					XRADIO_SCAN_MEASUREMENT_ACTIVE))
-				/* If Advance Scan is Requested on Active Scan
-				 * then transmit the Probe Request */
-				action = doTx;
-			else
-#endif
 			action = doProbe;
 		} else if ((fctl & __cpu_to_le32(IEEE80211_FCTL_PROTECTED)) &&
 			tx_info->control.hw_key &&
@@ -2525,13 +2515,8 @@ static bool wsm_handle_tx_data(struct xradio_vif *priv,
 		/* See detailed description of "join" below.
 		 * We are dropping everything except AUTH in non-joined mode. */
 		wsm_printk(XRADIO_DBG_MSG, "Drop frame (0x%.4X).\n", fctl);
-#ifdef CONFIG_XRADIO_TESTMODE
-		SYS_BUG(xradio_queue_remove(hw_priv, queue,
-			__le32_to_cpu(wsm->packetID)));
-#else
 		SYS_BUG(xradio_queue_remove(queue,
 			__le32_to_cpu(wsm->packetID)));
-#endif /*CONFIG_XRADIO_TESTMODE*/
 		handled = true;
 	}
 	break;

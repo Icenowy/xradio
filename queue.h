@@ -99,22 +99,12 @@ int xradio_queue_get(struct xradio_queue *queue,
                      struct ieee80211_tx_info **tx_info,
                      struct xradio_txpriv **txpriv);
 
-#ifdef CONFIG_XRADIO_TESTMODE
-int xradio_queue_requeue(struct xradio_common *hw_priv,
-                         struct xradio_queue *queue,
-                         u32 packetID, bool check);
-#else
 int xradio_queue_requeue(struct xradio_queue *queue, u32 packetID, bool check);
-#endif
+
 int xradio_queue_requeue_all(struct xradio_queue *queue);
-#ifdef CONFIG_XRADIO_TESTMODE
-int xradio_queue_remove(struct xradio_common *hw_priv,
-                        struct xradio_queue *queue,
-                        u32 packetID);
-#else
 int xradio_queue_remove(struct xradio_queue *queue,
                         u32 packetID);
-#endif /*CONFIG_XRADIO_TESTMODE*/
+
 int xradio_queue_get_skb(struct xradio_queue *queue, u32 packetID,
                          struct sk_buff **skb,
                          const struct xradio_txpriv **txpriv);

@@ -208,9 +208,6 @@ static const struct ieee80211_ops xradio_ops = {
 	/*.channel_switch	 = xradio_channel_switch,		*/
 	.remain_on_channel = xradio_remain_on_channel,
 	.cancel_remain_on_channel = xradio_cancel_remain_on_channel,
-#ifdef CONFIG_XRADIO_TESTMODE
-	.testmode_cmd      = xradio_testmode_cmd,
-#endif /* CONFIG_XRADIO_TESTMODE */
 };
 
 

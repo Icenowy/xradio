@@ -127,11 +127,6 @@ struct xradio_common;
 
 /* The maximum number of SSIDs that the device can scan for. */
 #define WSM_SCAN_MAX_NUM_OF_SSIDS	(2)
-#ifdef CONFIG_XRADIO_TESTMODE
-/* Transmit flags */
-/* Start Expiry time from the receipt of tx request */
-#define WSM_TX_FLAG_EXPIRY_TIME		(BIT(0))
-#endif /*CONFIG_XRADIO_TESTMODE*/
 
 /* Power management modes */
 /* 802.11 Active mode */

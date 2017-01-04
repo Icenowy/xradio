@@ -87,10 +87,6 @@
 
 #define IEEE80211_FCTL_WEP      0x4000
 #define IEEE80211_QOS_DATAGRP   0x0080
-#ifdef CONFIG_XRADIO_TESTMODE
-#define XRADIO_SCAN_MEASUREMENT_PASSIVE (0)
-#define XRADIO_SCAN_MEASUREMENT_ACTIVE  (1)
-#endif
 
 #ifdef MCAST_FWDING
 #define WSM_MAX_BUF		30
@@ -144,7 +140,7 @@ struct xradio_link_entry {
 	struct sk_buff_head		rx_queue;
 };
 
-#if defined(ROAM_OFFLOAD) || defined(CONFIG_XRADIO_TESTMODE)
+#if defined(ROAM_OFFLOAD)
 struct xradio_testframe {
 	u8 len;
 	u8 *data;
@@ -260,14 +256,6 @@ struct xradio_common {
 	struct semaphore		tx_lock_sem;
 	atomic_t				tx_lock;
 	u32				pending_frame_id;
-#ifdef CONFIG_XRADIO_TESTMODE
-	/* Device Power Range */
-	struct wsm_tx_power_range       txPowerRange[2];
-	/* Advance Scan */
-	struct advance_scan_elems	advanceScanElems;
-	bool				enable_advance_scan;
-	struct delayed_work		advance_scan_timeout;
-#endif /* CONFIG_XRADIO_TESTMODE */
 
 	/* WSM debug */
 	int                 wsm_enable_wsm_dumps;
@@ -334,13 +322,7 @@ struct xradio_common {
 	struct sk_buff 			*beacon_bkp;
 	struct xradio_testframe 	testframe;
 #endif /*ROAM_OFFLOAD*/
-#ifdef CONFIG_XRADIO_TESTMODE
-	struct xradio_testframe test_frame;
-	struct xr_tsm_stats		tsm_stats;
-	struct xradio_tsm_info		tsm_info;
-	spinlock_t			tsm_lock;
-	struct xradio_start_stop_tsm	start_stop_tsm;
-#endif /* CONFIG_XRADIO_TESTMODE */
+
 	u8          connected_sta_cnt;
 	u16			vif0_throttle;
 	u16			vif1_throttle;

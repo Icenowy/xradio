@@ -67,9 +67,5 @@ void xradio_scan_complete_cb(struct xradio_common *priv,
 /* ******************************************************************** */
 /* Raw probe requests TX workaround					*/
 void xradio_probe_work(struct work_struct *work);
-#ifdef CONFIG_XRADIO_TESTMODE
-/* Advance Scan Timer							*/
-void xradio_advance_scan_timeout(struct work_struct *work);
-#endif
 
 #endif

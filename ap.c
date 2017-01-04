@@ -377,19 +377,6 @@ void xradio_bss_info_changed(struct ieee80211_hw *dev,
 #endif
 	mutex_lock(&hw_priv->conf_mutex);
 	if (changed & BSS_CHANGED_BSSID) {
-#ifdef CONFIG_XRADIO_TESTMODE
-		spin_lock_bh(&hw_priv->tsm_lock);
-		if (hw_priv->tsm_info.sta_associated) {
-			unsigned now = jiffies;
-			hw_priv->tsm_info.sta_roamed = 1;
-			if ((now - hw_priv->tsm_info.txconf_timestamp_vo) >
-			    (now - hw_priv->tsm_info.rx_timestamp_vo))
-				hw_priv->tsm_info.use_rx_roaming = 1;
-		} else {
-			hw_priv->tsm_info.sta_associated = 1;
-		}
-		spin_unlock_bh(&hw_priv->tsm_lock);
-#endif /*CONFIG_XRADIO_TESTMODE*/
 		memcpy(priv->bssid, info->bssid, ETH_ALEN);
 		xradio_setup_mac_pvif(priv);
 	}

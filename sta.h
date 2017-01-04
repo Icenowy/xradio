@@ -119,13 +119,4 @@ int xradio_set_macaddrfilter(struct xradio_common *hw_priv, struct xradio_vif *p
 int xradio_testmode_event(struct wiphy *wiphy, const u32 msg_id,
                           const void *data, int len, gfp_t gfp);
 #endif /*ROAM_OFFLOAD*/
-#ifdef CONFIG_XRADIO_TESTMODE
-void xradio_device_power_calc(struct xradio_common *priv,
-                              s16 max_output_power, s16 fe_cor, u32 band);
-int xradio_testmode_cmd(struct ieee80211_hw *hw, void *data, int len);
-int xradio_tesmode_event(struct wiphy *wiphy, const u32 msg_id,
-                         const void *data, int len, gfp_t gfp);
-int xradio_get_tx_power_range(struct ieee80211_hw *hw);
-int xradio_get_tx_power_level(struct ieee80211_hw *hw);
-#endif /* CONFIG_XRADIO_TESTMODE */
 #endif

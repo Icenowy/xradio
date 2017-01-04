@@ -13,9 +13,6 @@
 #include <linux/sched.h>
 #include "xradio.h"
 #include "queue.h"
-#ifdef CONFIG_XRADIO_TESTMODE
-#include <linux/time.h>
-#endif /*CONFIG_XRADIO_TESTMODE*/
 
 /* private */ struct xradio_queue_item
 {
@@ -24,10 +21,6 @@
 	u32			packetID;
 	unsigned long		queue_timestamp;
 	unsigned long		xmit_timestamp;
-#ifdef CONFIG_XRADIO_TESTMODE
-	unsigned long		mdelay_timestamp;
-	unsigned long		qdelay_timestamp;
-#endif /*CONFIG_XRADIO_TESTMODE*/
 	struct xradio_txpriv	txpriv;
 	u8			generation;
 	u8			pack_stk_wr;
@@ -366,9 +359,6 @@ int xradio_queue_put(struct xradio_queue *queue, struct sk_buff *skb,
                      struct xradio_txpriv *txpriv)
 {
 	int ret = 0;
-#ifdef CONFIG_XRADIO_TESTMODE
-	struct timeval tmval;
-#endif /*CONFIG_XRADIO_TESTMODE*/
 	LIST_HEAD(gc_list);
 	struct xradio_queue_stats *stats = queue->stats;
 	/* TODO:COMBO: Add interface ID info to queue item */
@@ -392,10 +382,6 @@ int xradio_queue_put(struct xradio_queue *queue, struct sk_buff *skb,
 			item->generation, item - queue->pool,
 			txpriv->if_id, txpriv->raw_link_id);
 		item->queue_timestamp = jiffies;
-#ifdef CONFIG_XRADIO_TESTMODE
-		do_gettimeofday(&tmval);
-		item->qdelay_timestamp = tmval.tv_usec;
-#endif /*CONFIG_XRADIO_TESTMODE*/
 
 #ifdef TES_P2P_0002_ROC_RESTART
 		if (TES_P2P_0002_state == TES_P2P_0002_STATE_SEND_RESP) {
@@ -453,9 +439,6 @@ int xradio_queue_get(struct xradio_queue *queue,
 	struct xradio_queue_item *item;
 	struct xradio_queue_stats *stats = queue->stats;
 	bool wakeup_stats = false;
-#ifdef CONFIG_XRADIO_TESTMODE
-	struct timeval tmval;
-#endif /*CONFIG_XRADIO_TESTMODE*/
 
 	spin_lock_bh(&queue->lock);
 	list_for_each_entry(item, &queue->queue, head) {
@@ -477,10 +460,6 @@ int xradio_queue_get(struct xradio_queue *queue,
 		--queue->link_map_cache[item->txpriv.if_id]
 				[item->txpriv.link_id];
 		item->xmit_timestamp = jiffies;
-#ifdef CONFIG_XRADIO_TESTMODE
-		do_gettimeofday(&tmval);
-		item->mdelay_timestamp = tmval.tv_usec;
-#endif /*CONFIG_XRADIO_TESTMODE*/
 
 		spin_lock_bh(&stats->lock);
 		--stats->num_queued[item->txpriv.if_id];
@@ -506,12 +485,7 @@ int xradio_queue_get(struct xradio_queue *queue,
 	return ret;
 }
 
-#ifdef CONFIG_XRADIO_TESTMODE
-int xradio_queue_requeue(struct xradio_common *hw_priv,
-	struct xradio_queue *queue, u32 packetID, bool check)
-#else
 int xradio_queue_requeue(struct xradio_queue *queue, u32 packetID, bool check)
-#endif
 {
 	int ret = 0;
 	u8 queue_generation, queue_id, item_generation, item_id, if_id, link_id;
@@ -529,11 +503,7 @@ int xradio_queue_requeue(struct xradio_queue *queue, u32 packetID, bool check)
 #endif
 		txrx_printk(XRADIO_DBG_MSG, "Requeued frame dropped for "
 						"generic interface id.\n");
-#ifdef CONFIG_XRADIO_TESTMODE
-		xradio_queue_remove(hw_priv, queue, packetID);
-#else
 		xradio_queue_remove(queue, packetID);
-#endif
 		return 0;
 	}
 
@@ -613,12 +583,8 @@ int xradio_queue_requeue_all(struct xradio_queue *queue)
 
 	return 0;
 }
-#ifdef CONFIG_XRADIO_TESTMODE
-int xradio_queue_remove(struct xradio_common *hw_priv,
-				struct xradio_queue *queue, u32 packetID)
-#else
+
 int xradio_queue_remove(struct xradio_queue *queue, u32 packetID)
-#endif /*CONFIG_XRADIO_TESTMODE*/
 {
 	int ret = 0;
 	u8 queue_generation, queue_id, item_generation, item_id, if_id, link_id;
@@ -653,43 +619,7 @@ int xradio_queue_remove(struct xradio_queue *queue, u32 packetID)
 		--queue->num_queued_vif[if_id];
 		++queue->num_sent;
 		++item->generation;
-#ifdef CONFIG_XRADIO_TESTMODE
-		spin_lock_bh(&hw_priv->tsm_lock);
-		if (hw_priv->start_stop_tsm.start) {
-			if (queue_id == hw_priv->tsm_info.ac) {
-				struct timeval tmval;
-				unsigned long queue_delay;
-				unsigned long media_delay;
-				do_gettimeofday(&tmval);
 
-				if (tmval.tv_usec > item->qdelay_timestamp)
-					queue_delay = tmval.tv_usec -
-						item->qdelay_timestamp;
-				else
-					queue_delay = tmval.tv_usec +
-					1000000 - item->qdelay_timestamp;
-
-				if (tmval.tv_usec > item->mdelay_timestamp)
-					media_delay = tmval.tv_usec -
-						item->mdelay_timestamp;
-				else
-					media_delay = tmval.tv_usec +
-					1000000 - item->mdelay_timestamp;
-				hw_priv->tsm_info.sum_media_delay +=
-							media_delay;
-				hw_priv->tsm_info.sum_pkt_q_delay += queue_delay;
-				if (queue_delay <= 10000)
-					hw_priv->tsm_stats.bin0++;
-				else if (queue_delay <= 20000)
-					hw_priv->tsm_stats.bin1++;
-				else if (queue_delay <= 40000)
-					hw_priv->tsm_stats.bin2++;
-				else
-					hw_priv->tsm_stats.bin3++;
-			}
-		}
-		spin_unlock_bh(&hw_priv->tsm_lock);
-#endif /*CONFIG_XRADIO_TESTMODE*/
 		/* Do not use list_move_tail here, but list_move:
 		 * try to utilize cache row.
 		 */
