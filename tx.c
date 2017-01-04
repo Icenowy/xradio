@@ -102,7 +102,7 @@ static void tx_policy_build(const struct xradio_common *hw_priv,
 	unsigned limit = hw_priv->short_frame_max_tx_count;
 	unsigned max_rates_cnt = count;
 	unsigned total = 0;
-	SYS_BUG(rates[0].idx < 0);
+	BUG_ON(rates[0].idx < 0);
 	memset(policy, 0, sizeof(*policy));
 
 
@@ -505,7 +505,7 @@ void tx_policy_upload_work(struct work_struct *work)
 	struct xradio_common *hw_priv =
 		container_of(work, struct xradio_common, tx_policy_upload_work);
 
-	SYS_WARN(tx_policy_upload(hw_priv));
+	WARN_ON(tx_policy_upload(hw_priv));
 	wsm_unlock_tx(hw_priv);
 }
 
@@ -964,7 +964,7 @@ xradio_tx_h_skb_pad(struct xradio_common *priv,
 	size_t padded_len = sdio_align_len(priv, len);
 
 
-	if (SYS_WARN(skb_padto(skb, padded_len) != 0)) {
+	if (WARN_ON(skb_padto(skb, padded_len) != 0)) {
 		return -EINVAL;
 	}
 	return 0;
@@ -1001,7 +1001,7 @@ void xradio_tx(struct ieee80211_hw *dev, struct ieee80211_tx_control *control, s
 	struct ieee80211_mgmt *mgmt = (struct ieee80211_mgmt *)skb->data;
 
 	if (!skb->data)
-		SYS_BUG(1);
+		BUG_ON(1);
 
 	if (!(t.tx_info->control.vif)) {
 		ret = __LINE__;
@@ -1070,7 +1070,7 @@ void xradio_tx(struct ieee80211_hw *dev, struct ieee80211_tx_control *control, s
 	t.sta_priv =
 		(struct xradio_sta_priv *)&control->sta->drv_priv;
 
-	if (SYS_WARN(t.queue >= 4)) {
+	if (WARN_ON(t.queue >= 4)) {
 		ret = __LINE__;
 		goto drop;
 	}
@@ -1149,7 +1149,7 @@ void xradio_tx(struct ieee80211_hw *dev, struct ieee80211_tx_control *control, s
 	spin_lock_bh(&priv->ps_state_lock);
 	{
 		tid_update = xradio_tx_h_pm_state(priv, &t);
-		SYS_BUG(xradio_queue_put(&hw_priv->tx_queue[t.queue],
+		BUG_ON(xradio_queue_put(&hw_priv->tx_queue[t.queue],
 				t.skb, &t.txpriv));
 #ifdef ROC_DEBUG
 		txrx_printk(XRADIO_DBG_ERROR, "QPUT %x, %pM, if_id - %d\n",
@@ -1196,7 +1196,7 @@ void xradio_tx_confirm_cb(struct xradio_common *hw_priv,
 		return;
 	}
 
-	if (SYS_WARN(queue_id >= 4)) {
+	if (WARN_ON(queue_id >= 4)) {
 		spin_unlock(&priv->vif_lock);
 		return;
 	}
@@ -1220,7 +1220,7 @@ void xradio_tx_confirm_cb(struct xradio_common *hw_priv,
 			xradio_queue_get_generation(arg->packetID) + 1,
 			priv->sta_asleep_mask);
 
-		SYS_WARN(xradio_queue_requeue(queue,
+		WARN_ON(xradio_queue_requeue(queue,
 				arg->packetID, true));
 
 		spin_lock_bh(&priv->ps_state_lock);
@@ -1233,7 +1233,7 @@ void xradio_tx_confirm_cb(struct xradio_common *hw_priv,
 		}
 		spin_unlock_bh(&priv->ps_state_lock);
 		spin_unlock(&priv->vif_lock);
-	} else if (!SYS_WARN(xradio_queue_get_skb(
+	} else if (!WARN_ON(xradio_queue_get_skb(
 			queue, arg->packetID, &skb, &txpriv))) {
 		struct ieee80211_tx_info *tx = IEEE80211_SKB_CB(skb);
 		struct ieee80211_hdr *frame = (struct ieee80211_hdr *)&skb->data[txpriv->offset];
@@ -1389,7 +1389,7 @@ static void xradio_notify_buffered_tx(struct xradio_vif *priv,
 				[link_id - 1].buffered;
 
 		spin_lock_bh(&priv->ps_state_lock);
-		if (!SYS_WARN(!buffered[tid]))
+		if (!WARN_ON(!buffered[tid]))
 			still_buffered = --buffered[tid];
 		spin_unlock_bh(&priv->ps_state_lock);
 
@@ -1436,7 +1436,7 @@ void xradio_link_id_reset(struct work_struct *work)
 		/* In GO mode we can receive ACTION frames without a linkID */
 		temp_linkid = xradio_alloc_link_id(priv,
 				&priv->action_frame_sa[0]);
-		SYS_WARN(!temp_linkid);
+		WARN_ON(!temp_linkid);
 		if (temp_linkid) {
 			/* Make sure we execute the WQ */
 			flush_workqueue(hw_priv->workqueue);

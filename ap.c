@@ -53,7 +53,7 @@ int xradio_sta_add(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
 #endif
 
 #ifdef P2P_MULTIVIF
-	SYS_WARN(priv->if_id == XRWL_GENERIC_IF_ID);
+	WARN_ON(priv->if_id == XRWL_GENERIC_IF_ID);
 #endif
 
 	if (priv->mode != NL80211_IFTYPE_AP) {
@@ -62,7 +62,7 @@ int xradio_sta_add(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
 
 	sta_priv->priv = priv;
 	sta_priv->link_id = xradio_find_link_id(priv, sta->addr);
-	if (SYS_WARN(!sta_priv->link_id)) {
+	if (WARN_ON(!sta_priv->link_id)) {
 		/* Impossible error */
 		wiphy_debug(hw->wiphy, "No more link IDs available.\n");
 		return -ENOENT;
@@ -83,7 +83,7 @@ int xradio_sta_add(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
 	hw_priv->connected_sta_cnt++;
 	if(hw_priv->connected_sta_cnt>1) {
 			wsm_lock_tx(hw_priv);
-			SYS_WARN(wsm_set_block_ack_policy(hw_priv,
+			WARN_ON(wsm_set_block_ack_policy(hw_priv,
 					XRADIO_TX_BLOCK_ACK_DISABLED_FOR_ALL_TID,
 					XRADIO_RX_BLOCK_ACK_DISABLED_FOR_ALL_TID,
 					priv->if_id));
@@ -104,7 +104,7 @@ int xradio_sta_remove(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
 	struct xradio_link_entry *entry;
 
 #ifdef P2P_MULTIVIF
-	SYS_WARN(priv->if_id == XRWL_GENERIC_IF_ID);
+	WARN_ON(priv->if_id == XRWL_GENERIC_IF_ID);
 #endif
 
 	if (priv->mode != NL80211_IFTYPE_AP || !sta_priv->link_id) {
@@ -128,7 +128,7 @@ int xradio_sta_remove(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
 		if ((priv->if_id != 1) ||
 			((priv->if_id == 1) && hw_priv->is_go_thru_go_neg)) {
 			wsm_lock_tx(hw_priv);
-			SYS_WARN(wsm_set_block_ack_policy(hw_priv,
+			WARN_ON(wsm_set_block_ack_policy(hw_priv,
 						XRADIO_TX_BLOCK_ACK_ENABLED_FOR_ALL_TID,
 						XRADIO_RX_BLOCK_ACK_ENABLED_FOR_ALL_TID,
 						priv->if_id));
@@ -189,7 +189,7 @@ void xradio_sta_notify(struct ieee80211_hw *dev,
 	struct xradio_sta_priv *sta_priv = (struct xradio_sta_priv *)&sta->drv_priv;
 
 #ifdef P2P_MULTIVIF
-	SYS_WARN(priv->if_id == XRWL_GENERIC_IF_ID);
+	WARN_ON(priv->if_id == XRWL_GENERIC_IF_ID);
 #endif
 	spin_lock_bh(&priv->ps_state_lock);
 	__xradio_sta_notify(priv, notify_cmd, sta_priv->link_id);
@@ -246,7 +246,7 @@ static int xradio_set_tim_impl(struct xradio_vif *priv, bool aid0_bit_set)
 	update_ie.length = tim_length;
 	//filter same tim info, yangfh
 	if(memcmp(priv->last_tim, update_ie.ies, tim_length)) {
-		SYS_WARN(wsm_update_ie(hw_priv, &update_ie, priv->if_id));
+		WARN_ON(wsm_update_ie(hw_priv, &update_ie, priv->if_id));
 		memcpy(priv->last_tim, update_ie.ies, tim_length);
 		ap_printk(XRADIO_DBG_MSG,"%02x %02x %02x %02x %02x %02x\n", 
 		          update_ie.ies[0], update_ie.ies[1], update_ie.ies[2], 
@@ -271,9 +271,9 @@ int xradio_set_tim(struct ieee80211_hw *dev, struct ieee80211_sta *sta,
 	struct xradio_vif *priv = sta_priv->priv;
 
 #ifdef P2P_MULTIVIF
-	SYS_WARN(priv->if_id == XRWL_GENERIC_IF_ID);
+	WARN_ON(priv->if_id == XRWL_GENERIC_IF_ID);
 #endif
-	SYS_WARN(priv->mode != NL80211_IFTYPE_AP);
+	WARN_ON(priv->mode != NL80211_IFTYPE_AP);
 	queue_work(priv->hw_priv->workqueue, &priv->set_tim_work);
 	return 0;
 }
@@ -304,11 +304,11 @@ void xradio_set_cts_work(struct work_struct *work)
 
 	/* TODO:COMBO: If 2 interfaces are on the same channel they share
 	the same ERP values */
-	SYS_WARN(wsm_write_mib(hw_priv, WSM_MIB_ID_NON_ERP_PROTECTION,
+	WARN_ON(wsm_write_mib(hw_priv, WSM_MIB_ID_NON_ERP_PROTECTION,
 	                       &use_cts_prot, sizeof(use_cts_prot), priv->if_id));
 	/* If STA Mode update_ie is not required */
 	if (priv->mode != NL80211_IFTYPE_STATION) {
-		SYS_WARN(wsm_update_ie(hw_priv, &update_ie, priv->if_id));
+		WARN_ON(wsm_update_ie(hw_priv, &update_ie, priv->if_id));
 	}
 
 	return;
@@ -321,8 +321,8 @@ static int xradio_set_btcoexinfo(struct xradio_vif *priv)
 
 	if (priv->mode == NL80211_IFTYPE_STATION) {
 		/* Plumb PSPOLL and NULL template */
-		SYS_WARN(xradio_upload_pspoll(priv));
-		SYS_WARN(xradio_upload_null(priv));
+		WARN_ON(xradio_upload_pspoll(priv));
+		WARN_ON(xradio_upload_null(priv));
 	} else {
 		return 0;
 	}
@@ -356,7 +356,7 @@ static int xradio_set_btcoexinfo(struct xradio_vif *priv)
 	          "nonErpInternalTxRate: %x\n", priv->mode, arg.internalTxRate,
 	          arg.nonErpInternalTxRate);
 
-	ret = SYS_WARN(wsm_write_mib(xrwl_vifpriv_to_hwpriv(priv),
+	ret = WARN_ON(wsm_write_mib(xrwl_vifpriv_to_hwpriv(priv),
 	               WSM_MIB_ID_OVERRIDE_INTERNAL_TX_RATE, 
 	               &arg, sizeof(arg), priv->if_id));
 
@@ -415,7 +415,7 @@ void xradio_bss_info_changed(struct ieee80211_hw *dev,
 		ap_printk(XRADIO_DBG_NIY, "[STA]arp ip filter enable: %d\n", __le32_to_cpu(filter.enable));
 
 		if (wsm_set_arp_ipv4_filter(hw_priv, &filter, priv->if_id))
-			SYS_WARN(1);
+			WARN_ON(1);
 
 		if (filter.enable &&
 			(priv->join_status == XRADIO_JOIN_STATUS_STA)) {
@@ -465,8 +465,8 @@ void xradio_bss_info_changed(struct ieee80211_hw *dev,
 		} else
 			ap_printk(XRADIO_DBG_NIY, "priv->join_status=%d\n", priv->join_status);
 #endif
-		SYS_WARN(xradio_upload_beacon(priv));
-		SYS_WARN(xradio_update_beaconing(priv));
+		WARN_ON(xradio_upload_beacon(priv));
+		WARN_ON(xradio_update_beaconing(priv));
 	}
 
 	if (changed & BSS_CHANGED_BEACON_ENABLED) {
@@ -478,7 +478,7 @@ void xradio_bss_info_changed(struct ieee80211_hw *dev,
 		ap_printk(XRADIO_DBG_NIY, "CHANGED_BEACON_INT\n");
 		/* Restart AP only when connected */
 		if (priv->join_status == XRADIO_JOIN_STATUS_AP)
-			SYS_WARN(xradio_update_beaconing(priv));
+			WARN_ON(xradio_update_beaconing(priv));
 	}
 
 
@@ -520,7 +520,7 @@ void xradio_bss_info_changed(struct ieee80211_hw *dev,
 			if (sta) {
 				/* TODO:COMBO:Change this once
 				* mac80211 changes are available */
-				SYS_BUG(!hw_priv->channel);
+				BUG_ON(!hw_priv->channel);
 				hw_priv->ht_oper.ht_cap = sta->ht_cap;
 				priv->bss_params.operationalRateSet =__cpu_to_le32(
 				  xradio_rate_mask_to_wsm(hw_priv, sta->supp_rates[hw_priv->channel->band]));
@@ -567,7 +567,7 @@ void xradio_bss_info_changed(struct ieee80211_hw *dev,
 					/* Non Green field capable STA */
 					val = __cpu_to_le32(BIT(1));
 				}
-				SYS_WARN(wsm_write_mib(hw_priv, WSM_MID_ID_SET_HT_PROTECTION,
+				WARN_ON(wsm_write_mib(hw_priv, WSM_MID_ID_SET_HT_PROTECTION,
 				                       &val, sizeof(val), priv->if_id));
 			}
 
@@ -611,10 +611,10 @@ void xradio_bss_info_changed(struct ieee80211_hw *dev,
 			          priv->bss_params.aid,
 			          priv->bss_params.operationalRateSet,
 			          priv->association_mode.basicRateSet);
-			SYS_WARN(wsm_set_association_mode(hw_priv, &priv->association_mode, priv->if_id));
-			SYS_WARN(wsm_keep_alive_period(hw_priv, XRADIO_KEEP_ALIVE_PERIOD /* sec */,
+			WARN_ON(wsm_set_association_mode(hw_priv, &priv->association_mode, priv->if_id));
+			WARN_ON(wsm_keep_alive_period(hw_priv, XRADIO_KEEP_ALIVE_PERIOD /* sec */,
 			                               priv->if_id));
-			SYS_WARN(wsm_set_bss_params(hw_priv, &priv->bss_params, priv->if_id));
+			WARN_ON(wsm_set_bss_params(hw_priv, &priv->bss_params, priv->if_id));
 			priv->setbssparams_done = true;
 #ifdef XRADIO_USE_LONG_DTIM_PERIOD
 {
@@ -626,19 +626,19 @@ void xradio_bss_info_changed(struct ieee80211_hw *dev,
 			} else {
 				join_dtim_period_extend = priv->join_dtim_period;
 			}
-			SYS_WARN(wsm_set_beacon_wakeup_period(hw_priv,
+			WARN_ON(wsm_set_beacon_wakeup_period(hw_priv,
 				((priv->beacon_int * join_dtim_period_extend) > MAX_BEACON_SKIP_TIME_MS 
 				? 1 : join_dtim_period_extend) , 0, priv->if_id));
 }
 #else
-			SYS_WARN(wsm_set_beacon_wakeup_period(hw_priv,
+			WARN_ON(wsm_set_beacon_wakeup_period(hw_priv,
 				((priv->beacon_int * priv->join_dtim_period) > MAX_BEACON_SKIP_TIME_MS 
 				? 1 : priv->join_dtim_period) , 0, priv->if_id));
 #endif
 			if (priv->htcap) {
 				wsm_lock_tx(hw_priv);
 				/* Statically enabling block ack for TX/RX */
-				SYS_WARN(wsm_set_block_ack_policy(hw_priv, hw_priv->ba_tid_mask, 
+				WARN_ON(wsm_set_block_ack_policy(hw_priv, hw_priv->ba_tid_mask,
 				                                  hw_priv->ba_tid_mask, priv->if_id));
 				wsm_unlock_tx(hw_priv);
 			}
@@ -648,17 +648,17 @@ void xradio_bss_info_changed(struct ieee80211_hw *dev,
 			xradio_set_pm(priv, &priv->powersave_mode);
 			if (priv->vif->p2p) {
 				ap_printk(XRADIO_DBG_NIY, "[STA] Setting p2p powersave configuration.\n");
-				SYS_WARN(wsm_set_p2p_ps_modeinfo(hw_priv, &priv->p2p_ps_modeinfo, priv->if_id));
+				WARN_ON(wsm_set_p2p_ps_modeinfo(hw_priv, &priv->p2p_ps_modeinfo, priv->if_id));
 #if defined(CONFIG_XRADIO_USE_EXTENSIONS)
 				//xradio_notify_noa(priv, XRADIO_NOA_NOTIFICATION_DELAY);
 #endif
 			}
 
 			if (priv->mode == NL80211_IFTYPE_STATION)
-				SYS_WARN(xradio_upload_qosnull(priv));
+				WARN_ON(xradio_upload_qosnull(priv));
 
 			if (hw_priv->is_BT_Present)
-				SYS_WARN(xradio_set_btcoexinfo(priv));
+				WARN_ON(xradio_set_btcoexinfo(priv));
 #if 0
 			/* It's better to override internal TX rete; otherwise
 			 * device sends RTS at too high rate. However device
@@ -678,7 +678,7 @@ void xradio_bss_info_changed(struct ieee80211_hw *dev,
 			 * low rates */
 			__le32 internal_tx_rate = __cpu_to_le32(
 			                          __ffs(priv->association_mode.basicRateSet & ~3));
-			SYS_WARN(wsm_write_mib(priv, WSM_MIB_ID_OVERRIDE_INTERNAL_TX_RATE,
+			WARN_ON(wsm_write_mib(priv, WSM_MIB_ID_OVERRIDE_INTERNAL_TX_RATE,
 			                       &internal_tx_rate,sizeof(internal_tx_rate)));
 #endif
 		} else {
@@ -702,7 +702,7 @@ void xradio_bss_info_changed(struct ieee80211_hw *dev,
 	if (changed & (BSS_CHANGED_ASSOC | BSS_CHANGED_ERP_SLOT)) {
 		__le32 slot_time = info->use_short_slot ? __cpu_to_le32(9) : __cpu_to_le32(20);
 		ap_printk(XRADIO_DBG_MSG, "[STA] Slot time :%d us.\n", __le32_to_cpu(slot_time));
-		SYS_WARN(wsm_write_mib(hw_priv, WSM_MIB_ID_DOT11_SLOT_TIME, &slot_time, 
+		WARN_ON(wsm_write_mib(hw_priv, WSM_MIB_ID_DOT11_SLOT_TIME, &slot_time,
 		                       sizeof(slot_time), priv->if_id));
 	}
 	if (changed & (BSS_CHANGED_ASSOC | BSS_CHANGED_CQM)) {
@@ -746,7 +746,7 @@ void xradio_bss_info_changed(struct ieee80211_hw *dev,
 			                          WSM_RCPI_RSSI_DONT_USE_UPPER   |
 			                          WSM_RCPI_RSSI_DONT_USE_LOWER;
 		}
-		SYS_WARN(wsm_set_rcpi_rssi_threshold(hw_priv, &threshold, priv->if_id));
+		WARN_ON(wsm_set_rcpi_rssi_threshold(hw_priv, &threshold, priv->if_id));
 
 #if defined(CONFIG_XRADIO_USE_EXTENSIONS)
 		//priv->cqm_tx_failure_thold = info->cqm_tx_fail_thold;
@@ -759,7 +759,7 @@ void xradio_bss_info_changed(struct ieee80211_hw *dev,
 			/* Make sure we are associated before sending
 			 * set_bss_params to firmware */
 			if (priv->bss_params.aid) {
-				SYS_WARN(wsm_set_bss_params(hw_priv, &priv->bss_params, priv->if_id));
+				WARN_ON(wsm_set_bss_params(hw_priv, &priv->bss_params, priv->if_id));
 				priv->setbssparams_done = true;
 			}
 		//}
@@ -817,7 +817,7 @@ void xradio_bss_info_changed(struct ieee80211_hw *dev,
 		spin_unlock_bh(&hw_priv->tx_policy_cache.lock);
 		/* TBD: I think we don't need tx_policy_force_upload().
 		 * Outdated policies will leave cache in a normal way. */
-		/* SYS_WARN(tx_policy_force_upload(priv)); */
+		/* WARN_ON(tx_policy_force_upload(priv)); */
 	}
 #endif
 	/*in linux3.4 mac,the  enum ieee80211_bss_change variable doesn't have BSS_CHANGED_P2P_PS enum value*/
@@ -893,7 +893,7 @@ void xradio_bss_info_changed(struct ieee80211_hw *dev,
 
 		if (priv->join_status == XRADIO_JOIN_STATUS_STA ||
 		    priv->join_status == XRADIO_JOIN_STATUS_AP) {
-			SYS_WARN(wsm_set_p2p_ps_modeinfo(hw_priv, modeinfo, priv->if_id));
+			WARN_ON(wsm_set_p2p_ps_modeinfo(hw_priv, modeinfo, priv->if_id));
 		}
 #if defined(CONFIG_XRADIO_USE_EXTENSIONS)
 		/* Temporary solution while firmware don't support NOA change
@@ -1032,7 +1032,7 @@ static int xradio_upload_beacon(struct xradio_vif *priv)
 		frame.rate = WSM_TRANSMIT_RATE_6;
 
 	frame.skb = ieee80211_beacon_get(priv->hw, priv->vif);
-	if (SYS_WARN(!frame.skb))
+	if (WARN_ON(!frame.skb))
 		return -ENOMEM;
 
 	mgmt = (void *)frame.skb->data;
@@ -1070,7 +1070,7 @@ static int xradio_upload_beacon(struct xradio_vif *priv)
 
 		ap_printk(XRADIO_DBG_NIY, "%s: hidden_ssid set\n", __func__);
 		ssid_ie = (u8 *)cfg80211_find_ie(WLAN_EID_SSID, ies, ies_len);
-		SYS_WARN(!ssid_ie);
+		WARN_ON(!ssid_ie);
 		ssid_len = ssid_ie[1];
 		if (ssid_len) {
 			ap_printk(XRADIO_DBG_MSG, "hidden_ssid with zero content ssid\n");
@@ -1106,7 +1106,7 @@ static int xradio_upload_beacon(struct xradio_vif *priv)
 			ret = wsm_set_probe_responder(priv, true);
 		else {
 			ret = wsm_set_template_frame(hw_priv, &frame, priv->if_id);
-			SYS_WARN(wsm_set_probe_responder(priv, false));
+			WARN_ON(wsm_set_probe_responder(priv, false));
 		}
 #endif
 	}
@@ -1131,7 +1131,7 @@ static int xradio_upload_proberesp(struct xradio_vif *priv)
 		frame.rate = WSM_TRANSMIT_RATE_6;
 
 	frame.skb = ieee80211_proberesp_get(priv->hw, priv->vif);
-	if (SYS_WARN(!frame.skb))
+	if (WARN_ON(!frame.skb))
 		return -ENOMEM;
 
 #ifdef HIDDEN_SSID
@@ -1158,7 +1158,7 @@ static int xradio_upload_proberesp(struct xradio_vif *priv)
 	}
 #endif
 	ret = wsm_set_template_frame(hw_priv, &frame,  priv->if_id);
-	SYS_WARN(wsm_set_probe_responder(priv, false));
+	WARN_ON(wsm_set_probe_responder(priv, false));
 
 	dev_kfree_skb(frame.skb);
 
@@ -1175,7 +1175,7 @@ static int xradio_upload_pspoll(struct xradio_vif *priv)
 	};
 
 	frame.skb = ieee80211_pspoll_get(priv->hw, priv->vif);
-	if (SYS_WARN(!frame.skb))
+	if (WARN_ON(!frame.skb))
 		return -ENOMEM;
 	ret = wsm_set_template_frame(xrwl_vifpriv_to_hwpriv(priv), &frame, priv->if_id);
 	dev_kfree_skb(frame.skb);
@@ -1191,7 +1191,7 @@ static int xradio_upload_null(struct xradio_vif *priv)
 	};
 
 	frame.skb = ieee80211_nullfunc_get(priv->hw, priv->vif);
-	if (SYS_WARN(!frame.skb))
+	if (WARN_ON(!frame.skb))
 		return -ENOMEM;
 
 	ret = wsm_set_template_frame(xrwl_vifpriv_to_hwpriv(priv), &frame, priv->if_id);
@@ -1305,7 +1305,7 @@ static int xradio_start_ap(struct xradio_vif *priv)
 #ifndef HIDDEN_SSID
 	/* Get SSID */
 	skb = ieee80211_beacon_get(priv->hw, priv->vif);
-	if (SYS_WARN(!skb)) {
+	if (WARN_ON(!skb)) {
 		ap_printk(XRADIO_DBG_ERROR,"%s, ieee80211_beacon_get failed\n", __func__);
 		return -ENOMEM;
 	}
@@ -1316,7 +1316,7 @@ static int xradio_start_ap(struct xradio_vif *priv)
 	memset(priv->ssid, 0, sizeof(priv->ssid));
 	if (ssidie) {
 		priv->ssid_length = ssidie[1];
-		if (SYS_WARN(priv->ssid_length > sizeof(priv->ssid)))
+		if (WARN_ON(priv->ssid_length > sizeof(priv->ssid)))
 			priv->ssid_length = sizeof(priv->ssid);
 		memcpy(priv->ssid, &ssidie[2], priv->ssid_length);
 	} else {
@@ -1339,11 +1339,11 @@ static int xradio_start_ap(struct xradio_vif *priv)
 	          start.channelNumber,  start.band,
 	          start.beaconInterval, start.DTIMPeriod, 
 	          start.basicRateSet, start.ssidLength, start.ssid);
-	ret = SYS_WARN(wsm_start(hw_priv, &start, priv->if_id));
+	ret = WARN_ON(wsm_start(hw_priv, &start, priv->if_id));
 
 	if (!ret && priv->vif->p2p) {
 		ap_printk(XRADIO_DBG_NIY,"[AP] Setting p2p powersave configuration.\n");
-		SYS_WARN(wsm_set_p2p_ps_modeinfo(hw_priv,
+		WARN_ON(wsm_set_p2p_ps_modeinfo(hw_priv,
 			&priv->p2p_ps_modeinfo, priv->if_id));
 #if defined(CONFIG_XRADIO_USE_EXTENSIONS)
 		//xradio_notify_noa(priv, XRADIO_NOA_NOTIFICATION_DELAY);
@@ -1356,23 +1356,23 @@ static int xradio_start_ap(struct xradio_vif *priv)
 	}
 	if (!ret) {
 #ifndef AP_AGGREGATE_FW_FIX
-		SYS_WARN(wsm_set_block_ack_policy(hw_priv,
+		WARN_ON(wsm_set_block_ack_policy(hw_priv,
 		         XRADIO_TX_BLOCK_ACK_DISABLED_FOR_ALL_TID,
 		         XRADIO_RX_BLOCK_ACK_DISABLED_FOR_ALL_TID, priv->if_id));
 #else
 		if ((priv->if_id ==1) && !hw_priv->is_go_thru_go_neg)
-			SYS_WARN(wsm_set_block_ack_policy(hw_priv,
+			WARN_ON(wsm_set_block_ack_policy(hw_priv,
 			         XRADIO_TX_BLOCK_ACK_ENABLED_FOR_ALL_TID, //modified for WFD by yangfh
 			         XRADIO_RX_BLOCK_ACK_ENABLED_FOR_ALL_TID, priv->if_id));
 		else
-			SYS_WARN(wsm_set_block_ack_policy(hw_priv,
+			WARN_ON(wsm_set_block_ack_policy(hw_priv,
 			         XRADIO_TX_BLOCK_ACK_ENABLED_FOR_ALL_TID,
 			         XRADIO_RX_BLOCK_ACK_ENABLED_FOR_ALL_TID, priv->if_id));
 #endif
 		priv->join_status = XRADIO_JOIN_STATUS_AP;
 		/* xradio_update_filtering(priv); */
 	}
-	SYS_WARN(wsm_set_operational_mode(hw_priv, &defaultoperationalmode, priv->if_id));
+	WARN_ON(wsm_set_operational_mode(hw_priv, &defaultoperationalmode, priv->if_id));
 	hw_priv->vif0_throttle = XRWL_HOST_VIF0_11BG_THROTTLE;
 	hw_priv->vif1_throttle = XRWL_HOST_VIF1_11BG_THROTTLE;
 	ap_printk(XRADIO_DBG_WARN, "vif%d, AP/GO mode THROTTLE=%d\n", priv->if_id,
@@ -1397,9 +1397,9 @@ static int xradio_update_beaconing(struct xradio_vif *priv)
 			ap_printk(XRADIO_DBG_WARN, "ap restarting!\n");
 			wsm_lock_tx(hw_priv);
 			if (priv->join_status != XRADIO_JOIN_STATUS_PASSIVE)
-				SYS_WARN(wsm_reset(hw_priv, &reset, priv->if_id));
+				WARN_ON(wsm_reset(hw_priv, &reset, priv->if_id));
 			priv->join_status = XRADIO_JOIN_STATUS_PASSIVE;
-			SYS_WARN(xradio_start_ap(priv));
+			WARN_ON(xradio_start_ap(priv));
 			wsm_unlock_tx(hw_priv);
 		} else
 			ap_printk(XRADIO_DBG_NIY, "ap started join_status: %d\n", priv->join_status);
@@ -1509,10 +1509,10 @@ void xradio_link_id_gc_work(struct work_struct *work)
 			memcpy(map_link.mac_addr, priv->link_id_db[i].mac, ETH_ALEN);
 			spin_unlock_bh(&priv->ps_state_lock);
 			if (need_reset) {
-				SYS_WARN(xrwl_unmap_link(priv, i + 1));
+				WARN_ON(xrwl_unmap_link(priv, i + 1));
 			}
 			map_link.link_id = i + 1;
-			SYS_WARN(wsm_map_link(hw_priv, &map_link, priv->if_id));
+			WARN_ON(wsm_map_link(hw_priv, &map_link, priv->if_id));
 			next_gc = min(next_gc, XRADIO_LINK_ID_GC_TIMEOUT);
 			spin_lock_bh(&priv->ps_state_lock);
 		} else if (priv->link_id_db[i].status == XRADIO_LINK_SOFT) {
@@ -1525,7 +1525,7 @@ void xradio_link_id_gc_work(struct work_struct *work)
 				priv->pspoll_mask &= ~mask;
 				memset(map_link.mac_addr, 0, ETH_ALEN);
 				spin_unlock_bh(&priv->ps_state_lock);
-				SYS_WARN(xrwl_unmap_link(priv, i + 1));
+				WARN_ON(xrwl_unmap_link(priv, i + 1));
 				spin_lock_bh(&priv->ps_state_lock);
 			} else {
 				next_gc = min_t(unsigned long, next_gc, ttl);
@@ -1537,11 +1537,11 @@ void xradio_link_id_gc_work(struct work_struct *work)
 			priv->link_id_db[i].status = XRADIO_LINK_OFF;
 			priv->link_id_db[i].timestamp = now;
 			spin_unlock_bh(&priv->ps_state_lock);
-			SYS_WARN(xrwl_unmap_link(priv, i + 1));
+			WARN_ON(xrwl_unmap_link(priv, i + 1));
 			if (status == XRADIO_LINK_RESET_REMAP) {
 				memcpy(map_link.mac_addr, priv->link_id_db[i].mac, ETH_ALEN);
 				map_link.link_id = i + 1;
-				SYS_WARN(wsm_map_link(hw_priv, &map_link, priv->if_id));
+				WARN_ON(wsm_map_link(hw_priv, &map_link, priv->if_id));
 				next_gc = min(next_gc, XRADIO_LINK_ID_GC_TIMEOUT);
 				priv->link_id_db[i].status = priv->link_id_db[i].prev_status;
 			}
@@ -1574,7 +1574,7 @@ void xradio_notify_noa(struct xradio_vif *priv, int delay)
 	if (delay)
 		msleep(delay);
 
-	if (!SYS_WARN(wsm_get_p2p_ps_modeinfo(hw_priv, modeinfo))) {
+	if (!WARN_ON(wsm_get_p2p_ps_modeinfo(hw_priv, modeinfo))) {
 #if defined(CONFIG_XRADIO_DEBUG)
 		print_hex_dump_bytes("[AP] p2p_get_ps_modeinfo: ", DUMP_PREFIX_NONE,
 		                    (u8 *)modeinfo, sizeof(*modeinfo));
@@ -1611,7 +1611,7 @@ int xrwl_unmap_link(struct xradio_vif *priv, int link_id)
 			.reset_statistics = true,
 		};
 		ret = wsm_reset(hw_priv, &reset, priv->if_id);
-		SYS_WARN(wsm_set_operational_mode(hw_priv, &defaultoperationalmode, priv->if_id));
+		WARN_ON(wsm_set_operational_mode(hw_priv, &defaultoperationalmode, priv->if_id));
 		return ret;
 	}
 }
@@ -1631,7 +1631,7 @@ void xradio_ht_oper_update_work(struct work_struct *work)
 	};
 
 	skb = ieee80211_beacon_get(priv->hw, priv->vif);
-	if (SYS_WARN(!skb))
+	if (WARN_ON(!skb))
 		return;
 
 	mgmt = (void *)skb->data;
@@ -1642,7 +1642,7 @@ void xradio_ht_oper_update_work(struct work_struct *work)
 		ht_oper[HT_INFO_OFFSET] |= 0x11;
 		update_ie.ies = ht_oper;
 		update_ie.length = HT_INFO_IE_LEN;
-		SYS_WARN(wsm_update_ie(hw_priv, &update_ie, priv->if_id));
+		WARN_ON(wsm_update_ie(hw_priv, &update_ie, priv->if_id));
 	}
 	dev_kfree_skb(skb);
 }

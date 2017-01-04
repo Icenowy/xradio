@@ -103,7 +103,7 @@ int xradio_start(struct ieee80211_hw *dev)
 	hw_priv->softled_state = 0;
 
 	ret = xradio_setup_mac(hw_priv);
-	if (SYS_WARN(ret)) {
+	if (WARN_ON(ret)) {
 		wiphy_err(dev->wiphy, "xradio_setup_mac failed(%d)\n", ret);
 		goto out;
 	}
@@ -247,7 +247,7 @@ int xradio_add_interface(struct ieee80211_hw *dev,
 
 	/* Enable auto-calibration */
 	/* Exception in subsequent channel switch; disabled.
-	SYS_WARN(wsm_write_mib(hw_priv, WSM_MIB_ID_SET_AUTO_CALIBRATION_MODE,
+	WARN_ON(wsm_write_mib(hw_priv, WSM_MIB_ID_SET_AUTO_CALIBRATION_MODE,
 		&auto_calibration_mode, sizeof(auto_calibration_mode)));
 	*/
 	wiphy_debug(dev->wiphy, "Interface ID:%d of type:%d added\n", priv->if_id, priv->mode);
@@ -255,7 +255,7 @@ int xradio_add_interface(struct ieee80211_hw *dev,
 
 	xradio_vif_setup(priv);
 
-	ret = SYS_WARN(xradio_setup_mac_pvif(priv));
+	ret = WARN_ON(xradio_setup_mac_pvif(priv));
 
 	return ret;
 }
@@ -305,7 +305,7 @@ void xradio_remove_interface(struct ieee80211_hw *dev,
 		priv->pspoll_mask = 0;
 		reset.link_id = 0;
 		wsm_reset(hw_priv, &reset, priv->if_id);
-		SYS_WARN(wsm_set_operational_mode(hw_priv, &defaultoperationalmode, priv->if_id));
+		WARN_ON(wsm_set_operational_mode(hw_priv, &defaultoperationalmode, priv->if_id));
 		xradio_for_each_vif(hw_priv, tmp_priv, i) {
 #ifdef P2P_MULTIVIF
 			if ((i == (XRWL_MAX_VIFS - 1)) || !tmp_priv)
@@ -430,7 +430,7 @@ int xradio_config(struct ieee80211_hw *dev, u32 changed)
 		hw_priv->output_power = 20;
 		wiphy_debug(dev->wiphy, "Config Tx power=%d, but real=%d\n",
 		           conf->power_level, hw_priv->output_power);
-		SYS_WARN(wsm_set_output_power(hw_priv, hw_priv->output_power * 10, if_id));
+		WARN_ON(wsm_set_output_power(hw_priv, hw_priv->output_power * 10, if_id));
 	}
 
 	if ((changed & IEEE80211_CONF_CHANGE_CHANNEL) &&
@@ -511,7 +511,7 @@ void xradio_update_filtering(struct xradio_vif *priv)
 			else
 				ret = wsm_set_beacon_filter_table(hw_priv, &bf_table_auto, priv->if_id);
 		} else
-			SYS_WARN(1);
+			WARN_ON(1);
 	}
 	if (!ret && !ap_mode) {
 		if (priv->disable_beacon_filter)
@@ -524,7 +524,7 @@ void xradio_update_filtering(struct xradio_vif *priv)
 				else
 					ret = wsm_beacon_filter_control(hw_priv, &bf_auto, priv->if_id);
 			} else
-				SYS_WARN(1);
+				WARN_ON(1);
 		}
 	}
 
@@ -566,13 +566,13 @@ void xradio_set_beacon_wakeup_period_work(struct work_struct *work)
 	} else {
 		join_dtim_period_extend = priv->join_dtim_period;
 	}
-	SYS_WARN(wsm_set_beacon_wakeup_period(priv->hw_priv,
+	WARN_ON(wsm_set_beacon_wakeup_period(priv->hw_priv,
 	         priv->beacon_int * join_dtim_period_extend >
 	         MAX_BEACON_SKIP_TIME_MS ? 1 : join_dtim_period_extend, 
 	         0, priv->if_id));
 }
 #else
-	SYS_WARN(wsm_set_beacon_wakeup_period(priv->hw_priv,
+	WARN_ON(wsm_set_beacon_wakeup_period(priv->hw_priv,
 	         priv->beacon_int * priv->join_dtim_period >
 	         MAX_BEACON_SKIP_TIME_MS ? 1 :priv->join_dtim_period, 
 	         0, priv->if_id));
@@ -713,7 +713,7 @@ int xradio_conf_tx(struct ieee80211_hw *dev, struct ieee80211_vif *vif,
 
 	wiphy_debug(dev->wiphy, "vif %d, configuring tx\n", priv->if_id);
 
-	if (SYS_WARN(!priv))
+	if (WARN_ON(!priv))
 		return -EOPNOTSUPP;
 
 #ifdef P2P_MULTIVIF
@@ -815,13 +815,13 @@ void xradio_wep_key_work(struct work_struct *work)
 	__le32 wep_default_key_id = __cpu_to_le32(priv->wep_default_key_id);
 
 
-	SYS_BUG(queueId >= 4);
+	BUG_ON(queueId >= 4);
 
 	sta_printk(XRADIO_DBG_MSG, "Setting default WEP key: %d\n", 
 	           priv->wep_default_key_id);
 
 	wsm_flush_tx(hw_priv);
-	SYS_WARN(wsm_write_mib(hw_priv, WSM_MIB_ID_DOT11_WEP_DEFAULT_KEY_ID,
+	WARN_ON(wsm_write_mib(hw_priv, WSM_MIB_ID_DOT11_WEP_DEFAULT_KEY_ID,
 	                       &wep_default_key_id, sizeof(wep_default_key_id),
 	                       priv->if_id));
 
@@ -845,7 +845,7 @@ int xradio_set_rts_threshold(struct ieee80211_hw *hw, u32 value)
 			continue;
 		if_id = priv->if_id;
 #ifdef P2P_MULTIVIF
-		SYS_WARN(priv->if_id == XRWL_GENERIC_IF_ID);
+		WARN_ON(priv->if_id == XRWL_GENERIC_IF_ID);
 #endif
 
 		if (value != (u32) -1)
@@ -854,7 +854,7 @@ int xradio_set_rts_threshold(struct ieee80211_hw *hw, u32 value)
 			val32 = 0; /* disabled */
 
 		/* mutex_lock(&priv->conf_mutex); */
-		ret = SYS_WARN(wsm_write_mib(hw_priv, WSM_MIB_ID_DOT11_RTS_THRESHOLD,
+		ret = WARN_ON(wsm_write_mib(hw_priv, WSM_MIB_ID_DOT11_RTS_THRESHOLD,
 			&val32, sizeof(val32), if_id));
 		/* mutex_unlock(&priv->conf_mutex); */
 	}
@@ -976,7 +976,7 @@ int xradio_remain_on_channel(struct ieee80211_hw *hw,
 		if((priv->if_id == 0) || (priv->if_id == 1))
 			continue;
 		hw_priv->roc_if_id = priv->if_id;
-		ret = SYS_WARN(__xradio_flush(hw_priv, false, if_id));
+		ret = WARN_ON(__xradio_flush(hw_priv, false, if_id));
 		xradio_enable_listening(priv, chan);
 
 		if (!ret) {
@@ -1156,7 +1156,7 @@ void xradio_event_handler(struct work_struct *work)
 				skb_reserve(skb, 64);
 				xrwl_unmap_link(priv, link_id);
 				deauth = (struct ieee80211_mgmt *)skb_put(skb, sizeof(struct ieee80211_mgmt));
-	                        SYS_WARN(!deauth);
+	                        WARN_ON(!deauth);
 	                        entry = &priv->link_id_db[link_id - 1];
 	                        deauth->duration = 0;
 	                        memcpy(deauth->da, priv->vif->addr, ETH_ALEN);
@@ -1281,7 +1281,7 @@ int xradio_setup_mac(struct xradio_common *hw_priv)
 		for (if_id = 0; if_id < xrwl_get_nr_hw_ifaces(hw_priv);
 		     if_id++) {
 			/* Set low-power mode. */
-			ret |= SYS_WARN(wsm_configuration(hw_priv, &cfg,
+			ret |= WARN_ON(wsm_configuration(hw_priv, &cfg,
 				       if_id));
 		}
 		/* wsm_configuration only once, so release it */
@@ -1332,8 +1332,8 @@ void xradio_offchannel_work(struct work_struct *work)
 	struct xradio_queue *queue = &hw_priv->tx_queue[queueId];
 
 
-	SYS_BUG(queueId >= 4);
-	SYS_BUG(!hw_priv->channel);
+	BUG_ON(queueId >= 4);
+	BUG_ON(!hw_priv->channel);
 
 	if (unlikely(down_trylock(&hw_priv->scan.lock))) {
 		int ret;
@@ -1397,7 +1397,7 @@ void xradio_join_work(struct work_struct *work)
 
 
 
-	SYS_BUG(queueId >= 4);
+	BUG_ON(queueId >= 4);
 	if (xradio_queue_get_skb(queue,	hw_priv->pending_frame_id,
 			&skb, &txpriv)) {
 		wsm_unlock_tx(hw_priv);
@@ -1407,8 +1407,8 @@ void xradio_join_work(struct work_struct *work)
 	frame = (struct ieee80211_hdr *)&skb->data[txpriv->offset];
 	bssid = &frame->addr1[0]; /* AP SSID in a 802.11 frame */
 
-	SYS_BUG(!wsm);
-	SYS_BUG(!hw_priv->channel);
+	BUG_ON(!wsm);
+	BUG_ON(!hw_priv->channel);
 
 	if (unlikely(priv->join_status)) {
 		sta_printk(XRADIO_DBG_WARN, "%s, pre join_status=%d.\n",
@@ -1491,7 +1491,7 @@ void xradio_join_work(struct work_struct *work)
 
 		if (ssidie) {
 			join.ssidLength = ssidie[1];
-			if (SYS_WARN(join.ssidLength > sizeof(join.ssid)))
+			if (WARN_ON(join.ssidLength > sizeof(join.ssid)))
 				join.ssidLength = sizeof(join.ssid);
 			memcpy(&join.ssid[0], &ssidie[2], join.ssidLength);
 			if(strstr(&join.ssid[0],"5.1.4"))
@@ -1523,9 +1523,9 @@ void xradio_join_work(struct work_struct *work)
 
 		xradio_disable_listening(priv);
 
-		//SYS_WARN(wsm_reset(hw_priv, &reset, priv->if_id));
-		SYS_WARN(wsm_set_operational_mode(hw_priv, &defaultoperationalmode, priv->if_id));
-		SYS_WARN(wsm_set_block_ack_policy(hw_priv,
+		//WARN_ON(wsm_reset(hw_priv, &reset, priv->if_id));
+		WARN_ON(wsm_set_operational_mode(hw_priv, &defaultoperationalmode, priv->if_id));
+		WARN_ON(wsm_set_block_ack_policy(hw_priv,
 			0, hw_priv->ba_tid_mask, priv->if_id));
 		spin_lock_bh(&hw_priv->ba_lock);
 		hw_priv->ba_ena = false;
@@ -1614,7 +1614,7 @@ void xradio_unjoin_work(struct work_struct *work)
 		sta_printk(XRADIO_DBG_ERROR, 
 				"%s: Unexpected: join status: %d\n",
 				__func__, priv->join_status);
-		SYS_BUG(1);
+		BUG_ON(1);
 	}
 	if (priv->join_status) {
 		cancel_work_sync(&priv->update_filtering_work);
@@ -1624,18 +1624,18 @@ void xradio_unjoin_work(struct work_struct *work)
 
 		/* Unjoin is a reset. */
 		wsm_flush_tx(hw_priv);
-		SYS_WARN(wsm_keep_alive_period(hw_priv, 0, priv->if_id));
-		SYS_WARN(wsm_reset(hw_priv, &reset, priv->if_id));
-		SYS_WARN(wsm_set_operational_mode(hw_priv, &defaultoperationalmode, priv->if_id));
-		SYS_WARN(wsm_set_output_power(hw_priv,
+		WARN_ON(wsm_keep_alive_period(hw_priv, 0, priv->if_id));
+		WARN_ON(wsm_reset(hw_priv, &reset, priv->if_id));
+		WARN_ON(wsm_set_operational_mode(hw_priv, &defaultoperationalmode, priv->if_id));
+		WARN_ON(wsm_set_output_power(hw_priv,
 			hw_priv->output_power * 10, priv->if_id));
 		priv->join_dtim_period = 0;
 		priv->cipherType = 0;
-		SYS_WARN(xradio_setup_mac_pvif(priv));
+		WARN_ON(xradio_setup_mac_pvif(priv));
 		xradio_free_event_queue(hw_priv);
 		cancel_work_sync(&hw_priv->event_handler);
 		cancel_delayed_work_sync(&priv->connection_loss_work);
-		SYS_WARN(wsm_set_block_ack_policy(hw_priv,
+		WARN_ON(wsm_set_block_ack_policy(hw_priv,
 			0, hw_priv->ba_tid_mask, priv->if_id));
 		priv->disable_beacon_filter = false;
 		xradio_update_filtering(priv);
@@ -1695,7 +1695,7 @@ int xradio_enable_listening(struct xradio_vif *priv,
 
 
 	if(priv->if_id != 2) {
-		SYS_WARN(priv->join_status > XRADIO_JOIN_STATUS_MONITOR);
+		WARN_ON(priv->join_status > XRADIO_JOIN_STATUS_MONITOR);
 		return 0;
 	}
 	if (priv->join_status == XRADIO_JOIN_STATUS_MONITOR)
@@ -1703,7 +1703,7 @@ int xradio_enable_listening(struct xradio_vif *priv,
 	if (priv->join_status == XRADIO_JOIN_STATUS_PASSIVE)
 		priv->join_status = XRADIO_JOIN_STATUS_MONITOR;
 
-	SYS_WARN(priv->join_status > XRADIO_JOIN_STATUS_MONITOR);
+	WARN_ON(priv->join_status > XRADIO_JOIN_STATUS_MONITOR);
 
 	return wsm_start(hw_priv, &start, XRWL_GENERIC_IF_ID);
 }
@@ -1717,12 +1717,12 @@ int xradio_disable_listening(struct xradio_vif *priv)
 
 
 	if(priv->if_id != 2) {
-		SYS_WARN(priv->join_status > XRADIO_JOIN_STATUS_MONITOR);
+		WARN_ON(priv->join_status > XRADIO_JOIN_STATUS_MONITOR);
         return 0;
 	}
 	priv->join_status = XRADIO_JOIN_STATUS_PASSIVE;
 
-	SYS_WARN(priv->join_status > XRADIO_JOIN_STATUS_MONITOR);
+	WARN_ON(priv->join_status > XRADIO_JOIN_STATUS_MONITOR);
 
 	if (priv->hw_priv->roc_if_id == -1)
 		return 0;
@@ -1790,7 +1790,7 @@ void xradio_ba_work(struct work_struct *work)
 
 	wsm_lock_tx(hw_priv);
 
-	SYS_WARN(wsm_set_block_ack_policy(hw_priv,
+	WARN_ON(wsm_set_block_ack_policy(hw_priv,
 		tx_ba_tid_mask, hw_priv->ba_tid_mask, -1)); /*TODO:COMBO*/
 
 	wsm_unlock_tx(hw_priv);
@@ -1935,11 +1935,11 @@ int xradio_vif_setup(struct xradio_vif *priv)
 				0, 0xc8, false);
 
 		ret = wsm_set_edca_params(hw_priv, &priv->edca, priv->if_id);
-		if (SYS_WARN(ret))
+		if (WARN_ON(ret))
 			goto out;
 
 		ret = xradio_set_uapsd_param(priv, &priv->edca);
-		if (SYS_WARN(ret))
+		if (WARN_ON(ret))
 			goto out;
 
 		memset(priv->bssid, ~0, ETH_ALEN);
@@ -2015,7 +2015,7 @@ void xradio_rem_chan_timeout(struct work_struct *work)
 	sta_printk(XRADIO_DBG_ERROR, "ROC TO IN %d\n", if_id);
 #endif
 	priv = __xrwl_hwpriv_to_vifpriv(hw_priv, if_id);
-	ret = SYS_WARN(__xradio_flush(hw_priv, false, if_id));
+	ret = WARN_ON(__xradio_flush(hw_priv, false, if_id));
 	if (!ret) {
 		xradio_disable_listening(priv);
 	}
@@ -2095,7 +2095,7 @@ int xradio_set_macaddrfilter(struct xradio_common *hw_priv, struct xradio_vif *p
 		mac_addr_filter->macaddrfilter[i].filter_mode = \
 						addr_info[i].filter_mode;
 	}
-	ret = SYS_WARN(wsm_write_mib(hw_priv, WSM_MIB_ID_MAC_ADDR_FILTER, \
+	ret = WARN_ON(wsm_write_mib(hw_priv, WSM_MIB_ID_MAC_ADDR_FILTER, \
 					 mac_addr_filter, macaddrfiltersize, priv->if_id));
 
 	kfree(mac_addr_filter);
@@ -2225,7 +2225,7 @@ int xradio_set_arpreply(struct ieee80211_hw *hw, struct ieee80211_vif *vif)
 	template_frame[1] = 0xFF; /* Rate to be fixed */
 	((u16 *)&template_frame[2])[0] = framehdrlen + framebdylen;
 	
-	ret = SYS_WARN(wsm_write_mib(hw_priv, WSM_MIB_ID_TEMPLATE_FRAME, \
+	ret = WARN_ON(wsm_write_mib(hw_priv, WSM_MIB_ID_TEMPLATE_FRAME, \
 	                              template_frame, (framehdrlen+framebdylen+4), 
 	                              priv->if_id));
 	kfree(template_frame);

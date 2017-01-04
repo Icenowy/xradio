@@ -221,7 +221,7 @@ int xradio_hw_scan(struct ieee80211_hw *hw,
 
 		wsm_vif_lock_tx(priv);
 
-		SYS_BUG(hw_priv->scan.req);
+		BUG_ON(hw_priv->scan.req);
 		hw_priv->scan.req     = req;
 		hw_priv->scan.n_ssids = 0;
 		hw_priv->scan.status  = 0;
@@ -235,7 +235,7 @@ int xradio_hw_scan(struct ieee80211_hw *hw,
 
 		for (i = 0; i < req->n_ssids; ++i) {
 			struct wsm_ssid *dst = &hw_priv->scan.ssids[hw_priv->scan.n_ssids];
-			SYS_BUG(req->ssids[i].ssid_len > sizeof(dst->ssid));
+			BUG_ON(req->ssids[i].ssid_len > sizeof(dst->ssid));
 			memcpy(&dst->ssid[0], req->ssids[i].ssid, sizeof(dst->ssid));
 			dst->length = req->ssids[i].ssid_len;
 			++hw_priv->scan.n_ssids;
@@ -319,7 +319,7 @@ int xradio_hw_sched_scan_start(struct ieee80211_hw *hw,
 	}
 
 	wsm_lock_tx(hw_priv);
-	SYS_BUG(hw_priv->scan.req);
+	BUG_ON(hw_priv->scan.req);
 	hw_priv->scan.sched_req = req;
 	hw_priv->scan.n_ssids = 0;
 	hw_priv->scan.status = 0;
@@ -331,7 +331,7 @@ int xradio_hw_sched_scan_start(struct ieee80211_hw *hw,
 	for (i = 0; i < req->n_ssids; ++i) {
 		u8 j;
 		struct wsm_ssid *dst = &hw_priv->scan.ssids[hw_priv->scan.n_ssids];
-		SYS_BUG(req->ssids[i].ssid_len > sizeof(dst->ssid));
+		BUG_ON(req->ssids[i].ssid_len > sizeof(dst->ssid));
 		memcpy(&dst->ssid[0], req->ssids[i].ssid, sizeof(dst->ssid));
 		dst->length = req->ssids[i].ssid_len;
 		++hw_priv->scan.n_ssids;
@@ -807,8 +807,8 @@ void xradio_probe_work(struct work_struct *work)
 	int ret = 1;
 	scan_printk(XRADIO_DBG_MSG, "%s:Direct probe.\n", __func__);
 
-	SYS_BUG(queueId >= 4);
-	SYS_BUG(!hw_priv->channel);
+	BUG_ON(queueId >= 4);
+	BUG_ON(!hw_priv->channel);
 
 	mutex_lock(&hw_priv->conf_mutex);
 	if (unlikely(down_trylock(&hw_priv->scan.lock))) {
@@ -903,7 +903,7 @@ void xradio_probe_work(struct work_struct *work)
 	if (!ret)
 		IEEE80211_SKB_CB(frame.skb)->flags |= IEEE80211_TX_STAT_ACK;
 
-		SYS_BUG(xradio_queue_remove(queue, hw_priv->pending_frame_id));
+		BUG_ON(xradio_queue_remove(queue, hw_priv->pending_frame_id));
 
 	if (ret) {
 		hw_priv->scan.direct_probe = 0;

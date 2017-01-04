@@ -65,7 +65,7 @@ void xradio_unregister_bh(struct xradio_common *hw_priv)
 {
 	struct task_struct *thread = hw_priv->bh_thread;
 
-	if (SYS_WARN(!thread))
+	if (WARN_ON(!thread))
 		return;
 
 	hw_priv->bh_thread = NULL;
@@ -145,7 +145,7 @@ int xradio_bh_resume(struct xradio_common *hw_priv)
 		if ((priv->join_status == XRADIO_JOIN_STATUS_AP) && 
 			  (priv->multicast_filter.enable)) {
 			u8 count = 0;
-			SYS_WARN(wsm_request_buffer_request(priv, &count));
+			WARN_ON(wsm_request_buffer_request(priv, &count));
 			dev_dbg(hw_priv->pdev, "Reclaim Buff %d \n",count);
 			break;
 		}
@@ -171,7 +171,7 @@ int wsm_release_tx_buffer(struct xradio_common *hw_priv, int count)
 	int hw_bufs_used = hw_priv->hw_bufs_used;
 
 	hw_priv->hw_bufs_used -= count;
-	if (SYS_WARN(hw_priv->hw_bufs_used < 0)) {
+	if (WARN_ON(hw_priv->hw_bufs_used < 0)) {
 		/* Tx data patch stops when all but one hw buffers are used.
 		   So, re-start tx path in case we find hw_bufs_used equals
 		   numInputChBufs - 1.
@@ -194,7 +194,7 @@ int wsm_release_vif_tx_buffer(struct xradio_common *hw_priv, int if_id, int coun
 	if (!hw_priv->hw_bufs_used_vif[if_id])
 		wake_up(&hw_priv->bh_evt_wq);
 
-	if (SYS_WARN(hw_priv->hw_bufs_used_vif[if_id] < 0))
+	if (WARN_ON(hw_priv->hw_bufs_used_vif[if_id] < 0))
 		ret = -1;
 	return ret;
 }
@@ -223,13 +223,13 @@ int wsm_release_buffer_to_fw(struct xradio_vif *priv, int count)
 
 			/* Add sequence number */
 			wsm = (struct wsm_hdr *)buf->begin;
-			SYS_BUG(buf_len < sizeof(*wsm));
+			BUG_ON(buf_len < sizeof(*wsm));
 
 			wsm->id &= __cpu_to_le32(~WSM_TX_SEQ(WSM_TX_SEQ_MAX));
 			wsm->id |= cpu_to_le32(WSM_TX_SEQ(hw_priv->wsm_tx_seq));
 
 			dev_dbg(hw_priv->pdev, "REL %d\n", hw_priv->wsm_tx_seq);
-			if (SYS_WARN(xradio_data_write(hw_priv, buf->begin, buf_len))) {
+			if (WARN_ON(xradio_data_write(hw_priv, buf->begin, buf_len))) {
 				break;
 			}
 			hw_priv->buf_released = 1;
@@ -245,7 +245,7 @@ int wsm_release_buffer_to_fw(struct xradio_vif *priv, int count)
 	/* Should not be here */
 	dev_dbg(hw_priv->pdev, "Error, Less HW buf %d,%d.\n",
 	          hw_priv->hw_bufs_used, hw_priv->wsm_caps.numInpChBufs);
-	SYS_WARN(1);
+	WARN_ON(1);
 	return -1;
 }
 #endif
@@ -371,11 +371,11 @@ static int xradio_device_wakeup(struct xradio_common *hw_priv)
 
 	/* To force the device to be always-on, the host sets WLAN_UP to 1 */
 	ret = xradio_reg_write_16(hw_priv, HIF_CONTROL_REG_ID, HIF_CTRL_WUP_BIT);
-	if (SYS_WARN(ret))
+	if (WARN_ON(ret))
 		return ret;
 
 	ret = xradio_bh_read_ctrl_reg(hw_priv, &ctrl_reg);
-	if (SYS_WARN(ret))
+	if (WARN_ON(ret))
 		return ret;
 
 	/* If the device returns WLAN_RDY as 1, the device is active and will
@@ -517,7 +517,7 @@ static int xradio_bh_rx(struct xradio_common *hw_priv, u16* nextlen) {
 	wsm = (struct wsm_hdr *) data;
 	wsm_len = __le32_to_cpu(wsm->len);
 
-	if (SYS_WARN(wsm_len > read_len)) {
+	if (WARN_ON(wsm_len > read_len)) {
 		dev_err(hw_priv->pdev, "wsm is bigger than data read, read %d but frame is %d\n",
 				read_len, wsm_len);
 		ret = -1;
@@ -646,13 +646,13 @@ static int xradio_bh_tx(struct xradio_common *hw_priv){
 	int ret;
 	u8 *data;
 
-	SYS_BUG(hw_priv->hw_bufs_used > hw_priv->wsm_caps.numInpChBufs);
+	BUG_ON(hw_priv->hw_bufs_used > hw_priv->wsm_caps.numInpChBufs);
 	txavailable = hw_priv->wsm_caps.numInpChBufs - hw_priv->hw_bufs_used;
 	if (txavailable) {
 		/* Wake up the devices */
 		if (hw_priv->device_can_sleep) {
 			ret = xradio_device_wakeup(hw_priv);
-			if (SYS_WARN(ret < 0)) {
+			if (WARN_ON(ret < 0)) {
 				return -1;
 			} else if (ret) {
 				hw_priv->device_can_sleep = false;
@@ -669,7 +669,7 @@ static int xradio_bh_tx(struct xradio_common *hw_priv){
 		ret = wsm_get_tx(hw_priv, &data, &tx_len, &txburst, &vif_selected);
 		if (ret <= 0) {
 			wsm_release_tx_buffer(hw_priv, 1);
-			if (SYS_WARN(ret < 0)) {
+			if (WARN_ON(ret < 0)) {
 				dev_err(hw_priv->pdev, "wsm_get_tx=%d.\n", ret);
 				return -ENOMEM;
 			} else {
@@ -677,8 +677,8 @@ static int xradio_bh_tx(struct xradio_common *hw_priv){
 			}
 		} else {
 			wsm = (struct wsm_hdr *) data;
-			SYS_BUG(tx_len < sizeof(*wsm));
-			SYS_BUG(__le32_to_cpu(wsm->len) != tx_len);
+			BUG_ON(tx_len < sizeof(*wsm));
+			BUG_ON(__le32_to_cpu(wsm->len) != tx_len);
 
 			/* Align tx length and check it. */
 			if (tx_len <= 8)
@@ -695,7 +695,7 @@ static int xradio_bh_tx(struct xradio_common *hw_priv){
 			wsm->id |= cpu_to_le32(WSM_TX_SEQ(hw_priv->wsm_tx_seq));
 
 			/* Send the data to devices. */
-			if (SYS_WARN(xradio_data_write(hw_priv, data, tx_len))) {
+			if (WARN_ON(xradio_data_write(hw_priv, data, tx_len))) {
 				wsm_release_tx_buffer(hw_priv, 1);
 				dev_err(hw_priv->pdev, "xradio_data_write failed\n");
 				return -EIO;
@@ -798,7 +798,7 @@ static int xradio_bh(void *arg)
 			  //if (hw_priv->powersave_enabled && !hw_priv->device_can_sleep && !atomic_read(&hw_priv->recent_scan)) {
 			  //	/* Device is idle, we can go to sleep. */
 			  //	dev_dbg(hw_priv->pdev, "Device idle(timeout), can sleep.\n");
-			  //	SYS_WARN(xradio_reg_write_16(hw_priv, HIF_CONTROL_REG_ID, 0));
+			  //	WARN_ON(xradio_reg_write_16(hw_priv, HIF_CONTROL_REG_ID, 0));
 			  //	hw_priv->device_can_sleep = true;
 			  //}
 			  //continue;
@@ -809,7 +809,7 @@ static int xradio_bh(void *arg)
 			if (hw_priv->powersave_enabled) {
 				dev_dbg(hw_priv->pdev,
 						"Device idle(host suspend), can sleep.\n");
-				SYS_WARN(xradio_reg_write_16(hw_priv, HIF_CONTROL_REG_ID, 0));
+				WARN_ON(xradio_reg_write_16(hw_priv, HIF_CONTROL_REG_ID, 0));
 				hw_priv->device_can_sleep = true;
 			}
 

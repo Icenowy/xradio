@@ -91,7 +91,7 @@ static int xradio_parse_sdd(struct xradio_common *hw_priv, u32 *dpll)
 	struct xradio_sdd *pElement = NULL;
 	int parsedLength = 0;
 
-	SYS_BUG(hw_priv->sdd != NULL);
+	BUG_ON(hw_priv->sdd != NULL);
 
 	/* select and load sdd file depend on hardware version. */
 	switch (hw_priv->hw_revision) {
@@ -225,7 +225,7 @@ static int xradio_firmware(struct xradio_common *hw_priv)
 				fw_path);
 		goto error;
 	}
-	SYS_BUG(!firmware->data);
+	BUG_ON(!firmware->data);
 
 	buf = kmalloc(DOWNLOAD_BLOCK_SIZE, GFP_KERNEL);
 	if (!buf) {

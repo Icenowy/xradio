@@ -139,7 +139,7 @@ void xradio_rx_cb(struct xradio_vif *priv,
 		txrx_printk(XRADIO_DBG_NIY, "[RX] Going to MAP&RESET link ID\n");
 
 		if (work_pending(&priv->linkid_reset_work))
-			SYS_WARN(1);
+			WARN_ON(1);
 
 		memcpy(&priv->action_frame_sa[0],
 				ieee80211_get_SA(frame), ETH_ALEN);
@@ -154,7 +154,7 @@ void xradio_rx_cb(struct xradio_vif *priv,
 		/* Link ID already exists for the ACTION frame.
 		 * Reset and Remap */
 		if (work_pending(&priv->linkid_reset_work))
-			SYS_WARN(1);
+			WARN_ON(1);
 		memcpy(&priv->action_frame_sa[0],
 				ieee80211_get_SA(frame), ETH_ALEN);
 		priv->action_linkid = arg->link_id;
@@ -245,7 +245,7 @@ void xradio_rx_cb(struct xradio_vif *priv,
 			hdr->flag |= RX_FLAG_IV_STRIPPED;
 			break;
 		default:
-			SYS_WARN("Unknown encryption type");
+			WARN_ON("Unknown encryption type");
 			goto drop;
 		}
 

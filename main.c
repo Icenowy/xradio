@@ -579,7 +579,7 @@ int xradio_core_init(struct sdio_func* func)
 
 	/* Set sdio blocksize. */
 	sdio_lock(hw_priv);
-	SYS_WARN(sdio_set_blk_size(hw_priv,
+	WARN_ON(sdio_set_blk_size(hw_priv,
 			SDIO_BLOCK_SIZE));
 	sdio_unlock(hw_priv);
 
@@ -595,17 +595,17 @@ int xradio_core_init(struct sdio_func* func)
 	dev_dbg(hw_priv->pdev, "Firmware Startup Done.\n");
 
 	/* Keep device wake up. */
-	SYS_WARN(xradio_reg_write_16(hw_priv, HIF_CONTROL_REG_ID, HIF_CTRL_WUP_BIT));
+	WARN_ON(xradio_reg_write_16(hw_priv, HIF_CONTROL_REG_ID, HIF_CTRL_WUP_BIT));
 	if (xradio_reg_read_16(hw_priv,HIF_CONTROL_REG_ID, &ctrl_reg))
-		SYS_WARN(xradio_reg_read_16(hw_priv,HIF_CONTROL_REG_ID, &ctrl_reg));
-	SYS_WARN(!(ctrl_reg & HIF_CTRL_RDY_BIT));
+		WARN_ON(xradio_reg_read_16(hw_priv,HIF_CONTROL_REG_ID, &ctrl_reg));
+	WARN_ON(!(ctrl_reg & HIF_CTRL_RDY_BIT));
 
 	/* Set device mode parameter. */
 	for (if_id = 0; if_id < xrwl_get_nr_hw_ifaces(hw_priv); if_id++) {
 		/* Set low-power mode. */
-		SYS_WARN(wsm_set_operational_mode(hw_priv, &defaultoperationalmode, if_id));
+		WARN_ON(wsm_set_operational_mode(hw_priv, &defaultoperationalmode, if_id));
 		/* Enable multi-TX confirmation */
-		SYS_WARN(wsm_use_multi_tx_conf(hw_priv, true, if_id));
+		WARN_ON(wsm_use_multi_tx_conf(hw_priv, true, if_id));
 	}
 
 	/* Register wireless net device. */

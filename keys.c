@@ -19,7 +19,7 @@ int xradio_alloc_key(struct xradio_common *hw_priv)
 
 void xradio_free_key(struct xradio_common *hw_priv, int idx)
 {
-	SYS_BUG(!(hw_priv->key_map & BIT(idx)));
+	BUG_ON(!(hw_priv->key_map & BIT(idx)));
 	memset(&hw_priv->keys[idx], 0, sizeof(hw_priv->keys[idx]));
 	hw_priv->key_map &= ~BIT(idx);
 }
@@ -60,7 +60,7 @@ int xradio_set_key(struct ieee80211_hw *dev, enum set_key_cmd cmd,
 	wiphy_dbg(dev->wiphy, "vif %d: set_key cmd %d\n", priv->if_id, (int) cmd);
 	
 #ifdef P2P_MULTIVIF
-	SYS_WARN(priv->if_id == XRWL_GENERIC_IF_ID);
+	WARN_ON(priv->if_id == XRWL_GENERIC_IF_ID);
 #endif
 	mutex_lock(&hw_priv->conf_mutex);
 
@@ -76,7 +76,7 @@ int xradio_set_key(struct ieee80211_hw *dev, enum set_key_cmd cmd,
 			goto finally;
 		}
 
-		SYS_BUG(pairwise && !sta);
+		BUG_ON(pairwise && !sta);
 		if (sta)
 			peer_addr = sta->addr;
 
@@ -164,7 +164,7 @@ int xradio_set_key(struct ieee80211_hw *dev, enum set_key_cmd cmd,
 			ret = -EOPNOTSUPP;
 			goto finally;
 		}
-		ret = SYS_WARN(wsm_add_key(hw_priv, wsm_key, priv->if_id));
+		ret = WARN_ON(wsm_add_key(hw_priv, wsm_key, priv->if_id));
 		if (!ret)
 			key->hw_key_idx = idx;
 		else

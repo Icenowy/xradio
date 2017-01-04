@@ -507,7 +507,7 @@ struct xradio_vif *xrwl_hwpriv_to_vifpriv(struct xradio_common *hw_priv,
 {
 	struct xradio_vif *vif;
 
-	if (SYS_WARN((-1 == if_id) || (if_id > XRWL_MAX_VIFS)))
+	if (WARN_ON((-1 == if_id) || (if_id > XRWL_MAX_VIFS)))
 		return NULL;
 	/* TODO:COMBO: During scanning frames can be received
 	 * on interface ID 3 */
@@ -518,7 +518,7 @@ struct xradio_vif *xrwl_hwpriv_to_vifpriv(struct xradio_common *hw_priv,
 	}
 
 	vif = xrwl_get_vif_from_ieee80211(hw_priv->vif_list[if_id]);
-	SYS_WARN(!vif);
+	WARN_ON(!vif);
 	if (vif)
 		spin_lock(&vif->vif_lock);
 	spin_unlock(&hw_priv->vif_list_lock);
@@ -529,7 +529,7 @@ static inline
 struct xradio_vif *__xrwl_hwpriv_to_vifpriv(struct xradio_common *hw_priv,
 					      int if_id)
 {
-	SYS_WARN((-1 == if_id) || (if_id > XRWL_MAX_VIFS));
+	WARN_ON((-1 == if_id) || (if_id > XRWL_MAX_VIFS));
 	/* TODO:COMBO: During scanning frames can be received
 	 * on interface ID 3 */
 	if (!hw_priv->vif_list[if_id]) {

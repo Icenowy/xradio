@@ -35,7 +35,7 @@ static int __xradio_read(struct xradio_common *hw_priv, u16 addr,
 
 #if (CHECK_ADDR_LEN)
 	/* Check if buffer is aligned to 4 byte boundary */
-	if (SYS_WARN(((unsigned long)buf & 3) && (buf_len > 4))) {
+	if (WARN_ON(((unsigned long)buf & 3) && (buf_len > 4))) {
 		dev_dbg(hw_priv->pdev, "buffer is not aligned.\n");
 		return -EINVAL;
 	}
@@ -57,7 +57,7 @@ static int __xradio_write(struct xradio_common *hw_priv, u16 addr,
 
 #if (CHECK_ADDR_LEN)
 	/* Check if buffer is aligned to 4 byte boundary */
-	if (SYS_WARN(((unsigned long)buf & 3) && (buf_len > 4))) {
+	if (WARN_ON(((unsigned long)buf & 3) && (buf_len > 4))) {
 		dev_err(hw_priv->pdev, "buffer is not aligned.\n");
 		return -EINVAL;
 	}
