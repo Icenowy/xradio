@@ -1166,15 +1166,13 @@ static int wsm_startup_indication(struct xradio_common *hw_priv,
 					struct wsm_buf *buf)
 {
 	u16 status;
-#ifdef CONFIG_XRADIO_DEBUG
 	static const char * const fw_types[] = {
-		"ETF",
-		"WFM",
-		"WSM",
-		"HI test",
-		"Platform test"
+			"ETF",
+			"WFM",
+			"WSM",
+			"HI test",
+			"Platform test"
 	};
-#endif
 
 	hw_priv->wsm_caps.numInpChBufs	= WSM_GET16(buf);
 	hw_priv->wsm_caps.sizeInpChBuf	= WSM_GET16(buf);
@@ -1195,12 +1193,11 @@ static int wsm_startup_indication(struct xradio_common *hw_priv,
 	if (WARN_ON(hw_priv->wsm_caps.firmwareType > 4))
 		return -EINVAL;
 
-	wsm_printk(XRADIO_DBG_NIY, "%s\n"
+	dev_info(hw_priv->pdev,
 		"   Input buffers: %d x %d bytes\n"
 		"   Hardware: %d.%d\n"
 		"   %s firmware ver: %d, build: %d,"
 		    " api: %d, cap: 0x%.4X\n",
-		__func__,
 		hw_priv->wsm_caps.numInpChBufs,
 		hw_priv->wsm_caps.sizeInpChBuf,
 		hw_priv->wsm_caps.hardwareId,
@@ -1211,7 +1208,7 @@ static int wsm_startup_indication(struct xradio_common *hw_priv,
 		hw_priv->wsm_caps.firmwareApiVer,
 		hw_priv->wsm_caps.firmwareCap);
 	
-	wsm_printk(XRADIO_DBG_ALWY, "Firmware Label:%s\n", &hw_priv->wsm_caps.fw_label[0]);
+	dev_info(hw_priv->pdev, "Firmware Label:%s\n", &hw_priv->wsm_caps.fw_label[0]);
 
 	hw_priv->wsm_caps.firmwareReady = 1;
 

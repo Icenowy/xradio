@@ -970,12 +970,6 @@ xradio_tx_h_skb_pad(struct xradio_common *priv,
 	return 0;
 }
 
-/* ******************************************************************** */
-//#if (defined(CONFIG_XRADIO_DEBUG))
-u16  txparse_flags = 0;//PF_DHCP|PF_8021X|PF_MGMT;
-u16  rxparse_flags = 0;//PF_DHCP|PF_8021X|PF_MGMT;
-//#endif
-
 void xradio_tx(struct ieee80211_hw *dev, struct ieee80211_tx_control *control, struct sk_buff *skb)
 {
 	struct xradio_common *hw_priv = dev->priv;

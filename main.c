@@ -432,10 +432,6 @@ struct ieee80211_hw *xradio_init_common(size_t hw_priv_data_len)
 	hw_priv->vif0_throttle = XRWL_HOST_VIF0_11BG_THROTTLE;
 	hw_priv->vif1_throttle = XRWL_HOST_VIF1_11BG_THROTTLE;
 
-#if defined(CONFIG_XRADIO_DEBUG)
-	hw_priv->wsm_enable_wsm_dumps = 0;
-	hw_priv->wsm_dump_max_size = WSM_DUMP_MAX_SIZE;
-#endif /* CONFIG_XRADIO_DEBUG */
 	hw_priv->query_packetID = 0;
 	atomic_set(&hw_priv->query_cnt, 0);
 	INIT_WORK(&hw_priv->query_work, wsm_query_work);
