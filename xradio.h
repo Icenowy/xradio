@@ -23,11 +23,7 @@
 #define XRWL_MAX_QUEUE_SZ    (128)
 #define AC_QUEUE_NUM           4
 
-#ifdef P2P_MULTIVIF
-#define XRWL_MAX_VIFS        (3)
-#else
 #define XRWL_MAX_VIFS        (2)
-#endif
 #define XRWL_GENERIC_IF_ID   (2)
 #define XRWL_HOST_VIF0_11N_THROTTLE   (58)  //(XRWL_MAX_QUEUE_SZ/(XRWL_MAX_VIFS-1))*0.9
 #define XRWL_HOST_VIF1_11N_THROTTLE   (58)  //(XRWL_MAX_QUEUE_SZ/(XRWL_MAX_VIFS-1))*0.9
@@ -218,12 +214,7 @@ struct xradio_common {
 	atomic_t			bh_suspend;
 	struct task_struct		*bh_thread;
 	int				bh_error;
-#ifdef BH_USE_SEMAPHORE
-	struct semaphore		bh_sem;
-	atomic_t			    bh_wk;
-#else
 	wait_queue_head_t		bh_wq;
-#endif
 	wait_queue_head_t		bh_evt_wq;
 
 
@@ -258,8 +249,6 @@ struct xradio_common {
 	u32				pending_frame_id;
 
 	/* WSM debug */
-	int                 wsm_enable_wsm_dumps;
-	u32                 wsm_dump_max_size;
 	u32                 query_packetID;
 	atomic_t            query_cnt;
 	struct work_struct  query_work; /* for query packet */

@@ -385,11 +385,7 @@ int xradio_wow_suspend(struct ieee80211_hw *hw, struct cfg80211_wowlan *wowlan)
 
 #ifdef ROAM_OFFLOAD
 	xradio_for_each_vif(hw_priv, priv, i) {
-#ifdef P2P_MULTIVIF
-		if ((i == (XRWL_MAX_VIFS - 1)) || !priv)
-#else
 		if (!priv)
-#endif
 			continue;
 		if((priv->vif->type == NL80211_IFTYPE_STATION)
 		&& (priv->join_status == XRADIO_JOIN_STATUS_STA)) {
@@ -456,11 +452,7 @@ int xradio_wow_suspend(struct ieee80211_hw *hw, struct cfg80211_wowlan *wowlan)
 #endif
 	
 	xradio_for_each_vif(hw_priv, priv, i) {
-#ifdef P2P_MULTIVIF
-		if ((i == (XRWL_MAX_VIFS - 1)) || !priv)
-#else
 		if (!priv)
-#endif
 			continue;
 
 		ret = __xradio_wow_suspend(priv, wowlan);
@@ -669,11 +661,7 @@ int xradio_wow_resume(struct ieee80211_hw *hw)
 	WARN_ON(xradio_bh_resume(hw_priv));
 
 	xradio_for_each_vif(hw_priv, priv, i) {
-#ifdef P2P_MULTIVIF
-		if ((i == (XRWL_MAX_VIFS - 1)) || !priv)
-#else
 		if (!priv)
-#endif
 			continue;
 		ret = __xradio_wow_resume(priv);
 		if (ret) {

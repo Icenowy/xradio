@@ -52,10 +52,6 @@ int xradio_sta_add(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
 	struct xradio_common *hw_priv = hw->priv;
 #endif
 
-#ifdef P2P_MULTIVIF
-	WARN_ON(priv->if_id == XRWL_GENERIC_IF_ID);
-#endif
-
 	if (priv->mode != NL80211_IFTYPE_AP) {
 		return 0;
 	}
@@ -102,10 +98,6 @@ int xradio_sta_remove(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
 			(struct xradio_sta_priv *)&sta->drv_priv;
 	struct xradio_vif *priv = xrwl_get_vif_from_ieee80211(vif);
 	struct xradio_link_entry *entry;
-
-#ifdef P2P_MULTIVIF
-	WARN_ON(priv->if_id == XRWL_GENERIC_IF_ID);
-#endif
 
 	if (priv->mode != NL80211_IFTYPE_AP || !sta_priv->link_id) {
 		wiphy_warn(hw->wiphy, "no station to remove\n");
@@ -188,9 +180,6 @@ void xradio_sta_notify(struct ieee80211_hw *dev,
 	struct xradio_vif *priv = xrwl_get_vif_from_ieee80211(vif);
 	struct xradio_sta_priv *sta_priv = (struct xradio_sta_priv *)&sta->drv_priv;
 
-#ifdef P2P_MULTIVIF
-	WARN_ON(priv->if_id == XRWL_GENERIC_IF_ID);
-#endif
 	spin_lock_bh(&priv->ps_state_lock);
 	__xradio_sta_notify(priv, notify_cmd, sta_priv->link_id);
 	spin_unlock_bh(&priv->ps_state_lock);
@@ -270,9 +259,6 @@ int xradio_set_tim(struct ieee80211_hw *dev, struct ieee80211_sta *sta,
 	struct xradio_sta_priv *sta_priv = (struct xradio_sta_priv *)&sta->drv_priv;
 	struct xradio_vif *priv = sta_priv->priv;
 
-#ifdef P2P_MULTIVIF
-	WARN_ON(priv->if_id == XRWL_GENERIC_IF_ID);
-#endif
 	WARN_ON(priv->mode != NL80211_IFTYPE_AP);
 	queue_work(priv->hw_priv->workqueue, &priv->set_tim_work);
 	return 0;
@@ -371,10 +357,6 @@ void xradio_bss_info_changed(struct ieee80211_hw *dev,
 	struct xradio_common *hw_priv = dev->priv;
 	struct xradio_vif *priv = xrwl_get_vif_from_ieee80211(vif);
 
-#ifdef P2P_MULTIVIF
-	if (priv->if_id == XRWL_GENERIC_IF_ID)
-		return;
-#endif
 	mutex_lock(&hw_priv->conf_mutex);
 	if (changed & BSS_CHANGED_BSSID) {
 		memcpy(priv->bssid, info->bssid, ETH_ALEN);
@@ -534,11 +516,7 @@ void xradio_bss_info_changed(struct ieee80211_hw *dev,
 			rcu_read_unlock();
 			priv->htcap = (sta && xradio_is_ht(&hw_priv->ht_oper));
 			xradio_for_each_vif(hw_priv, tmp_priv, i) {
-#ifdef P2P_MULTIVIF
-				if ((i == (XRWL_MAX_VIFS - 1)) || !tmp_priv)
-#else
 				if (!tmp_priv)
-#endif
 					continue;
 				if (tmp_priv->join_status >= XRADIO_JOIN_STATUS_STA)
 					is_combo++;
@@ -1268,9 +1246,6 @@ static int xradio_start_ap(struct xradio_vif *priv)
 		                WSM_JOIN_PREAMBLE_SHORT :WSM_JOIN_PREAMBLE_LONG,
 		.probeDelay = 100,
 		.basicRateSet = xradio_rate_mask_to_wsm(hw_priv, conf->basic_rates),
-#ifdef P2P_MULTIVIF
-		.CTWindow = priv->vif->p2p ? 0xFFFFFFFF : 0,
-#endif
 	};
 
 #ifdef TES_P2P_000B_EXTEND_INACTIVITY_CNT

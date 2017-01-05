@@ -67,11 +67,7 @@ struct xradio_txpriv {
 	u8 rate_id;
 	u8 offset;
 	u8 if_id;
-#ifndef P2P_MULTIVIF
 	u8 offchannel_if_id;
-#else
-	u8 raw_if_id;
-#endif
 	u8 use_bg_rate;
 };
 

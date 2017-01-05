@@ -420,11 +420,7 @@ static int wsm_write_mib_confirm(struct xradio_common *hw_priv,
 		/* HW powersave base on vif except for generic vif. */
 		spin_lock(&hw_priv->vif_list_lock);
 		xradio_for_each_vif(hw_priv, priv, i) {
-#ifdef P2P_MULTIVIF
-			if ((i == (XRWL_MAX_VIFS - 1)) || !priv)
-#else
 			if (!priv)
-#endif
 				continue;
 			powersave_enabled &= !!priv->powersave_enabled;
 		}
@@ -2365,9 +2361,6 @@ static bool wsm_handle_tx_data(struct xradio_vif *priv,
 			       struct xradio_queue *queue)
 {
 	struct xradio_common *hw_priv = xrwl_vifpriv_to_hwpriv(priv);
-#ifdef P2P_MULTIVIF
-	struct xradio_vif *p2p_if_vif = NULL;
-#endif
 	bool handled = false;
 	const struct ieee80211_hdr *frame =
 		(struct ieee80211_hdr *) &((u8 *)wsm)[txpriv->offset];
@@ -2382,10 +2375,6 @@ static bool wsm_handle_tx_data(struct xradio_vif *priv,
 	} action = doTx;
 
 	hw_priv = xrwl_vifpriv_to_hwpriv(priv);
-#ifdef P2P_MULTIVIF
-	if (priv->if_id == XRWL_GENERIC_IF_ID)
-		p2p_if_vif = __xrwl_hwpriv_to_vifpriv(hw_priv, 1);
-#endif
 	frame =  (struct ieee80211_hdr *) &((u8 *)wsm)[txpriv->offset];
 	fctl  = frame->frame_control;
 
@@ -2400,19 +2389,6 @@ static bool wsm_handle_tx_data(struct xradio_vif *priv,
 			spin_unlock(&priv->bss_loss_lock);
 		} else if (unlikely((priv->join_status <= XRADIO_JOIN_STATUS_MONITOR) ||
 		           memcmp(frame->addr1, priv->join_bssid,sizeof(priv->join_bssid)))) {
-#ifdef P2P_MULTIVIF
-			if (p2p_if_vif && (p2p_if_vif->join_status > XRADIO_JOIN_STATUS_MONITOR) && 
-			    (priv->join_status < XRADIO_JOIN_STATUS_MONITOR)) {
-
-				/* Post group formation, frame transmission on p2p0
-				 * interafce should not use offchannel/generic channel.
-				 * Instead, the frame should be transmitted on interafce
-				 * 1. This is needed by wsc fw.
-				 */
-				action = doTx;
-				txpriv->raw_if_id = 1;
-			} else
-#endif
 			if (ieee80211_is_auth(fctl))
 				action = doJoin;
 			else if ((ieee80211_is_deauth(fctl) || ieee80211_is_disassoc(fctl))&&
@@ -2702,10 +2678,6 @@ int wsm_get_tx(struct xradio_common *hw_priv, u8 **data,
 	int queue_num;
 	u32 tx_allowed_mask = 0;
 	struct xradio_txpriv *txpriv = NULL;
-#ifdef P2P_MULTIVIF
-	int first = 1;
-	int tmp_if_id = -1;
-#endif
 	/*
 	 * Count was intended as an input for wsm->more flag.
 	 * During implementation it was found that wsm->more
@@ -2713,11 +2685,7 @@ int wsm_get_tx(struct xradio_common *hw_priv, u8 **data,
 	 * in case you would like to try to implement it again.
 	 */
 	int count = 0;
-#ifdef P2P_MULTIVIF
-	int if_pending = XRWL_MAX_VIFS - 1;
-#else
 	int if_pending = 1;
-#endif
 
 	/* More is used only for broadcasts. */
 	bool more = false;
@@ -2746,31 +2714,15 @@ int wsm_get_tx(struct xradio_common *hw_priv, u8 **data,
 			if (hw_priv->hw_bufs_used >=
 					hw_priv->wsm_caps.numInpChBufs)
 				break;
-#ifdef P2P_MULTIVIF
-			if (first) {
-				tmp_if_id = hw_priv->if_id_selected;
-				hw_priv->if_id_selected = 2;
-			}
-#endif
 			priv = wsm_get_interface_for_tx(hw_priv);
 			/* go to next interface ID to select next packet */
-#ifdef P2P_MULTIVIF
-			if (first) {
-				hw_priv->if_id_selected = tmp_if_id;
-				first = 0;
-			} else
-#endif
 				hw_priv->if_id_selected ^= 1;
 
 			/* There might be no interface before add_interface
 			 * call */
 			if (!priv) {
 				if (if_pending) {
-#ifdef P2P_MULTIVIF
-					if_pending--;
-#else
 					if_pending = 0;
-#endif
 					continue;
 				}
 				break;
@@ -2824,16 +2776,8 @@ int wsm_get_tx(struct xradio_common *hw_priv, u8 **data,
 
 			if (ret) {
 				spin_unlock(&priv->vif_lock);
-#ifdef P2P_MULTIVIF
-				if (if_pending) {
-#else
 				if (if_pending == 1) {
-#endif
-#ifdef P2P_MULTIVIF
-					if_pending--;
-#else
 					if_pending = 0;
-#endif
 					continue;
 				}
 				break;
@@ -2849,7 +2793,6 @@ int wsm_get_tx(struct xradio_common *hw_priv, u8 **data,
 			}
 
 #ifdef ROC_DEBUG
-#ifndef P2P_MULTIVIF
 			{
 				struct ieee80211_hdr *hdr =
 				(struct ieee80211_hdr *)
@@ -2873,7 +2816,6 @@ int wsm_get_tx(struct xradio_common *hw_priv, u8 **data,
 						txpriv->raw_if_id,
 						priv->if_id);
 			}
-#endif
 #endif
 
 			if (wsm_handle_tx_data(priv, wsm,
@@ -2885,15 +2827,9 @@ int wsm_get_tx(struct xradio_common *hw_priv, u8 **data,
 
 			wsm->hdr.id &= __cpu_to_le16(
 					~WSM_TX_IF_ID(WSM_TX_IF_ID_MAX));
-#ifdef P2P_MULTIVIF
-			if (txpriv->raw_if_id)
-				wsm->hdr.id |= cpu_to_le16(
-					WSM_TX_IF_ID(txpriv->raw_if_id));
-#else
 			if (txpriv->offchannel_if_id)
 				wsm->hdr.id |= cpu_to_le16(
 					WSM_TX_IF_ID(txpriv->offchannel_if_id));
-#endif
 			else
 				wsm->hdr.id |= cpu_to_le16(
 					WSM_TX_IF_ID(priv->if_id));
@@ -2901,8 +2837,6 @@ int wsm_get_tx(struct xradio_common *hw_priv, u8 **data,
 			*vif_selected = priv->if_id;
 #ifdef ROC_DEBUG
 /* remand the roc debug. */
-#ifndef P2P_MULTIVIF
-
 			{
 				struct ieee80211_hdr *hdr =
 				(struct ieee80211_hdr *)
@@ -2926,7 +2860,6 @@ int wsm_get_tx(struct xradio_common *hw_priv, u8 **data,
 						txpriv->raw_if_id,
 						priv->if_id);
 			}
-#endif
 #endif
 
 			priv->pspoll_mask &= ~BIT(txpriv->raw_link_id);

@@ -25,7 +25,7 @@
 	do { \
 		ret = xradio_apb_write_32(hw_priv, APB_ADDR(reg), (val)); \
 		if (ret < 0) { \
-			xradio_dbg(XRADIO_DBG_ERROR, \
+			dev_err(hw_priv->pdev, \
 				"%s: can't write %s at line %d.\n", \
 				__func__, #reg, __LINE__); \
 			goto error; \
@@ -35,7 +35,7 @@
 	do { \
 		ret = xradio_apb_read_32(hw_priv, APB_ADDR(reg), &(val)); \
 		if (ret < 0) { \
-			xradio_dbg(XRADIO_DBG_ERROR, \
+			dev_err(hw_priv->pdev, \
 				"%s: can't read %s at line %d.\n", \
 				__func__, #reg, __LINE__); \
 			goto error; \
@@ -45,7 +45,7 @@
 	do { \
 		ret = xradio_reg_write_32(hw_priv, (reg), (val)); \
 		if (ret < 0) { \
-			xradio_dbg(XRADIO_DBG_ERROR, \
+			dev_err(hw_priv->pdev, \
 				"%s: can't write %s at line %d.\n", \
 				__func__, #reg, __LINE__); \
 			goto error; \
@@ -55,7 +55,7 @@
 	do { \
 		ret = xradio_reg_read_32(hw_priv, (reg), &(val)); \
 		if (ret < 0) { \
-			xradio_dbg(XRADIO_DBG_ERROR, \
+			dev_err(hw_priv->pdev, \
 				"%s: can't read %s at line %d.\n", \
 				__func__, #reg, __LINE__); \
 			goto error; \
@@ -295,7 +295,7 @@ static int xradio_firmware(struct xradio_common *hw_priv)
 		ret = xradio_apb_write(hw_priv, APB_ADDR(DOWNLOAD_FIFO_OFFSET + (put & (DOWNLOAD_FIFO_SIZE - 1))), 
 		                       buf, tx_size);
 		if (ret < 0) {
-			xradio_dbg(XRADIO_DBG_ERROR, "%s: can't write block at line %d.\n", __func__, __LINE__);
+			dev_err(hw_priv->pdev, "%s: can't write block at line %d.\n", __func__, __LINE__);
 			goto error;
 		}
 

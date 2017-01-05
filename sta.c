@@ -176,11 +176,9 @@ int xradio_add_interface(struct ieee80211_hw *dev,
 	struct xradio_common *hw_priv = dev->priv;
 	struct xradio_vif *priv;
 	struct xradio_vif **drv_priv = (void *)vif->drv_priv;
-#ifndef P2P_MULTIVIF
 	int i;
 	if (atomic_read(&hw_priv->num_vifs) >= XRWL_MAX_VIFS)
 		return -EOPNOTSUPP;
-#endif
 
 	if (wait_event_interruptible_timeout(hw_priv->wsm_startup_done,
 				hw_priv->driver_ready, 3*HZ) <= 0) {
@@ -204,22 +202,6 @@ int xradio_add_interface(struct ieee80211_hw *dev,
 
 	spin_lock(&hw_priv->vif_list_lock);
 	if (atomic_read(&hw_priv->num_vifs) < XRWL_MAX_VIFS) {
-#ifdef P2P_MULTIVIF
-		//~dgp in this mode it looks like virtual interface 2 shouldn't
-		// be used as other parts of the driver complain
-		// but when the second interface is added it gets id 2 here
-		if (!memcmp(vif->addr, hw_priv->addresses[0].addr, ETH_ALEN)) {
-			priv->if_id = 0;
-		} else if (!memcmp(vif->addr, hw_priv->addresses[1].addr,
-			ETH_ALEN)) {
-			priv->if_id = 1;//2;
-		} else if (!memcmp(vif->addr, hw_priv->addresses[2].addr,
-			ETH_ALEN)) {
-			priv->if_id = 2;//1;
-		}
-		wiphy_debug(dev->wiphy, "if_id %d mac %pM\n",
-				priv->if_id, vif->addr);
-#else
 		for (i = 0; i < XRWL_MAX_VIFS; i++)
 			if (!memcmp(vif->addr, hw_priv->addresses[i].addr, ETH_ALEN))
 				break;
@@ -229,7 +211,7 @@ int xradio_add_interface(struct ieee80211_hw *dev,
 			return -EINVAL;
 		}
 		priv->if_id = i;
-#endif
+
 		hw_priv->if_id_slot |= BIT(priv->if_id);
 		priv->hw_priv = hw_priv;
 		priv->hw      = dev;
@@ -307,11 +289,7 @@ void xradio_remove_interface(struct ieee80211_hw *dev,
 		wsm_reset(hw_priv, &reset, priv->if_id);
 		WARN_ON(wsm_set_operational_mode(hw_priv, &defaultoperationalmode, priv->if_id));
 		xradio_for_each_vif(hw_priv, tmp_priv, i) {
-#ifdef P2P_MULTIVIF
-			if ((i == (XRWL_MAX_VIFS - 1)) || !tmp_priv)
-#else
 			if (!tmp_priv)
-#endif
 				continue;
 			if ((tmp_priv->join_status == XRADIO_JOIN_STATUS_STA) && tmp_priv->htcap)
 				is_htcapie = true;
@@ -597,10 +575,6 @@ u64 xradio_prepare_multicast(struct ieee80211_hw *hw,
 		int count = 0;
 		if ((!priv))
 			continue;
-#ifdef P2P_MULTIVIF
-		if (priv->if_id ==XRWL_GENERIC_IF_ID)
-			return netdev_hw_addr_list_count(mc_list);
-#endif		
 
 		/* Disable multicast filtering */
 		priv->has_multicast_subscription = false;
@@ -635,24 +609,13 @@ void xradio_configure_filter(struct ieee80211_hw *hw,
 	int i = 0;
 
 	/* delete umac warning */
-	if (hw_priv->vif_list[0] == NULL && hw_priv->vif_list[1] == NULL
-#ifdef P2P_MULTIVIF
-			&& hw_priv->vif_list[2] == NULL)
-#else
-			)
-#endif
+	if (hw_priv->vif_list[0] == NULL && hw_priv->vif_list[1] == NULL)
 
 		*total_flags &= ~(1<<31);
 		
 	xradio_for_each_vif(hw_priv, priv, i) {
 		if(NULL == priv)
 			continue;
-#ifdef P2P_MULTIVIF
-		if (priv->if_id == XRWL_GENERIC_IF_ID) {
-			*total_flags &= ~(1<<31);
-			continue;
-		}
-#endif
 
 #if 0
 		bool listening = !!(*total_flags &
@@ -715,11 +678,6 @@ int xradio_conf_tx(struct ieee80211_hw *dev, struct ieee80211_vif *vif,
 
 	if (WARN_ON(!priv))
 		return -EOPNOTSUPP;
-
-#ifdef P2P_MULTIVIF
-	if (priv->if_id == XRWL_GENERIC_IF_ID)
-		return 0;
-#endif
 
 	mutex_lock(&hw_priv->conf_mutex);
 
@@ -844,9 +802,6 @@ int xradio_set_rts_threshold(struct ieee80211_hw *hw, u32 value)
 		if (!priv)
 			continue;
 		if_id = priv->if_id;
-#ifdef P2P_MULTIVIF
-		WARN_ON(priv->if_id == XRWL_GENERIC_IF_ID);
-#endif
 
 		if (value != (u32) -1)
 			val32 = __cpu_to_le32(value);
@@ -1506,9 +1461,6 @@ void xradio_join_work(struct work_struct *work)
 
 		if (priv->vif->p2p) {
 			join.flags |= WSM_JOIN_FLAGS_P2P_GO;
-#ifdef P2P_MULTIVIF
-			join.flags |= (1 << 6);
-#endif
 			join.basicRateSet =
 				xradio_rate_mask_to_wsm(hw_priv, 0xFF0);
 		}
@@ -1647,11 +1599,7 @@ void xradio_unjoin_work(struct work_struct *work)
 			sizeof(priv->firmware_ps_mode));
 		priv->htcap = false;
 		xradio_for_each_vif(hw_priv, tmp_priv, i) {
-#ifdef P2P_MULTIVIF
-			if ((i == (XRWL_MAX_VIFS - 1)) || !tmp_priv)
-#else
 			if (!tmp_priv)
-#endif
 				continue;
 			if ((tmp_priv->join_status == XRADIO_JOIN_STATUS_STA) && tmp_priv->htcap)
 				is_htcapie = true;
@@ -1679,11 +1627,7 @@ int xradio_enable_listening(struct xradio_vif *priv,
 	Change the code below once channel is made per VIF */
 	struct xradio_common *hw_priv = xrwl_vifpriv_to_hwpriv(priv);
 	struct wsm_start start = {
-#ifdef P2P_MULTIVIF
-		.mode = WSM_START_MODE_P2P_DEV | (priv->if_id ? (1 << 4) : 0),
-#else
 		.mode = WSM_START_MODE_P2P_DEV | (priv->if_id << 4),
-#endif
 		.band = (chan->band == NL80211_BAND_5GHZ) ?
 				WSM_PHY_BAND_5G : WSM_PHY_BAND_2_4G,
 		.channelNumber = chan->hw_value,
@@ -1905,9 +1849,6 @@ int xradio_vif_setup(struct xradio_vif *priv)
 
 	atomic_set(&priv->enabled, 1);
 
-#ifdef P2P_MULTIVIF
-	if (priv->if_id < 2) {
-#endif
 		/* default EDCA */
 		WSM_EDCA_SET(&priv->edca, 0, 0x0002, 0x0003, 0x0007,
 				47, 0xc8, false);
@@ -1950,9 +1891,7 @@ int xradio_vif_setup(struct xradio_vif *priv)
 
 		/* Temporary configuration - beacon filter table */
 		__xradio_bf_configure(priv);
-#ifdef P2P_MULTIVIF
-	}
-#endif
+
 out:
 	return ret;
 }
@@ -1981,11 +1920,7 @@ int xradio_setup_mac_pvif(struct xradio_vif *priv)
 
 
 	/* Configure RSSI/SCPI reporting as RSSI. */
-#ifdef P2P_MULTIVIF
-	ret = wsm_set_rcpi_rssi_threshold(priv->hw_priv, &threshold, priv->if_id ? 1 : 0);
-#else
 	ret = wsm_set_rcpi_rssi_threshold(priv->hw_priv, &threshold, priv->if_id);
-#endif
 	return ret;
 }
 

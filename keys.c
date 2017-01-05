@@ -59,9 +59,6 @@ int xradio_set_key(struct ieee80211_hw *dev, enum set_key_cmd cmd,
 
 	wiphy_dbg(dev->wiphy, "vif %d: set_key cmd %d\n", priv->if_id, (int) cmd);
 	
-#ifdef P2P_MULTIVIF
-	WARN_ON(priv->if_id == XRWL_GENERIC_IF_ID);
-#endif
 	mutex_lock(&hw_priv->conf_mutex);
 
 	if (cmd == SET_KEY) {

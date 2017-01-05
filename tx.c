@@ -581,18 +581,14 @@ xradio_tx_h_calc_link_ids(struct xradio_vif *priv,
 			  struct ieee80211_tx_control *control,
 			  struct xradio_txinfo *t)
 {
-#ifndef P2P_MULTIVIF
+
 	struct xradio_common *hw_priv = xrwl_vifpriv_to_hwpriv(priv);
-#endif
 
-
-#ifndef P2P_MULTIVIF
 	if ((t->tx_info->flags & IEEE80211_TX_CTL_TX_OFFCHAN) ||
 			(hw_priv->roc_if_id == priv->if_id))
 		t->txpriv.offchannel_if_id = 2;
 	else
 		t->txpriv.offchannel_if_id = 0;
-#endif
 
 	if (likely(control->sta && t->sta_priv->link_id))
 		t->txpriv.raw_link_id =
@@ -980,9 +976,6 @@ void xradio_tx(struct ieee80211_hw *dev, struct ieee80211_tx_control *control, s
 		.hdr = (struct ieee80211_hdr *)skb->data,
 		.txpriv.tid = XRADIO_MAX_TID,
 		.txpriv.rate_id = XRADIO_INVALID_RATE_ID,
-#ifdef P2P_MULTIVIF
-		.txpriv.raw_if_id = 0,
-#endif
 		.txpriv.use_bg_rate = 0,
 	};
 	struct ieee80211_sta *sta;

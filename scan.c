@@ -68,11 +68,7 @@ static int xradio_scan_start(struct xradio_vif *priv, struct wsm_scan *scan)
 	atomic_set(&hw_priv->scan.in_progress, 1);
 	atomic_set(&hw_priv->recent_scan, 1);
 	xradio_pm_stay_awake(&hw_priv->pm_state, tmo * HZ / 1000);
-#ifdef P2P_MULTIVIF
-	ret = wsm_scan(hw_priv, scan, priv->if_id ? 1 : 0);
-#else
 	ret = wsm_scan(hw_priv, scan, priv->if_id);
-#endif
 	if (unlikely(ret)) {
 		scan_printk(XRADIO_DBG_WARN, "%s,wsm_scan failed!\n", __func__);
 		atomic_set(&hw_priv->scan.in_progress, 0);
@@ -204,11 +200,7 @@ int xradio_hw_scan(struct ieee80211_hw *hw,
 			int ret = 0;
 			if (priv->if_id == 0)
 				xradio_remove_wps_p2p_ie(&frame);
-#ifdef P2P_MULTIVIF
-			ret = wsm_set_template_frame(hw_priv, &frame, priv->if_id ? 1 : 0);
-#else
 			ret = wsm_set_template_frame(hw_priv, &frame, priv->if_id);
-#endif
 			if (ret) {
 				mutex_unlock(&hw_priv->conf_mutex);
 				up(&hw_priv->scan.lock);
@@ -423,13 +415,8 @@ void xradio_scan_work(struct work_struct *work)
 			if (hw_priv->scan.output_power != hw_priv->output_power) {
 			/* TODO:COMBO: Change when mac80211 implementation
 			 * is available for output power also */
-#ifdef P2P_MULTIVIF
-					WARN_ON(wsm_set_output_power(hw_priv, hw_priv->output_power * 10,
-					                             priv->if_id ? 1 : 0));
-#else
 					WARN_ON(wsm_set_output_power(hw_priv, hw_priv->output_power * 10,
 					                             priv->if_id));
-#endif
 			}
 
 #if 0
@@ -519,13 +506,8 @@ void xradio_scan_work(struct work_struct *work)
 			    hw_priv->scan.output_power = first->max_power;
 				/* TODO:COMBO: Change after mac80211 implementation
 				* complete */
-#ifdef P2P_MULTIVIF
-				WARN_ON(wsm_set_output_power(hw_priv, hw_priv->scan.output_power * 10,
-				                             priv->if_id ? 1 : 0));
-#else
 				WARN_ON(wsm_set_output_power(hw_priv, hw_priv->scan.output_power * 10,
 				                             priv->if_id));
-#endif
 			}
 
 			down(&hw_priv->scan.status_lock);

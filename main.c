@@ -171,28 +171,16 @@ static const struct ieee80211_ops xradio_ops = {
 static void xradio_set_ifce_comb(struct xradio_common *hw_priv,
 				 struct ieee80211_hw *hw)
 {
-#ifdef P2P_MULTIVIF
-	hw_priv->if_limits1[0].max = 2;
-#else
 	hw_priv->if_limits1[0].max = 1;
-#endif
 
 	hw_priv->if_limits1[0].types = BIT(NL80211_IFTYPE_STATION);
 	hw_priv->if_limits1[1].max = 1;
 	hw_priv->if_limits1[1].types = BIT(NL80211_IFTYPE_AP);
 
-#ifdef P2P_MULTIVIF
-	hw_priv->if_limits2[0].max = 3;
-#else
 	hw_priv->if_limits2[0].max = 2;
-#endif
 	hw_priv->if_limits2[0].types = BIT(NL80211_IFTYPE_STATION);
 
-#ifdef P2P_MULTIVIF
-       hw_priv->if_limits3[0].max = 2;
-#else
 	hw_priv->if_limits3[0].max = 1;
-#endif
 
 	hw_priv->if_limits3[0].types = BIT(NL80211_IFTYPE_STATION);
 	hw_priv->if_limits3[1].max = 1;
@@ -202,30 +190,18 @@ static void xradio_set_ifce_comb(struct xradio_common *hw_priv,
 	/* TODO:COMBO: mac80211 doesn't yet support more than 1
 	 * different channel */
 	hw_priv->if_combs[0].num_different_channels = 1;
-#ifdef P2P_MULTIVIF
-        hw_priv->if_combs[0].max_interfaces = 3;
-#else
 	hw_priv->if_combs[0].max_interfaces = 2;
-#endif
 	hw_priv->if_combs[0].limits = hw_priv->if_limits1;
 	hw_priv->if_combs[0].n_limits = 2;
 
 	hw_priv->if_combs[1].num_different_channels = 1;
 
-#ifdef P2P_MULTIVIF
-        hw_priv->if_combs[1].max_interfaces = 3;
-#else
 	hw_priv->if_combs[1].max_interfaces = 2;
-#endif
 	hw_priv->if_combs[1].limits = hw_priv->if_limits2;
 	hw_priv->if_combs[1].n_limits = 1;
 
 	hw_priv->if_combs[2].num_different_channels = 1;
-#ifdef P2P_MULTIVIF
-        hw_priv->if_combs[2].max_interfaces = 3;
-#else
 	hw_priv->if_combs[2].max_interfaces = 2;
-#endif
 	hw_priv->if_combs[2].limits = hw_priv->if_limits3;
 	hw_priv->if_combs[2].n_limits = 2;
 
@@ -546,10 +522,6 @@ int xradio_core_init(struct sdio_func* func)
 	memcpy(hw_priv->addresses[0].addr, addr, ETH_ALEN);
 	memcpy(hw_priv->addresses[1].addr, addr, ETH_ALEN);
 	hw_priv->addresses[1].addr[5] += 0x01;
-#ifdef P2P_MULTIVIF
-	memcpy(hw_priv->addresses[2].addr, addr, ETH_ALEN);
-	hw_priv->addresses[2].addr[4] ^= 0x80;
-#endif
 
 	/*init pm and wakelock. */
 #ifdef CONFIG_PM

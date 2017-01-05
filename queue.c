@@ -496,21 +496,15 @@ int xradio_queue_requeue(struct xradio_queue *queue, u32 packetID, bool check)
 				&item_generation, &item_id, &if_id, &link_id);
 
 	item = &queue->pool[item_id];
-#ifdef P2P_MULTIVIF
-	if (check && item->txpriv.if_id == XRWL_GENERIC_IF_ID) {
-#else
 	if (check && item->txpriv.offchannel_if_id == XRWL_GENERIC_IF_ID) {
-#endif
 		txrx_printk(XRADIO_DBG_MSG, "Requeued frame dropped for "
 						"generic interface id.\n");
 		xradio_queue_remove(queue, packetID);
 		return 0;
 	}
 
-#ifndef P2P_MULTIVIF
 	if (!check)
 		item->txpriv.offchannel_if_id = XRWL_GENERIC_IF_ID;
-#endif
 
 	/*if_id = item->txpriv.if_id;*/
 
