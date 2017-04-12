@@ -11,6 +11,8 @@
 
 #include <net/mac80211.h>
 #include <linux/kthread.h>
+#include <linux/sched.h>
+#include <uapi/linux/sched/types.h>
 
 #include "xradio.h"
 #include "bh.h"
