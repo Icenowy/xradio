@@ -1086,7 +1086,7 @@ void xradio_event_handler(struct work_struct *work)
 					NL80211_CQM_RSSI_THRESHOLD_EVENT_LOW :
 					NL80211_CQM_RSSI_THRESHOLD_EVENT_HIGH;
 				sta_printk(XRADIO_DBG_NIY, "[CQM] RSSI event: %d", rcpiRssi);
-				ieee80211_cqm_rssi_notify(priv->vif, cqm_evt,
+				ieee80211_cqm_rssi_notify(priv->vif, cqm_evt, rcpiRssi,
 									GFP_KERNEL);
 				break;
 			}

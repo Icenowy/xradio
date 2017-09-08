@@ -16,6 +16,7 @@
 #include <asm/mach-types.h>
 #include <linux/of.h>
 #include <linux/of_irq.h>
+#include <linux/module.h>
 
 #include "xradio.h"
 #include "sdio.h"
