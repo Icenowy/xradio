@@ -8,6 +8,20 @@
 #include "bh.h"
 #include "ap.h"
 
+static void xradio_check_go_neg_conf_success(struct xradio_common *hw_priv,
+						u8 *action)
+{
+	if (action[2] == 0x50 && action[3] == 0x6F && action[4] == 0x9A &&
+		action[5] == 0x09 && action[6] == 0x02) {
+		if(action[17] == 0) {
+			hw_priv->is_go_thru_go_neg = true;
+		}
+		else {
+			hw_priv->is_go_thru_go_neg = false;
+		}
+	}
+}
+
 static int xradio_handle_pspoll(struct xradio_vif *priv,
 				struct sk_buff *skb)
 {
